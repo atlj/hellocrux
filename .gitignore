@@ -1,3 +1,5 @@
 target
 shared/target
 shared_types/generated
+ios/generated
+**/xcuserdata
