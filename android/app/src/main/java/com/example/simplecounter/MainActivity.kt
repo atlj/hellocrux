@@ -55,7 +55,7 @@ fun View(core: Core = viewModel()) {
                 )
             ) { Text(text = "Reset", color = Color.White) }
             Button(
-                onClick = { core.update(Event.Increment()) },
+                onClick = { core.update(Event.DelayedIncrement()) },
                 colors =
                 ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary

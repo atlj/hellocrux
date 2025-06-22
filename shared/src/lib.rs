@@ -1,5 +1,8 @@
 use std::sync::LazyLock;
 
+pub mod delay;
+pub use delay::*;
+
 pub mod app;
 pub use app::*;
 pub use crux_core::{Core, Request, bridge::Bridge};

@@ -5,8 +5,11 @@ use crux_core::{
 };
 use serde::{Deserialize, Serialize};
 
+use crate::{DelayOperation, random_delay};
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Event {
+    DelayedIncrement,
     Increment,
     Decrement,
     Reset,
@@ -16,11 +19,13 @@ pub enum Event {
 #[effect(typegen)]
 pub enum Effect {
     Render(RenderOperation),
+    Delay(DelayOperation),
 }
 
 #[derive(Default)]
 pub struct Model {
     count: isize,
+    update_in_progress: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
@@ -45,18 +50,39 @@ impl App for CounterApp {
         _caps: &Self::Capabilities,
     ) -> Command<Self::Effect, Self::Event> {
         match event {
-            Event::Increment => model.count += 1,
-            Event::Decrement => model.count -= 1,
-            Event::Reset => model.count = 0,
-            Event::Set(value) => model.count = value,
-        }
+            Event::DelayedIncrement => {
+                model.update_in_progress = true;
 
-        render()
+                render()
+                    .then(random_delay::<Effect, Event>(2000, 5000).then_send(|_| Event::Increment))
+            }
+            Event::Increment => {
+                model.update_in_progress = false;
+                model.count += 1;
+                render()
+            }
+            Event::Decrement => {
+                model.count -= 1;
+                render()
+            }
+            Event::Reset => {
+                model.count = 0;
+                render()
+            }
+            Event::Set(value) => {
+                model.count = value;
+                render()
+            }
+        }
     }
 
     fn view(&self, model: &Self::Model) -> Self::ViewModel {
         ViewModel {
-            count: format!("Count is: {}", model.count),
+            count: if model.update_in_progress {
+                "Count is being calculated".to_string()
+            } else {
+                format!("Count is: {}", model.count)
+            },
         }
     }
 }
