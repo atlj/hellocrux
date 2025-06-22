@@ -1,0 +1,8 @@
+[workspace]
+members = ["shared"]
+resolver = "1"
+
+[workspace.dependencies]
+anyhow = "1.0.98"
+crux_core = "0.15.0"
+serde = "1.0.219"
