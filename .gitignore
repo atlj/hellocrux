@@ -1,2 +1,3 @@
-/target
-/shared/target
+target
+shared/target
+shared_types/generated
