@@ -1,5 +1,6 @@
 [package]
 name = "shared"
+edition = "2024"
 
 [lib]
 crate-type = ["lib", "staticlib", "cdylib"]
