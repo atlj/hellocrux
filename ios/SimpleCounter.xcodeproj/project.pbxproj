@@ -9,8 +9,11 @@
 /* Begin PBXBuildFile section */
 		1989BD3C863A9FB37C889B6D /* SharedTypes in Frameworks */ = {isa = PBXBuildFile; productRef = ADFA4530638891CDAA6FCC5D /* SharedTypes */; };
 		2AD69AC61D674BB2BC300FC2 /* (null) in Resources */ = {isa = PBXBuildFile; fileRef = E75E53B837C6A0E03FDCEC5A; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		401EA3CBD0D2AD8D475C10AF /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 842F8D01CC76E9BFCDBD2862 /* ContentView.swift */; };
 		A022BC4B1B16254762ED55B3 /* shared.udl in Sources */ = {isa = PBXBuildFile; fileRef = 8B8EC4C63F3ECC2B26BBAEC2 /* shared.udl */; };
 		C26A1E5DDAB1ED32518E8F2A /* libshared_static.a.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2EA4D4AAE1A6C4D3400A9A06 /* libshared_static.a.a */; };
+		D47B166DEAAF41F0FC860C3B /* App.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD91B42EB1E1DA6D86D57AC3 /* App.swift */; };
+		DE3600B1A063D422BDA42B19 /* Core.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02BD345E6AE3454655CDC6D2 /* Core.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -64,10 +67,13 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		02BD345E6AE3454655CDC6D2 /* Core.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core.swift; sourceTree = "<group>"; };
 		1974E5BC3D6D22A1D5676B40 /* SimpleCounter.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = SimpleCounter.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		642CF26F4B57B0FF7348C6BF /* SharedTypes */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SharedTypes; path = ../shared_types/generated/swift/SharedTypes; sourceTree = SOURCE_ROOT; };
+		842F8D01CC76E9BFCDBD2862 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		8B8EC4C63F3ECC2B26BBAEC2 /* shared.udl */ = {isa = PBXFileReference; path = shared.udl; sourceTree = "<group>"; };
 		8EA6E09EE87596B896068D0E /* Shared */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Shared; path = ../shared/shared.xcodeproj; sourceTree = "<group>"; };
+		BD91B42EB1E1DA6D86D57AC3 /* App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App.swift; sourceTree = "<group>"; };
 		CF5BE0317D54587DCCF48AF4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -140,6 +146,9 @@
 		E6F6A75B1B8366C3D868D1E4 /* SimpleCounter */ = {
 			isa = PBXGroup;
 			children = (
+				BD91B42EB1E1DA6D86D57AC3 /* App.swift */,
+				842F8D01CC76E9BFCDBD2862 /* ContentView.swift */,
+				02BD345E6AE3454655CDC6D2 /* Core.swift */,
 				CF5BE0317D54587DCCF48AF4 /* Info.plist */,
 			);
 			path = SimpleCounter;
@@ -239,6 +248,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D47B166DEAAF41F0FC860C3B /* App.swift in Sources */,
+				401EA3CBD0D2AD8D475C10AF /* ContentView.swift in Sources */,
+				DE3600B1A063D422BDA42B19 /* Core.swift in Sources */,
 				A022BC4B1B16254762ED55B3 /* shared.udl in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
