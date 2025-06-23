@@ -1,10 +1,12 @@
-use axum::{Json, Router, routing::get};
+use axum::{Json, Router, response::Response, routing::get};
 use domain::Movie;
 use tokio::net::TcpListener;
 
 #[tokio::main]
 async fn main() {
-    let app = Router::new().route("/get_movies", get(movie_list_handler));
+    let app = Router::new()
+        .route("/health", get(health_handler))
+        .route("/get_movies", get(movie_list_handler));
 
     let listener = TcpListener::bind("localhost:3000")
         .await
@@ -22,4 +24,8 @@ async fn movie_list_handler() -> Json<Vec<Movie>> {
             }
         ]
         )
+}
+
+async fn health_handler() -> String {
+    "alive".to_string()
 }
