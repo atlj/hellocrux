@@ -262,6 +262,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "domain"
+version = "0.0.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "equivalent"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -1,0 +1,6 @@
+[package]
+name = "server"
+
+[dependencies]
+serde = { workspace = true }
+domain = { path = "../domain" }
