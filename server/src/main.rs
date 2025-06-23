@@ -1,6 +1,6 @@
 use axum::{Json, Router, routing::get};
 use domain::Movie;
-use tokio::{main, net::TcpListener};
+use tokio::net::TcpListener;
 
 #[tokio::main]
 async fn main() {
