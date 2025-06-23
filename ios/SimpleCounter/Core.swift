@@ -1,5 +1,6 @@
 import Foundation
 import SharedTypes
+import Serde
 
 @MainActor
 class Core: ObservableObject {
@@ -34,6 +35,26 @@ class Core: ObservableObject {
             respond(request, response: try! response.bincodeSerialize())
         }
       }
+    case let .store(storageOperation):
+        switch storageOperation {
+        case let .store(key, value):
+            UserDefaults.standard.setValue(value, forKey: key)
+            respond(request, response: [0])
+        case let .get(key):
+            let serializer = BincodeSerializer()
+            
+            let storedValue = UserDefaults.standard.value(forKey: key) as! String?
+            
+            if let storedValue {
+                try! serializer.serialize_option_tag(value: true)
+                try! serializer.serialize_str(value: storedValue)
+            } else {
+                try! serializer.serialize_option_tag(value: false)
+            }
+            
+            let response = serializer.get_bytes()
+            respond(request, response: response)
+        }
     }
   }
 

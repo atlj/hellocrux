@@ -1,7 +1,7 @@
 use std::sync::LazyLock;
 
-pub mod delay;
-pub use delay::*;
+pub mod capabilities;
+pub use capabilities::*;
 
 pub mod app;
 pub use app::*;
