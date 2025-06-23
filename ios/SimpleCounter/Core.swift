@@ -23,18 +23,6 @@ class Core: ObservableObject {
     switch request.effect {
     case .render:
       view = try! .bincodeDeserialize(input: [UInt8](SimpleCounter.view()))
-    case let .delay(delayOperation):
-      switch delayOperation {
-      case let .random(min, max):
-          let response = DelayOutput.random(.random(in: min...max))
-          respond(request, response: try! response.bincodeSerialize())
-      case let .delay(time):
-        Task {
-          try await Task.sleep(nanoseconds: time * 1_000_000)
-            let response = DelayOutput.timeUp
-            respond(request, response: try! response.bincodeSerialize())
-        }
-      }
     case let .store(storageOperation):
         switch storageOperation {
         case let .store(key, value):
