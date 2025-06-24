@@ -1,4 +1,4 @@
-use axum::{Json, Router, response::Response, routing::get};
+use axum::{Json, Router, routing::get};
 use domain::Movie;
 use tokio::net::TcpListener;
 

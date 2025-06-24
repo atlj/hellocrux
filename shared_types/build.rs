@@ -1,5 +1,8 @@
 use crux_core::typegen::TypeGen;
-use shared::CounterApp;
+use shared::{
+    CounterApp,
+    capabilities::{navigation::Screen, server_communication::ConnectionState},
+};
 use std::path::PathBuf;
 
 fn main() -> anyhow::Result<()> {
@@ -7,6 +10,8 @@ fn main() -> anyhow::Result<()> {
 
     let mut typegen = TypeGen::new();
     typegen.register_app::<CounterApp>()?;
+    typegen.register_type::<Screen>()?;
+    typegen.register_type::<ConnectionState>()?;
 
     let output_root = PathBuf::from("./generated");
     typegen.swift("SharedTypes", output_root.join("swift"))?;

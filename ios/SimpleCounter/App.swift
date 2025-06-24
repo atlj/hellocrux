@@ -4,7 +4,8 @@ import SwiftUI
 struct SimpleCounterApp: App {
   var body: some Scene {
     WindowGroup {
-      ContentView(core: Core())
+        NavigationContainer()
+            .environmentObject(Core())
     }
   }
 }
