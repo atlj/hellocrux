@@ -14,7 +14,7 @@ impl Operation for StorageOperation {
 #[must_use]
 pub fn store<Effect, Event>(
     key: &str,
-    value: &str,
+    value: String,
 ) -> RequestBuilder<Effect, Event, impl Future<Output = Option<String>>>
 where
     Effect: Send + From<Request<StorageOperation>> + 'static,
@@ -22,7 +22,7 @@ where
 {
     Command::request_from_shell(StorageOperation::Store {
         key: key.to_string(),
-        value: value.to_string(),
+        value,
     })
 }
 

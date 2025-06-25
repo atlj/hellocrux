@@ -10,6 +10,7 @@
 		1989BD3C863A9FB37C889B6D /* SharedTypes in Frameworks */ = {isa = PBXBuildFile; productRef = ADFA4530638891CDAA6FCC5D /* SharedTypes */; };
 		2063F8232E0B412D00745BA9 /* ServerAddressEntryScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2063F8222E0B412D00745BA9 /* ServerAddressEntryScreen.swift */; };
 		2063F8252E0B417D00745BA9 /* NavigationContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2063F8242E0B417D00745BA9 /* NavigationContainer.swift */; };
+		20C2643E2E0CA8E800DC017A /* ListScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20C2643D2E0CA8E800DC017A /* ListScreen.swift */; };
 		2AD69AC61D674BB2BC300FC2 /* uniffi-bindgen in Resources */ = {isa = PBXBuildFile; fileRef = E75E53B837C6A0E03FDCEC5A /* uniffi-bindgen */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		401EA3CBD0D2AD8D475C10AF /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 842F8D01CC76E9BFCDBD2862 /* ContentView.swift */; };
 		A022BC4B1B16254762ED55B3 /* shared.udl in Sources */ = {isa = PBXBuildFile; fileRef = 8B8EC4C63F3ECC2B26BBAEC2 /* shared.udl */; };
@@ -79,9 +80,10 @@
 
 /* Begin PBXFileReference section */
 		02BD345E6AE3454655CDC6D2 /* Core.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core.swift; sourceTree = "<group>"; };
-		1974E5BC3D6D22A1D5676B40 /* SimpleCounter.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = SimpleCounter.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1974E5BC3D6D22A1D5676B40 /* SimpleCounter.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SimpleCounter.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2063F8222E0B412D00745BA9 /* ServerAddressEntryScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerAddressEntryScreen.swift; sourceTree = "<group>"; };
 		2063F8242E0B417D00745BA9 /* NavigationContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationContainer.swift; sourceTree = "<group>"; };
+		20C2643D2E0CA8E800DC017A /* ListScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListScreen.swift; sourceTree = "<group>"; };
 		642CF26F4B57B0FF7348C6BF /* SharedTypes */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = SharedTypes; path = ../shared_types/generated/swift/SharedTypes; sourceTree = SOURCE_ROOT; };
 		842F8D01CC76E9BFCDBD2862 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		8B8EC4C63F3ECC2B26BBAEC2 /* shared.udl */ = {isa = PBXFileReference; lastKnownFileType = text; path = shared.udl; sourceTree = "<group>"; };
@@ -119,6 +121,7 @@
 			children = (
 				2063F8222E0B412D00745BA9 /* ServerAddressEntryScreen.swift */,
 				2063F8242E0B417D00745BA9 /* NavigationContainer.swift */,
+				20C2643D2E0CA8E800DC017A /* ListScreen.swift */,
 			);
 			path = Screen;
 			sourceTree = "<group>";
@@ -280,6 +283,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				2063F8232E0B412D00745BA9 /* ServerAddressEntryScreen.swift in Sources */,
+				20C2643E2E0CA8E800DC017A /* ListScreen.swift in Sources */,
 				D47B166DEAAF41F0FC860C3B /* App.swift in Sources */,
 				401EA3CBD0D2AD8D475C10AF /* ContentView.swift in Sources */,
 				2063F8252E0B417D00745BA9 /* NavigationContainer.swift in Sources */,
@@ -309,6 +313,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = PJL7DA2X5F;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = SimpleCounter/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
@@ -332,6 +337,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = PJL7DA2X5F;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = SimpleCounter/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;

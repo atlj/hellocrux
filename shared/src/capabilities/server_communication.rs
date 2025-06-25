@@ -20,7 +20,7 @@ pub enum ServerCommunicationOperation {
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ServerCommunicationOutput {
-    ConnectionResult(bool),
+    ConnectionResult(bool, String),
 }
 
 impl Operation for ServerCommunicationOperation {

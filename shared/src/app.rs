@@ -1,3 +1,5 @@
+use std::fmt::format;
+
 use crux_core::{
     App, Command,
     macros::effect,
@@ -12,7 +14,7 @@ use crate::capabilities::{
         ConnectionState, ServerCommunicationEvent, ServerCommunicationOperation,
         ServerCommunicationOutput, connect,
     },
-    storage::{StorageOperation, get},
+    storage::{StorageOperation, get, store},
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -65,21 +67,35 @@ impl App for CounterApp {
     ) -> Command<Self::Effect, Self::Event> {
         match event {
             Event::Startup => Command::new(|ctx| async move {
-                get("server_address")
-                    .then_request(|stored_server_address| match stored_server_address {
-                        None => navigate::<Effect, Event>(Screen::ServerAddressEntry),
-                        Some(_) => navigate(Screen::List),
-                    })
-                    .into_future(ctx)
-                    .await;
+                let stored_server_address = get("server_address").into_future(ctx.clone()).await;
+                match stored_server_address {
+                    None => navigate::<Effect, Event>(Screen::ServerAddressEntry),
+                    Some(_) => navigate(Screen::List),
+                }
+                .into_future(ctx)
+                .await
             }),
             Event::ServerCommunication(event) => match event {
-                ServerCommunicationEvent::TryConnecting(address) => {
+                ServerCommunicationEvent::TryConnecting(mut address) => {
                     model.connection_state = Some(ConnectionState::Pending);
-                    connect::<Effect, Event>(address).then_send(|output| -> Event {
-                        match output {
-                            ServerCommunicationOutput::ConnectionResult(result) => {
-                                Event::UpdateModel(PartialModel {
+                    _ = render::<Effect, Event>();
+                    Command::new(|ctx| async move {
+                        if !address.starts_with("http") {
+                            address = "http://".to_owned() + &address;
+                        }
+                        let connection_result = match url::Url::parse(&address) {
+                            Ok(mut url) => {
+                                url.set_path("health");
+                                connect::<Effect, Event>(url.to_string())
+                                    .into_future(ctx.clone())
+                                    .await
+                            }
+                            Err(_) => ServerCommunicationOutput::ConnectionResult(false, address),
+                        };
+
+                        match connection_result {
+                            ServerCommunicationOutput::ConnectionResult(result, address) => {
+                                ctx.send_event(Event::UpdateModel(PartialModel {
                                     current_screen: None,
                                     server_address: None,
                                     connection_state: Some(Some(if result {
@@ -87,9 +103,18 @@ impl App for CounterApp {
                                     } else {
                                         ConnectionState::Error
                                     })),
-                                })
+                                }));
+                                if result {
+                                    // Make these concurrent
+                                    let mut url = url::Url::parse(&address).unwrap();
+                                    url.set_path("");
+                                    store("server_address", url.to_string())
+                                        .into_future(ctx.clone())
+                                        .await;
+                                    navigate(Screen::List).into_future(ctx.clone()).await;
+                                }
                             }
-                        }
+                        };
                     })
                 }
             },
@@ -97,7 +122,10 @@ impl App for CounterApp {
                 model.apply_some(partial_model);
                 render()
             }
-            Event::ScreenChanged(screen) => todo!(),
+            Event::ScreenChanged(screen) => {
+                model.current_screen = screen;
+                render()
+            }
         }
     }
 
