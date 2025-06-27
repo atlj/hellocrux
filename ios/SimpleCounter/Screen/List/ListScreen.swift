@@ -45,6 +45,13 @@ struct ListScreen: View {
         .onAppear {
             core.update(.screenChanged(.list))
         }
+        .toolbar {
+            NavigationLink {
+                SettingsScreen()
+            } label: {
+                Label("Settings", systemImage: "gearshape")
+            }
+        }
         .navigationTitle("Media")
     }
 }

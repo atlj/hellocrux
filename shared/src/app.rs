@@ -126,6 +126,8 @@ impl App for CounterApp {
                             }
                         })
                     }
+                    Screen::Detail(media) => Command::done(),
+                    Screen::Settings => Command::done(),
                 }
             }
             Event::ServerCommunication(event) => match event {

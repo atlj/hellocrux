@@ -2,6 +2,8 @@ import SharedTypes
 import SwiftUI
 
 struct MediaDetailScreen: View {
+    @EnvironmentObject var core: Core
+    
     let media: Media
     var body: some View {
         VStack {
@@ -34,6 +36,9 @@ struct MediaDetailScreen: View {
             }
         }
         .navigationTitle(media.title)
+        .onAppear {
+            core.update(.screenChanged(.detail(media)))
+        }
     }
 }
 
@@ -41,4 +46,5 @@ struct MediaDetailScreen: View {
     MediaDetailScreen(
         media: Media(id: "1", thumbnail: "https://www.themoviedb.org/t/p/w600_and_h900_bestv2/78lPtwv72eTNqFW9COBYI0dWDJa.jpg", title: "Iron Man")
     )
+    .environmentObject(Core())
 }

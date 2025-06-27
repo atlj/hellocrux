@@ -17,6 +17,10 @@ struct NavigationContainer: View {
                             ListScreen()
                         case .startup:
                             ListScreen() // change me
+                        case let .detail(media):
+                            MediaDetailScreen(media: media)
+                        case .settings:
+                            SettingsScreen()
                         }
                     }
             }.onAppear {

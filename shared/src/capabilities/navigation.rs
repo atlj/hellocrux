@@ -1,4 +1,5 @@
 use crux_core::{Command, Request, capability::Operation, command::RequestBuilder};
+use domain::Media;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -12,6 +13,8 @@ pub enum Screen {
     Startup,
     ServerAddressEntry,
     List,
+    Detail(Media),
+    Settings,
 }
 
 impl Operation for NavigationOperation {
