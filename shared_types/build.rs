@@ -1,4 +1,5 @@
 use crux_core::typegen::TypeGen;
+use domain::Media;
 use shared::{
     CounterApp,
     capabilities::{http::HttpRequestState, navigation::Screen},
@@ -12,6 +13,7 @@ fn main() -> anyhow::Result<()> {
     typegen.register_app::<CounterApp>()?;
     typegen.register_type::<Screen>()?;
     typegen.register_type::<HttpRequestState>()?;
+    typegen.register_type::<Media>()?;
 
     let output_root = PathBuf::from("./generated");
     typegen.swift("SharedTypes", output_root.join("swift"))?;

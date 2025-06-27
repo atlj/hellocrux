@@ -3,6 +3,7 @@ use crux_core::{
     macros::effect,
     render::{RenderOperation, render},
 };
+use domain::Media;
 use partially::Partial;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -24,7 +25,7 @@ pub enum Event {
     ScreenChanged(Screen),
     ServerCommunication(ServerCommunicationEvent),
 
-    #[serde(skip_serializing)]
+    #[serde(skip)]
     UpdateModel(PartialModel),
 }
 
@@ -36,18 +37,19 @@ pub enum Effect {
     Http(HttpOperation),
 }
 
-#[derive(Default, Partial, Clone, Debug, Serialize, Deserialize)]
-#[partially(derive(Debug, Clone, Serialize, Deserialize, Default))]
+#[derive(Default, Partial, Clone, Debug)]
+#[partially(derive(Debug, Clone, Default))]
 pub struct Model {
+    base_url: Option<Url>,
     current_screen: Screen,
-    server_address: Option<String>,
     connection_state: Option<HttpRequestState>,
+    media_items: Option<Vec<Media>>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct ViewModel {
-    current_screen: Screen,
     connection_state: Option<HttpRequestState>,
+    media_items: Option<Vec<Media>>,
 }
 
 #[derive(Default)]
@@ -70,19 +72,61 @@ impl App for CounterApp {
             Event::Startup => Command::new(|ctx| async move {
                 let stored_server_address = get("server_address").into_future(ctx.clone()).await;
                 match stored_server_address {
-                    None => navigate::<Effect, Event>(Screen::ServerAddressEntry),
-                    Some(_) => navigate(Screen::List),
+                    None => {
+                        navigate::<Effect, Event>(Screen::ServerAddressEntry)
+                            .into_future(ctx)
+                            .await;
+                    }
+                    Some(stored_address) => {
+                        ctx.send_event(Event::UpdateModel(PartialModel {
+                            base_url: Some(Some(Url::parse(&stored_address).unwrap())),
+                            ..Default::default()
+                        }));
+                        navigate(Screen::List).into_future(ctx).await;
+                    }
                 }
-                .into_future(ctx)
-                .await
             }),
             Event::UpdateModel(partial_model) => {
                 model.apply_some(partial_model);
                 render()
             }
             Event::ScreenChanged(screen) => {
-                model.current_screen = screen;
-                render()
+                model.current_screen = screen.clone();
+                _ = render::<Effect, Event>();
+
+                match screen {
+                    Screen::Startup => Command::done(),
+                    Screen::ServerAddressEntry => Command::done(),
+                    Screen::List => {
+                        let mut url = if let Some(url) = model.base_url.clone() {
+                            url
+                        } else {
+                            return Command::new(|ctx| async move {
+                                navigate(Screen::ServerAddressEntry).into_future(ctx).await;
+                            });
+                        };
+
+                        Command::new(|ctx| async move {
+                            url.set_path("get_movies");
+
+                            match http::get(url).into_future(ctx.clone()).await {
+                                http::HttpOutput::Success { data, .. } => {
+                                    let movies = data
+                                        .map(|data| serde_json::from_str::<Vec<Media>>(&data).ok())
+                                        .flatten();
+
+                                    ctx.send_event(Event::UpdateModel(PartialModel {
+                                        media_items: Some(movies),
+                                        ..Default::default()
+                                    }));
+                                }
+                                http::HttpOutput::Error => {
+                                    // log
+                                }
+                            }
+                        })
+                    }
+                }
             }
             Event::ServerCommunication(event) => match event {
                 ServerCommunicationEvent::TryConnecting(mut address) => {
@@ -111,8 +155,18 @@ impl App for CounterApp {
                                 http::HttpOutput::Error => HttpRequestState::Error,
                             };
 
+                        url.set_path("");
+
                         ctx.send_event(Event::UpdateModel(PartialModel {
                             connection_state: Some(Some(connection_state.clone())),
+                            base_url: if matches!(
+                                connection_state,
+                                HttpRequestState::Success { .. }
+                            ) {
+                                Some(Some(url.clone()))
+                            } else {
+                                None
+                            },
                             ..Default::default()
                         }));
 
@@ -120,7 +174,6 @@ impl App for CounterApp {
                             return;
                         }
 
-                        url.set_path("");
                         store("server_address", url.to_string())
                             .into_future(ctx.clone())
                             .await;
@@ -133,8 +186,8 @@ impl App for CounterApp {
 
     fn view(&self, model: &Self::Model) -> Self::ViewModel {
         ViewModel {
-            current_screen: model.current_screen.clone(),
             connection_state: model.connection_state.clone(),
+            media_items: model.media_items.clone(),
         }
     }
 }

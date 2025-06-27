@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Movie {
+pub struct Media {
     pub id: String,
     pub thumbnail: String,
+    pub title: String,
 }

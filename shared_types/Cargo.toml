@@ -6,5 +6,6 @@ edition = "2024"
 
 [build-dependencies]
 anyhow.workspace = true
+domain = { path = "../domain" }
 crux_core = { workspace = true, features = ["typegen"] }
 shared = { path = "../shared", features = ["typegen"] }
