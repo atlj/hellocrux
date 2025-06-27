@@ -13,6 +13,7 @@ typegen = ["crux_core/typegen"]
 crux_core.workspace = true
 partially = { version = "0.2.1", features = ["default", "derive"] }
 serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
 uniffi = "0.29.3"
 url = "2.5.4"
 wasm-bindgen = "0.2.100"

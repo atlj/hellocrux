@@ -51,20 +51,26 @@ class Core: ObservableObject {
       case let .navigate(screen):
         navigationObserver?.navigate(screen: screen)
       }
-    case let .serverCommunication(serverCommunicationOperation):
-      switch serverCommunicationOperation {
-      case let .connect(address):
-        let uRLRequest = URLRequest(url: URL(string: address)!)
-        let id = request.id
-        Task {
-          let task = URLSession.shared.dataTask(with: uRLRequest) { [weak self] _, urlResponse, _ in
-            let response = ServerCommunicationOutput.connectionResult(urlResponse != nil, address)
-            DispatchQueue.main.async {
-              self?.respond(id, response: try! response.bincodeSerialize())
+    case let .http(httpOperation):
+      switch httpOperation {
+      case let .get(urlString):
+        let requestId = request.id
+        let url = URL(string: urlString)!
+        let request = URLRequest(url: url)
+        let task = URLSession.shared.dataTask(with: request) { [weak self] data, response, _ in
+          DispatchQueue.main.async {
+            guard let response = response as? HTTPURLResponse else {
+              self?.respond(requestId, response: try! HttpOutput.error.bincodeSerialize())
+              return
             }
+            let coreResponse = HttpOutput.success(
+              data: data == nil ? nil : String(data: data!, encoding: .utf8),
+              status_code: Int32(response.statusCode)
+            )
+            self?.respond(requestId, response: try! coreResponse.bincodeSerialize())
           }
-          task.resume()
         }
+        task.resume()
       }
     }
   }

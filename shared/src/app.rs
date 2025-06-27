@@ -1,5 +1,3 @@
-use std::fmt::format;
-
 use crux_core::{
     App, Command,
     macros::effect,
@@ -7,15 +5,18 @@ use crux_core::{
 };
 use partially::Partial;
 use serde::{Deserialize, Serialize};
+use url::Url;
 
 use crate::capabilities::{
+    http::{self, HttpOperation, HttpRequestState},
     navigation::{NavigationOperation, Screen, navigate},
-    server_communication::{
-        ConnectionState, ServerCommunicationEvent, ServerCommunicationOperation,
-        ServerCommunicationOutput, connect,
-    },
     storage::{StorageOperation, get, store},
 };
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub enum ServerCommunicationEvent {
+    TryConnecting(String),
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Event {
@@ -32,21 +33,21 @@ pub enum Effect {
     Render(RenderOperation),
     Store(StorageOperation),
     Navigate(NavigationOperation),
-    ServerCommunication(ServerCommunicationOperation),
+    Http(HttpOperation),
 }
 
 #[derive(Default, Partial, Clone, Debug, Serialize, Deserialize)]
-#[partially(derive(Debug, Clone, Serialize, Deserialize))]
+#[partially(derive(Debug, Clone, Serialize, Deserialize, Default))]
 pub struct Model {
     current_screen: Screen,
     server_address: Option<String>,
-    connection_state: Option<ConnectionState>,
+    connection_state: Option<HttpRequestState>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct ViewModel {
     current_screen: Screen,
-    connection_state: Option<ConnectionState>,
+    connection_state: Option<HttpRequestState>,
 }
 
 #[derive(Default)]
@@ -75,49 +76,6 @@ impl App for CounterApp {
                 .into_future(ctx)
                 .await
             }),
-            Event::ServerCommunication(event) => match event {
-                ServerCommunicationEvent::TryConnecting(mut address) => {
-                    model.connection_state = Some(ConnectionState::Pending);
-                    _ = render::<Effect, Event>();
-                    Command::new(|ctx| async move {
-                        if !address.starts_with("http") {
-                            address = "http://".to_owned() + &address;
-                        }
-                        let connection_result = match url::Url::parse(&address) {
-                            Ok(mut url) => {
-                                url.set_path("health");
-                                connect::<Effect, Event>(url.to_string())
-                                    .into_future(ctx.clone())
-                                    .await
-                            }
-                            Err(_) => ServerCommunicationOutput::ConnectionResult(false, address),
-                        };
-
-                        match connection_result {
-                            ServerCommunicationOutput::ConnectionResult(result, address) => {
-                                ctx.send_event(Event::UpdateModel(PartialModel {
-                                    current_screen: None,
-                                    server_address: None,
-                                    connection_state: Some(Some(if result {
-                                        ConnectionState::Successfull
-                                    } else {
-                                        ConnectionState::Error
-                                    })),
-                                }));
-                                if result {
-                                    // Make these concurrent
-                                    let mut url = url::Url::parse(&address).unwrap();
-                                    url.set_path("");
-                                    store("server_address", url.to_string())
-                                        .into_future(ctx.clone())
-                                        .await;
-                                    navigate(Screen::List).into_future(ctx.clone()).await;
-                                }
-                            }
-                        };
-                    })
-                }
-            },
             Event::UpdateModel(partial_model) => {
                 model.apply_some(partial_model);
                 render()
@@ -126,6 +84,50 @@ impl App for CounterApp {
                 model.current_screen = screen;
                 render()
             }
+            Event::ServerCommunication(event) => match event {
+                ServerCommunicationEvent::TryConnecting(mut address) => {
+                    model.connection_state = Some(HttpRequestState::Pending);
+                    _ = render::<Effect, Event>();
+
+                    Command::new(|ctx| async move {
+                        if !address.starts_with("http") {
+                            address = "http://".to_owned() + &address;
+                        }
+
+                        let mut url = if let Ok(url) = Url::parse(&address) {
+                            url
+                        } else {
+                            ctx.send_event(Event::UpdateModel(PartialModel {
+                                connection_state: Some(Some(HttpRequestState::Error)),
+                                ..Default::default()
+                            }));
+                            return;
+                        };
+
+                        url.set_path("health");
+                        let connection_state =
+                            match http::get(url.clone()).into_future(ctx.clone()).await {
+                                http::HttpOutput::Success { .. } => HttpRequestState::Success,
+                                http::HttpOutput::Error => HttpRequestState::Error,
+                            };
+
+                        ctx.send_event(Event::UpdateModel(PartialModel {
+                            connection_state: Some(Some(connection_state.clone())),
+                            ..Default::default()
+                        }));
+
+                        if matches!(connection_state, HttpRequestState::Error) {
+                            return;
+                        }
+
+                        url.set_path("");
+                        store("server_address", url.to_string())
+                            .into_future(ctx.clone())
+                            .await;
+                        navigate(Screen::List).into_future(ctx).await;
+                    })
+                }
+            },
         }
     }
 

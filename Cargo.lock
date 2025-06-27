@@ -1256,6 +1256,7 @@ dependencies = [
  "crux_core",
  "partially",
  "serde",
+ "serde_json",
  "uniffi",
  "url",
  "wasm-bindgen",

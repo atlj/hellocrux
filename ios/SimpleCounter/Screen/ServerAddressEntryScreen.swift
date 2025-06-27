@@ -41,7 +41,9 @@ struct ServerAddressEntryScreen: View {
         }
         Divider()
 
-        Button {} label: {
+        Button {
+            core.update(.serverCommunication(.tryConnecting(address)))
+        } label: {
           if core.view.connection_state == .pending {
             ProgressView()
           } else {
