@@ -8,7 +8,7 @@ async fn main() {
         .route("/health", get(health_handler))
         .route("/get_movies", get(movie_list_handler));
 
-    let listener = TcpListener::bind("localhost:3000")
+    let listener = TcpListener::bind("0.0.0.0:3000")
         .await
         .expect("Server can't be started");
 
