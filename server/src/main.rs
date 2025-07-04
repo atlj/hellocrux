@@ -1,11 +1,12 @@
 use std::sync::Arc;
 
-use axum::{Json, Router, extract, routing::get};
+use axum::{Json, Router, ServiceExt, extract, routing::get};
 use clap::Parser;
 use domain::Media;
 use log::info;
 use server::{Args, media::get_media_items};
 use tokio::net::TcpListener;
+use tower_http::services::{ServeDir, ServeFile};
 
 struct AppState {
     args: Args,
@@ -28,6 +29,7 @@ async fn main() {
     let shared_state = Arc::new(AppState { args, entries });
 
     let app = Router::new()
+        .nest_service("/static", ServeDir::new("media"))
         .route("/health", get(health_handler))
         .route("/get_movies", get(movie_list_handler))
         .with_state(shared_state);

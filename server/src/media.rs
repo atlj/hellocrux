@@ -4,6 +4,7 @@ use std::io::Read;
 use std::path::PathBuf;
 
 use domain::{Media, MediaContent, MediaMetaData};
+use log::{error, warn};
 
 const MOVIE_EXTENSIONS: [&str; 2] = ["mov", "mp4"];
 
@@ -11,7 +12,7 @@ pub async fn get_media_items(media_dir: PathBuf) -> Vec<Media> {
     let media_dir_contents = if let Ok(dir_contents) = fs::read_dir(media_dir.clone()) {
         dir_contents
     } else {
-        println!("{:?} doesn't point to a valid media directory.", media_dir);
+        error!("{:?} doesn't point to a valid media directory.", media_dir);
         return Vec::with_capacity(0);
     };
 
@@ -74,7 +75,7 @@ fn get_media_item(dir_entry: DirEntry) -> Option<Media> {
     let unwrapped_metadata = if let Some(metadata) = metadata {
         metadata
     } else {
-        println!("No metadata found for: {:#?}", dir_entry.path());
+        warn!("No metadata found for: {:#?}", dir_entry.path());
         return None;
     };
 
