@@ -4,3 +4,4 @@ shared_types/generated
 ios/generated
 **/xcuserdata
 .idea
+media/

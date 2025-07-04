@@ -1,12 +1,32 @@
-use axum::{Json, Router, routing::get};
-use domain::Media;
+use std::sync::Arc;
+
+use axum::{Json, Router, extract, routing::get};
+use clap::Parser;
+use domain::{Media, MediaContent};
+use server::{Args, media::get_media_items};
 use tokio::net::TcpListener;
+
+struct AppState {
+    args: Args,
+    entries: Vec<Media>,
+}
+
+type State = extract::State<Arc<AppState>>;
 
 #[tokio::main]
 async fn main() {
+    let args = Args::parse();
+
+    println!("Crawling media items");
+
+    let entries = get_media_items(args.media_dir.clone()).await;
+
+    let shared_state = Arc::new(AppState { args, entries });
+
     let app = Router::new()
         .route("/health", get(health_handler))
-        .route("/get_movies", get(movie_list_handler));
+        .route("/get_movies", get(movie_list_handler))
+        .with_state(shared_state);
 
     let listener = TcpListener::bind("0.0.0.0:3000")
         .await
@@ -15,31 +35,8 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn movie_list_handler() -> Json<Vec<Media>> {
-    Json(
-        vec![
-        Media {
-            id:"1".to_string(),
-            thumbnail: "https://m.media-amazon.com/images/M/MV5BMTkzMzM3OTM2Ml5BMl5BanBnXkFtZTgwMDM0NDU3MjI@._V1_FMjpg_UY2048_.jpg".to_string(),
-            title: "Emoji Movie".to_string()
-        },
-        Media {
-            id: "2".to_string(),
-            thumbnail: "https://www.themoviedb.org/t/p/w600_and_h900_bestv2/unPB1iyEeTBcKiLg8W083rlViFH.jpg".to_string(),
-            title: "The Boss Baby".to_string()
-        },
-        Media {
-            id: "3".to_string(),
-            thumbnail: "https://www.themoviedb.org/t/p/w600_and_h900_bestv2/78lPtwv72eTNqFW9COBYI0dWDJa.jpg".to_string(),
-            title: "Iron Man".to_string()
-        },
-        Media {
-            id: "4".to_string(),
-            thumbnail: "https://www.themoviedb.org/t/p/w600_and_h900_bestv2/9cqNxx0GxF0bflZmeSMuL5tnGzr.jpg".to_string(),
-            title: "Shawshank Redemption".to_string()
-        },
-        ]
-        )
+async fn movie_list_handler(extract::State(state): State) -> Json<Vec<Media>> {
+    Json(state.entries.clone())
 }
 
 async fn health_handler() -> String {
