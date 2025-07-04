@@ -1,2 +1,2 @@
 procs:
-  Run Server: cargo run -p server
+  Run Server: RUST_LOG=info cargo run -p server
