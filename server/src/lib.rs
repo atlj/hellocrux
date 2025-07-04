@@ -1,7 +1,7 @@
 pub mod media;
 use std::path::PathBuf;
 
-use clap::{Parser, clap_derive::Args};
+use clap::Parser;
 
 #[derive(Parser, Clone)]
 #[command()]

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use axum::{Json, Router, extract, routing::get};
 use clap::Parser;
-use domain::{Media, MediaContent};
+use domain::Media;
 use server::{Args, media::get_media_items};
 use tokio::net::TcpListener;
 
