@@ -16,7 +16,7 @@ struct MediaDetailScreen: View {
             .padding()
         }
         .background {
-            AsyncImage(url: URL(string: media.thumbnail)) { image in
+            AsyncImage(url: URL(string: media.metadata.thumbnail)) { image in
                 image.image?
                     .resizable(resizingMode: .stretch)
                     .aspectRatio(contentMode: .fill)
@@ -35,7 +35,7 @@ struct MediaDetailScreen: View {
                 .ignoresSafeArea()
             }
         }
-        .navigationTitle(media.title)
+        .navigationTitle(media.metadata.title)
         .onAppear {
             core.update(.screenChanged(.detail(media)))
         }
@@ -44,7 +44,7 @@ struct MediaDetailScreen: View {
 
 #Preview {
     MediaDetailScreen(
-        media: Media(id: "1", thumbnail: "https://www.themoviedb.org/t/p/w600_and_h900_bestv2/78lPtwv72eTNqFW9COBYI0dWDJa.jpg", title: "Iron Man")
+        media: Media(id: "1", metadata: MediaMetaData(thumbnail: "https://m.media-amazon.com/images/M/MV5BMTkzMzM3OTM2Ml5BMl5BanBnXkFtZTgwMDM0NDU3MjI@._V1_FMjpg_UY2048_.jpg", title: "Emoji Movie"), content: MediaContent.movie("test.mp4"))
     )
     .environmentObject(Core())
 }

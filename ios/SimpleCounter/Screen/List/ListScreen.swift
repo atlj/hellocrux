@@ -17,7 +17,7 @@ struct ListScreen: View {
             return items
         }
 
-        return items.filter { $0.title.lowercased().contains(searchTrimmed.lowercased()) }
+        return items.filter { $0.metadata.title.lowercased().contains(searchTrimmed.lowercased()) }
     }
 
     var body: some View {
@@ -28,7 +28,7 @@ struct ListScreen: View {
                         NavigationLink {
                             MediaDetailScreen(media: mediaItem)
                         } label: {
-                            AsyncImage(url: URL(string: mediaItem.thumbnail)) { image in
+                            AsyncImage(url: URL(string: mediaItem.metadata.thumbnail)) { image in
                                 image.resizable()
                             } placeholder: {
                                 ProgressView()
@@ -59,11 +59,7 @@ struct ListScreen: View {
 #Preview {
     ListScreen(
         overrideMediaItems: [
-            Media(id: "1", thumbnail: "https://m.media-amazon.com/images/M/MV5BMTkzMzM3OTM2Ml5BMl5BanBnXkFtZTgwMDM0NDU3MjI@._V1_FMjpg_UY2048_.jpg", title: "Emoji Movie"),
-            Media(id: "2", thumbnail: "https://m.media-amazon.com/images/M/MV5BMTkzMzM3OTM2Ml5BMl5BanBnXkFtZTgwMDM0NDU3MjI@._V1_FMjpg_UY2048_.jpg", title: "Emoji Movie"),
-            Media(id: "3", thumbnail: "https://m.media-amazon.com/images/M/MV5BMTkzMzM3OTM2Ml5BMl5BanBnXkFtZTgwMDM0NDU3MjI@._V1_FMjpg_UY2048_.jpg", title: "Emoji Movie"),
-            Media(id: "4", thumbnail: "https://m.media-amazon.com/images/M/MV5BMTkzMzM3OTM2Ml5BMl5BanBnXkFtZTgwMDM0NDU3MjI@._V1_FMjpg_UY2048_.jpg", title: "Emoji Movie"),
-            Media(id: "5", thumbnail: "https://m.media-amazon.com/images/M/MV5BMTkzMzM3OTM2Ml5BMl5BanBnXkFtZTgwMDM0NDU3MjI@._V1_FMjpg_UY2048_.jpg", title: "Emoji Movie"),
+            Media(id: "1", metadata: MediaMetaData(thumbnail: "https://m.media-amazon.com/images/M/MV5BMTkzMzM3OTM2Ml5BMl5BanBnXkFtZTgwMDM0NDU3MjI@._V1_FMjpg_UY2048_.jpg", title: "Emoji Movie"), content: MediaContent.movie("test.mp4"))
         ]
     )
     .environmentObject(Core())
