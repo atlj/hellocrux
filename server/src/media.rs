@@ -18,11 +18,11 @@ pub async fn get_media_items(media_dir: PathBuf) -> Vec<Media> {
 
     return media_dir_contents
         .flatten()
-        .flat_map(|entry| get_media_item(entry))
+        .flat_map(|entry| get_media_item(entry, &media_dir))
         .collect();
 }
 
-fn get_media_item(dir_entry: DirEntry) -> Option<Media> {
+fn get_media_item(dir_entry: DirEntry, root_path: &PathBuf) -> Option<Media> {
     let entry_metadata = dir_entry.metadata().ok()?;
 
     if entry_metadata.is_file() {
@@ -50,7 +50,7 @@ fn get_media_item(dir_entry: DirEntry) -> Option<Media> {
                 .is_some();
 
             if is_media_file {
-                movie_file = Some(path);
+                movie_file = Some(path.strip_prefix(root_path).unwrap().to_path_buf());
                 continue;
             }
 

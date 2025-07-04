@@ -26,10 +26,13 @@ async fn main() {
 
     info!("Found {:#?} media items", entries.len());
 
-    let shared_state = Arc::new(AppState { args, entries });
+    let shared_state = Arc::new(AppState {
+        args: args.clone(),
+        entries,
+    });
 
     let app = Router::new()
-        .nest_service("/static", ServeDir::new("media"))
+        .nest_service("/static", ServeDir::new(args.media_dir))
         .route("/health", get(health_handler))
         .route("/get_movies", get(movie_list_handler))
         .with_state(shared_state);
