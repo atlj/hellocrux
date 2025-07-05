@@ -5,7 +5,7 @@ struct SimpleCounterApp: App {
     var body: some Scene {
         WindowGroup {
             NavigationContainer()
-                .environmentObject(Core())
+                .environmentObject(Core.shared)
         }
     }
 }

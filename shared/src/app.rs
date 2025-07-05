@@ -11,7 +11,7 @@ use url::Url;
 use crate::capabilities::{
     http::{self, HttpOperation, HttpRequestState},
     navigation::{NavigationOperation, Screen, navigate},
-    storage::{StorageOperation, get, store},
+    storage::{StorageOperation, get, store, store_with_key_string},
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -23,12 +23,25 @@ pub enum ServerCommunicationEvent {
 pub enum PlayEvent {
     FromStart {
         id: String,
-        episode: Option<(u32, u32)>,
+        episode: Option<Episode>,
     },
     FromLastPosition {
         id: String,
-        episode: Option<(u32, u32)>,
+        episode: Option<Episode>,
     },
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Episode {
+    season: u32,
+    episode: u32,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PlaybackProgressData {
+    id: String,
+    episode: Option<Episode>,
+    progress_seconds: u64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -37,6 +50,7 @@ pub enum Event {
     ScreenChanged(Screen),
     ServerCommunication(ServerCommunicationEvent),
     Play(PlayEvent),
+    PlaybackProgress(PlaybackProgressData),
 
     #[serde(skip)]
     UpdateModel(PartialModel),
@@ -141,7 +155,7 @@ impl App for CounterApp {
                     }
                     Screen::Detail(media) => Command::done(),
                     Screen::Settings => Command::done(),
-                    Screen::Player(_) => Command::done(),
+                    Screen::Player { .. } => Command::done(),
                 }
             }
             Event::ServerCommunication(event) => match event {
@@ -220,9 +234,13 @@ impl App for CounterApp {
                             };
 
                             Command::new(|ctx| async move {
-                                navigate(Screen::Player(url.to_string()))
-                                    .into_future(ctx)
-                                    .await;
+                                navigate(Screen::Player {
+                                    id,
+                                    episode,
+                                    url: url.to_string(),
+                                })
+                                .into_future(ctx)
+                                .await;
                             })
                         }
                         None => todo!(),
@@ -230,6 +248,13 @@ impl App for CounterApp {
                 }
                 PlayEvent::FromLastPosition { id, episode } => todo!(),
             },
+            Event::PlaybackProgress(playback_progress_data) => Command::new(|ctx| async move {
+                let key = format!("progress-{}", playback_progress_data.id);
+
+                store_with_key_string(key, serde_json::to_string(&playback_progress_data).unwrap())
+                    .into_future(ctx)
+                    .await;
+            }),
         }
     }
 

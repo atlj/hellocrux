@@ -2,6 +2,8 @@ use crux_core::{Command, Request, capability::Operation, command::RequestBuilder
 use domain::Media;
 use serde::{Deserialize, Serialize};
 
+use crate::Episode;
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum NavigationOperation {
     Navigate(Screen),
@@ -15,7 +17,11 @@ pub enum Screen {
     List,
     Detail(Media),
     Settings,
-    Player(String),
+    Player {
+        id: String,
+        url: String,
+        episode: Option<Episode>,
+    },
 }
 
 impl Operation for NavigationOperation {

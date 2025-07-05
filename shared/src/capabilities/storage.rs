@@ -27,6 +27,18 @@ where
 }
 
 #[must_use]
+pub fn store_with_key_string<Effect, Event>(
+    key: String,
+    value: String,
+) -> RequestBuilder<Effect, Event, impl Future<Output = Option<String>>>
+where
+    Effect: Send + From<Request<StorageOperation>> + 'static,
+    Event: Send + 'static,
+{
+    Command::request_from_shell(StorageOperation::Store { key, value })
+}
+
+#[must_use]
 pub fn get<Effect, Event>(
     key: &str,
 ) -> RequestBuilder<Effect, Event, impl Future<Output = Option<String>>>

@@ -27,12 +27,12 @@ struct MediaDetailScreen: View {
             .overlay {
                 VStack {
                     Rectangle()
-                        .frame(maxWidth: .infinity, maxHeight: 200)
-                        .foregroundStyle(.linearGradient(.init(colors: [.black, .black.opacity(0)]), startPoint: .top, endPoint: .bottom))
+                        .frame(maxWidth: .infinity, maxHeight: 300)
+                        .foregroundStyle(.linearGradient(.init(colors: [.black, .black.opacity(0.7),.black.opacity(0)]), startPoint: .top, endPoint: .bottom))
                     Spacer()
                     Rectangle()
-                        .frame(maxWidth: .infinity, maxHeight: 200)
-                        .foregroundStyle(.linearGradient(.init(colors: [.black, .black.opacity(0)]), startPoint: .bottom, endPoint: .top))
+                        .frame(maxWidth: .infinity, maxHeight: 300)
+                        .foregroundStyle(.linearGradient(.init(colors: [.black, .black.opacity(0.7), .black.opacity(0)]), startPoint: .bottom, endPoint: .top))
                 }
                 .ignoresSafeArea()
             }
