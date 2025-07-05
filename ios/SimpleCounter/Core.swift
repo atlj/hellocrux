@@ -5,7 +5,7 @@ import SharedTypes
 @MainActor
 class Core: ObservableObject {
     static let shared = Core()
-    
+
     @Published var view: ViewModel
     var navigationObserver: (any NavigationObserver)?
 

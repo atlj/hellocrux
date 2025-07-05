@@ -3,7 +3,7 @@ import SwiftUI
 
 struct MediaDetailScreen: View {
     @EnvironmentObject var core: Core
-    
+
     let media: Media
     var body: some View {
         VStack {
@@ -28,7 +28,7 @@ struct MediaDetailScreen: View {
                 VStack {
                     Rectangle()
                         .frame(maxWidth: .infinity, maxHeight: 300)
-                        .foregroundStyle(.linearGradient(.init(colors: [.black, .black.opacity(0.7),.black.opacity(0)]), startPoint: .top, endPoint: .bottom))
+                        .foregroundStyle(.linearGradient(.init(colors: [.black, .black.opacity(0.7), .black.opacity(0)]), startPoint: .top, endPoint: .bottom))
                     Spacer()
                     Rectangle()
                         .frame(maxWidth: .infinity, maxHeight: 300)

@@ -2,7 +2,7 @@ import SwiftUI
 
 struct SettingsScreen: View {
     @EnvironmentObject var core: Core
-    
+
     var body: some View {
         @State var address = ""
         Form {
@@ -19,8 +19,7 @@ struct SettingsScreen: View {
                     .autocorrectionDisabled()
                     .textContentType(.URL)
                     .textInputAutocapitalization(.never)
-                    .onSubmit {
-                    }
+                    .onSubmit {}
                 }
                 Button {} label: {
                     Label("Try Connecting", systemImage: "phone.fill.connection")
