@@ -7,9 +7,14 @@ struct MediaDetailScreen: View {
     let media: Media
     var body: some View {
         VStack {
-            Spacer()
+            switch media.content {
+            case .movie(_):
+                Spacer()
+            case let .series(seriesData):
+                EpisodePicker(id: media.id, series: seriesData)
+            }
             Button {
-                core.update(.play(.fromStart(id: media.id, episode: nil)))
+                core.update(.play(.fromStart(id: media.id)))
             } label: {
                 Label("Play From Beginning", systemImage: "play.fill")
                     .frame(maxWidth: .infinity)
@@ -17,7 +22,7 @@ struct MediaDetailScreen: View {
             .buttonStyle(.bordered)
             .padding(.horizontal)
             Button {
-                core.update(.play(.fromLastPosition(id: media.id, episode: nil)))
+                core.update(.play(.fromLastPosition(id: media.id)))
             } label: {
                 Label("Continue", systemImage: "play.fill")
                     .frame(maxWidth: .infinity)
@@ -55,6 +60,15 @@ struct MediaDetailScreen: View {
 #Preview {
     MediaDetailScreen(
         media: Media(id: "1", metadata: MediaMetaData(thumbnail: "https://m.media-amazon.com/images/M/MV5BMTkzMzM3OTM2Ml5BMl5BanBnXkFtZTgwMDM0NDU3MjI@._V1_FMjpg_UY2048_.jpg", title: "Emoji Movie"), content: MediaContent.movie("test.mp4"))
+    )
+    .environmentObject(Core())
+}
+
+#Preview {
+    MediaDetailScreen(
+        media: Media(id: "1", metadata: MediaMetaData(thumbnail: "https://m.media-amazon.com/images/M/MV5BMTkzMzM3OTM2Ml5BMl5BanBnXkFtZTgwMDM0NDU3MjI@._V1_FMjpg_UY2048_.jpg", title: "Emoji Movie"), content: MediaContent.series([1: [
+            1: "a"
+        ]]))
     )
     .environmentObject(Core())
 }

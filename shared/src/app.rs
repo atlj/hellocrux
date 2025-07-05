@@ -21,20 +21,24 @@ pub enum ServerCommunicationEvent {
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum PlayEvent {
-    FromStart {
-        id: String,
-        episode: Option<Episode>,
-    },
-    FromLastPosition {
-        id: String,
-        episode: Option<Episode>,
-    },
+    FromStart { id: String },
+    FromLastPosition { id: String },
+    FromCertainEpisode { id: String, episode: Episode },
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Episode {
-    season: u32,
-    episode: u32,
+    pub season: u32,
+    pub episode: u32,
+}
+
+impl Default for Episode {
+    fn default() -> Self {
+        Episode {
+            season: 1,
+            episode: 1,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -215,8 +219,9 @@ impl App for CounterApp {
                 let play_event_clone = play_event.clone();
 
                 let (id, episode) = match play_event {
-                    PlayEvent::FromStart { id, episode } => (id, episode),
-                    PlayEvent::FromLastPosition { id, episode } => (id, episode),
+                    PlayEvent::FromStart { id } => (id, None),
+                    PlayEvent::FromLastPosition { id } => (id, None),
+                    PlayEvent::FromCertainEpisode { id, episode } => (id, Some(episode)),
                 };
 
                 let item = model
@@ -236,13 +241,26 @@ impl App for CounterApp {
                                 .unwrap()
                                 .join(content)
                                 .unwrap(),
-                            MediaContent::Series(_) => todo!(),
+                            MediaContent::Series(ref episodes) => {
+                                let episode = episode.clone().unwrap_or_default();
+
+                                let season = episodes.get(&episode.season).unwrap();
+                                let episode = season.get(&episode.episode).unwrap();
+
+                                base_url
+                                    .unwrap()
+                                    .join("static/")
+                                    .unwrap()
+                                    .join(&episode)
+                                    .unwrap()
+                            }
                         };
 
                         Command::new(|ctx| async move {
                             let initial_seconds: Option<u64> = match play_event_clone {
                                 PlayEvent::FromStart { .. } => None,
-                                PlayEvent::FromLastPosition { id, episode } => {
+                                PlayEvent::FromCertainEpisode { .. } => None,
+                                PlayEvent::FromLastPosition { id } => {
                                     let key = format!("progress-{}", id);
                                     let storage_string =
                                         get_with_key_string(key).into_future(ctx.clone()).await;
