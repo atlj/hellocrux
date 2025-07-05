@@ -3,7 +3,7 @@ use crux_core::{
     macros::effect,
     render::{RenderOperation, render},
 };
-use domain::Media;
+use domain::{Media, MediaContent};
 use partially::Partial;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -19,11 +19,24 @@ pub enum ServerCommunicationEvent {
     TryConnecting(String),
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub enum PlayEvent {
+    FromStart {
+        id: String,
+        episode: Option<(u32, u32)>,
+    },
+    FromLastPosition {
+        id: String,
+        episode: Option<(u32, u32)>,
+    },
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Event {
     Startup,
     ScreenChanged(Screen),
     ServerCommunication(ServerCommunicationEvent),
+    Play(PlayEvent),
 
     #[serde(skip)]
     UpdateModel(PartialModel),
@@ -128,6 +141,7 @@ impl App for CounterApp {
                     }
                     Screen::Detail(media) => Command::done(),
                     Screen::Settings => Command::done(),
+                    Screen::Player(_) => Command::done(),
                 }
             }
             Event::ServerCommunication(event) => match event {
@@ -182,6 +196,39 @@ impl App for CounterApp {
                         navigate(Screen::List).into_future(ctx).await;
                     })
                 }
+            },
+            Event::Play(play_event) => match play_event {
+                PlayEvent::FromStart { id, episode } => {
+                    let item = model
+                        .media_items
+                        .as_ref()
+                        .map(|items| items.iter().find(|item| item.id == id))
+                        .flatten();
+
+                    let base_url = model.base_url.clone();
+
+                    match item {
+                        Some(item) => {
+                            let url = match item.content {
+                                MediaContent::Movie(ref content) => base_url
+                                    .unwrap()
+                                    .join("static/")
+                                    .unwrap()
+                                    .join(content)
+                                    .unwrap(),
+                                MediaContent::Series(_) => todo!(),
+                            };
+
+                            Command::new(|ctx| async move {
+                                navigate(Screen::Player(url.to_string()))
+                                    .into_future(ctx)
+                                    .await;
+                            })
+                        }
+                        None => todo!(),
+                    }
+                }
+                PlayEvent::FromLastPosition { id, episode } => todo!(),
             },
         }
     }

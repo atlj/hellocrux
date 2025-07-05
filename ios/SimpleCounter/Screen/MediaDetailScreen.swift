@@ -8,7 +8,9 @@ struct MediaDetailScreen: View {
     var body: some View {
         VStack {
             Spacer()
-            Button {} label: {
+            Button {
+                core.update(.play(.fromStart(id: media.id, episode: nil)))
+            } label: {
                 Label("Play From Beginning", systemImage: "play.fill")
                     .frame(maxWidth: .infinity)
             }

@@ -15,6 +15,7 @@ pub enum Screen {
     List,
     Detail(Media),
     Settings,
+    Player(String),
 }
 
 impl Operation for NavigationOperation {
