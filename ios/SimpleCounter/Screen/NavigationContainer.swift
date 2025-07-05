@@ -21,8 +21,8 @@ struct NavigationContainer: View {
                             MediaDetailScreen(media: media)
                         case .settings:
                             SettingsScreen()
-                        case let .player(id, url, episode):
-                            PlayerScreen(url: URL(string: url)!, itemId: id, episode: episode)
+                        case let .player(id, url, episode, initial_seconds):
+                            PlayerScreen(url: URL(string: url)!, itemId: id, episode: episode, initialSeconds: initial_seconds)
                         }
                     }
             }.onAppear {

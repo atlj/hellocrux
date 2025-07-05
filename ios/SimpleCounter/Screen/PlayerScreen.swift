@@ -8,10 +8,15 @@ struct PlayerScreen: View {
     let itemId: String
     let episode: Episode?
 
-    init(url: URL, itemId: String, episode: Episode? = nil) {
+    init(url: URL, itemId: String, episode: Episode? = nil, initialSeconds: UInt64?) {
         self.url = url
         player = AVPlayer(url: url)
         player.play()
+        
+        if let initialSeconds {
+            player.seek(to: .init(seconds: Double(initialSeconds), preferredTimescale: CMTimeScale(NSEC_PER_SEC)))
+        }
+
         self.itemId = itemId
         self.episode = episode
 
@@ -34,16 +39,13 @@ struct PlayerScreen: View {
 
             core.update(.playbackProgress(.init(id: itemId, episode: episode, progress_seconds: seconds)))
         }
-        .onDisappear {
-            player.replaceCurrentItem(with: nil)
-        }
     }
 }
 
 #Preview {
     PlayerScreen(
         url: URL(string: "http://localhost:3000/static/jaho/recording.mov")!,
-        itemId: "1"
+        itemId: "1", initialSeconds: nil
     )
     .environmentObject(Core())
 }

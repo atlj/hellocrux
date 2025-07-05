@@ -11,7 +11,7 @@ use url::Url;
 use crate::capabilities::{
     http::{self, HttpOperation, HttpRequestState},
     navigation::{NavigationOperation, Screen, navigate},
-    storage::{StorageOperation, get, store, store_with_key_string},
+    storage::{StorageOperation, get, get_with_key_string, store, store_with_key_string},
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -211,43 +211,68 @@ impl App for CounterApp {
                     })
                 }
             },
-            Event::Play(play_event) => match play_event {
-                PlayEvent::FromStart { id, episode } => {
-                    let item = model
-                        .media_items
-                        .as_ref()
-                        .map(|items| items.iter().find(|item| item.id == id))
-                        .flatten();
+            Event::Play(play_event) => {
+                let play_event_clone = play_event.clone();
 
-                    let base_url = model.base_url.clone();
+                let (id, episode) = match play_event {
+                    PlayEvent::FromStart { id, episode } => (id, episode),
+                    PlayEvent::FromLastPosition { id, episode } => (id, episode),
+                };
 
-                    match item {
-                        Some(item) => {
-                            let url = match item.content {
-                                MediaContent::Movie(ref content) => base_url
-                                    .unwrap()
-                                    .join("static/")
-                                    .unwrap()
-                                    .join(content)
-                                    .unwrap(),
-                                MediaContent::Series(_) => todo!(),
+                let item = model
+                    .media_items
+                    .as_ref()
+                    .map(|items| items.iter().find(|item| item.id == id))
+                    .flatten();
+
+                let base_url = model.base_url.clone();
+
+                match item {
+                    Some(item) => {
+                        let url = match item.content {
+                            MediaContent::Movie(ref content) => base_url
+                                .unwrap()
+                                .join("static/")
+                                .unwrap()
+                                .join(content)
+                                .unwrap(),
+                            MediaContent::Series(_) => todo!(),
+                        };
+
+                        Command::new(|ctx| async move {
+                            let initial_seconds: Option<u64> = match play_event_clone {
+                                PlayEvent::FromStart { .. } => None,
+                                PlayEvent::FromLastPosition { id, episode } => {
+                                    let key = format!("progress-{}", id);
+                                    let storage_string =
+                                        get_with_key_string(key).into_future(ctx.clone()).await;
+                                    match storage_string {
+                                        Some(ref storage_string) => {
+                                            let progress_data =
+                                                serde_json::from_str::<PlaybackProgressData>(
+                                                    storage_string,
+                                                )
+                                                .unwrap();
+                                            Some(progress_data.progress_seconds)
+                                        }
+                                        None => None,
+                                    }
+                                }
                             };
 
-                            Command::new(|ctx| async move {
-                                navigate(Screen::Player {
-                                    id,
-                                    episode,
-                                    url: url.to_string(),
-                                })
-                                .into_future(ctx)
-                                .await;
+                            navigate(Screen::Player {
+                                id,
+                                episode,
+                                initial_seconds,
+                                url: url.to_string(),
                             })
-                        }
-                        None => todo!(),
+                            .into_future(ctx)
+                            .await;
+                        })
                     }
+                    None => todo!(),
                 }
-                PlayEvent::FromLastPosition { id, episode } => todo!(),
-            },
+            }
             Event::PlaybackProgress(playback_progress_data) => Command::new(|ctx| async move {
                 let key = format!("progress-{}", playback_progress_data.id);
 

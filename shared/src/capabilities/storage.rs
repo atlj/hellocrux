@@ -48,3 +48,14 @@ where
 {
     Command::request_from_shell(StorageOperation::Get(key.to_string()))
 }
+
+#[must_use]
+pub fn get_with_key_string<Effect, Event>(
+    key: String,
+) -> RequestBuilder<Effect, Event, impl Future<Output = Option<String>>>
+where
+    Effect: Send + From<Request<StorageOperation>> + 'static,
+    Event: Send + 'static,
+{
+    Command::request_from_shell(StorageOperation::Get(key))
+}

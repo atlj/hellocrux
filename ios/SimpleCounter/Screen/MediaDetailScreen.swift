@@ -14,6 +14,14 @@ struct MediaDetailScreen: View {
                 Label("Play From Beginning", systemImage: "play.fill")
                     .frame(maxWidth: .infinity)
             }
+            .buttonStyle(.bordered)
+            .padding(.horizontal)
+            Button {
+                core.update(.play(.fromLastPosition(id: media.id, episode: nil)))
+            } label: {
+                Label("Continue", systemImage: "play.fill")
+                    .frame(maxWidth: .infinity)
+            }
             .buttonStyle(.borderedProminent)
             .padding()
         }
