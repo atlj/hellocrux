@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
-use axum::{Json, Router, ServiceExt, extract, routing::get};
+use axum::{Json, Router, extract, routing::get};
 use clap::Parser;
 use domain::Media;
 use log::info;
 use server::{Args, media::get_media_items};
 use tokio::net::TcpListener;
-use tower_http::services::{ServeDir, ServeFile};
+use tower_http::services::ServeDir;
 
 struct AppState {
     args: Args,

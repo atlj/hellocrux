@@ -8,7 +8,7 @@ struct MediaDetailScreen: View {
     var body: some View {
         VStack {
             switch media.content {
-            case .movie(_):
+            case .movie:
                 Spacer()
             case let .series(seriesData):
                 EpisodePicker(id: media.id, series: seriesData)
@@ -67,7 +67,7 @@ struct MediaDetailScreen: View {
 #Preview {
     MediaDetailScreen(
         media: Media(id: "1", metadata: MediaMetaData(thumbnail: "https://m.media-amazon.com/images/M/MV5BMTkzMzM3OTM2Ml5BMl5BanBnXkFtZTgwMDM0NDU3MjI@._V1_FMjpg_UY2048_.jpg", title: "Emoji Movie"), content: MediaContent.series([1: [
-            1: "a"
+            1: "a",
         ]]))
     )
     .environmentObject(Core())

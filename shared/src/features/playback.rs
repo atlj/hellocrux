@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     Effect, Event, Model,
     capabilities::{
-        navigation::{Screen, navigate},
+        navigation::{self, Screen},
         storage::{get_with_key_string, store_with_key_string},
     },
 };
@@ -111,7 +111,7 @@ pub fn handle_play(model: &mut Model, play_event: PlayEvent) -> Command<Effect, 
                     }
                 };
 
-                navigate(Screen::Player {
+                navigation::push(Screen::Player {
                     id,
                     episode,
                     initial_seconds,

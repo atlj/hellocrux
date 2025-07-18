@@ -15,20 +15,20 @@ struct EpisodePicker: View {
 
     var data: [Season] {
         var seasons = [Season]()
-        
+
         for (seasonNumber, episodes) in series {
             var children = [Season]()
             for (episodeNumber, source) in episodes {
                 children.append(Season(data: .episode(Int(seasonNumber), Int(episodeNumber), source)))
             }
             children.sort { $0.number < $1.number }
-            seasons.append(Season(data: .season((Int(seasonNumber))), children: children))
+            seasons.append(Season(data: .season(Int(seasonNumber)), children: children))
         }
-        
+
         seasons.sort { $0.number < $1.number }
         return seasons
     }
-    
+
     var body: some View {
         List {
             OutlineGroup(data, children: \.children) { item in
@@ -54,11 +54,9 @@ struct EpisodePicker: View {
             1: [
                 8: "",
                 1: "",
-                2: ""
+                2: "",
             ],
-            2: [
-                :
-            ]
+            2: [:],
         ]
     )
     .environmentObject(Core())
@@ -68,18 +66,18 @@ struct Season: Hashable, Identifiable {
     var id: Self { self }
     var data: SeasonData
     var children: [Season]? = nil
-    
+
     var number: Int {
-        switch self.data {
+        switch data {
         case let .season(seasonNumber):
-            return seasonNumber
+            seasonNumber
         case let .episode(_, episodeNumber, _):
-            return episodeNumber
+            episodeNumber
         }
     }
 }
 
-enum SeasonData : Hashable {
+enum SeasonData: Hashable {
     case season(Int)
     case episode(Int, Int, String)
 }

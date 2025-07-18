@@ -12,7 +12,7 @@ struct PlayerScreen: View {
         self.url = url
         player = AVPlayer(url: url)
         player.play()
-        
+
         if let initialSeconds {
             player.seek(to: .init(seconds: Double(initialSeconds), preferredTimescale: CMTimeScale(NSEC_PER_SEC)))
         }

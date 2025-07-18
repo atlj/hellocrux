@@ -6,7 +6,7 @@ use crate::{
     Effect, Event, Model, PartialModel,
     capabilities::{
         http::{self, HttpRequestState},
-        navigation::{Screen, navigate},
+        navigation::{self, Screen},
         storage::store,
     },
 };
@@ -65,7 +65,7 @@ pub fn handle_server_communication(
                 store("server_address", url.to_string())
                     .into_future(ctx.clone())
                     .await;
-                navigate(Screen::List).into_future(ctx).await;
+                navigation::push(Screen::List).into_future(ctx).await;
             })
         }
     }

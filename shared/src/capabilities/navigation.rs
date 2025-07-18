@@ -30,9 +30,7 @@ impl Operation for NavigationOperation {
 }
 
 #[must_use]
-pub fn navigate<Effect, Event>(
-    to: Screen,
-) -> RequestBuilder<Effect, Event, impl Future<Output = ()>>
+pub fn push<Effect, Event>(to: Screen) -> RequestBuilder<Effect, Event, impl Future<Output = ()>>
 where
     Effect: Send + From<Request<NavigationOperation>> + 'static,
     Event: Send + 'static,

@@ -6,7 +6,7 @@ use crate::{
     Effect, Event, Model, PartialModel,
     capabilities::{
         http,
-        navigation::{Screen, navigate},
+        navigation::{self, Screen},
         storage,
     },
 };
@@ -18,7 +18,7 @@ pub fn handle_startup(_: &mut Model) -> Command<Effect, Event> {
             .await;
         match stored_server_address {
             None => {
-                navigate::<Effect, Event>(Screen::ServerAddressEntry)
+                navigation::push::<Effect, Event>(Screen::ServerAddressEntry)
                     .into_future(ctx)
                     .await;
             }
@@ -27,7 +27,7 @@ pub fn handle_startup(_: &mut Model) -> Command<Effect, Event> {
                     base_url: Some(Some(Url::parse(&stored_address).unwrap())),
                     ..Default::default()
                 }));
-                navigate(Screen::List).into_future(ctx).await;
+                navigation::push(Screen::List).into_future(ctx).await;
             }
         }
     })
@@ -45,7 +45,9 @@ pub fn handle_screen_change(model: &mut Model, screen: Screen) -> Command<Effect
                 url
             } else {
                 return Command::new(|ctx| async move {
-                    navigate(Screen::ServerAddressEntry).into_future(ctx).await;
+                    navigation::push(Screen::ServerAddressEntry)
+                        .into_future(ctx)
+                        .await;
                 });
             };
 

@@ -5,7 +5,7 @@ use std::io::Read;
 use std::path::PathBuf;
 
 use domain::{Media, MediaContent, MediaMetaData};
-use log::{error, info, warn};
+use log::{error, warn};
 
 const MOVIE_EXTENSIONS: [&str; 2] = ["mov", "mp4"];
 
@@ -20,10 +20,10 @@ pub async fn get_media_items(media_dir: PathBuf) -> Vec<Media> {
         return Vec::with_capacity(0);
     };
 
-    return media_dir_contents
+    media_dir_contents
         .flatten()
         .flat_map(|entry| get_media_item(entry, &media_dir))
-        .collect();
+        .collect()
 }
 
 fn get_media_item(dir_entry: DirEntry, root_path: &PathBuf) -> Option<Media> {
@@ -53,8 +53,7 @@ fn get_media_item(dir_entry: DirEntry, root_path: &PathBuf) -> Option<Media> {
                 .map(|extension| {
                     MOVIE_EXTENSIONS
                         .iter()
-                        .find(|movie_extension| **movie_extension == extension)
-                        .is_some()
+                        .any(|movie_extension| *movie_extension == extension)
                 })
                 .unwrap_or(false);
 
@@ -67,10 +66,9 @@ fn get_media_item(dir_entry: DirEntry, root_path: &PathBuf) -> Option<Media> {
                 let mut file = OpenOptions::new().read(true).open(path.clone()).unwrap();
 
                 let mut file_contents = String::new();
-                file.read_to_string(&mut file_contents).expect(&format!(
-                    "Couldn't read json file at: {:#?}",
-                    path.clone().to_str()
-                ));
+                file.read_to_string(&mut file_contents).unwrap_or_else(|_| {
+                    panic!("Couldn't read json file at: {:#?}", path.clone().to_str())
+                });
 
                 metadata = serde_json::from_str::<MediaMetaData>(&file_contents).ok();
             }
@@ -78,7 +76,7 @@ fn get_media_item(dir_entry: DirEntry, root_path: &PathBuf) -> Option<Media> {
             continue;
         }
 
-        if let Some((season_number, season)) = get_season(&root_path, &path) {
+        if let Some((season_number, season)) = get_season(root_path, &path) {
             series.insert(season_number, season);
         }
     }
@@ -139,8 +137,7 @@ fn get_season(root_path: &PathBuf, path: &PathBuf) -> Option<(u32, Season)> {
             .map(|extension| {
                 MOVIE_EXTENSIONS
                     .iter()
-                    .find(|movie_extension| **movie_extension == extension)
-                    .is_some()
+                    .any(|movie_extension| *movie_extension == extension)
             })
             .is_some();
 
@@ -165,7 +162,7 @@ fn get_season(root_path: &PathBuf, path: &PathBuf) -> Option<(u32, Season)> {
         return None;
     }
 
-    return Some((season_number, season));
+    Some((season_number, season))
 }
 
 pub fn get_numeric_content(string: &str) -> Option<u32> {
