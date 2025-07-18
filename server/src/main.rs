@@ -9,7 +9,6 @@ use tokio::net::TcpListener;
 use tower_http::services::ServeDir;
 
 struct AppState {
-    args: Args,
     entries: Vec<Media>,
 }
 
@@ -26,10 +25,7 @@ async fn main() {
 
     info!("Found {:#?} media items", entries.len());
 
-    let shared_state = Arc::new(AppState {
-        args: args.clone(),
-        entries,
-    });
+    let shared_state = Arc::new(AppState { entries });
 
     let app = Router::new()
         .nest_service("/static", ServeDir::new(args.media_dir))
