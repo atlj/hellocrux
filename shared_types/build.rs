@@ -1,8 +1,9 @@
 use crux_core::typegen::TypeGen;
 use domain::{Media, MediaContent, MediaMetaData};
 use shared::{
-    CounterApp, PlayEvent,
+    CounterApp,
     capabilities::{http::HttpRequestState, navigation::Screen},
+    features::playback::PlayEvent,
 };
 use std::path::PathBuf;
 

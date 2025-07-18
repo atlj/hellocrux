@@ -2,7 +2,7 @@ use crux_core::{Command, Request, capability::Operation, command::RequestBuilder
 use domain::Media;
 use serde::{Deserialize, Serialize};
 
-use crate::Episode;
+use crate::features::playback::Episode;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum NavigationOperation {
