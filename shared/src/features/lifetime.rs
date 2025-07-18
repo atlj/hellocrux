@@ -18,7 +18,7 @@ pub fn handle_startup(_: &mut Model) -> Command<Effect, Event> {
             .await;
         match stored_server_address {
             None => {
-                navigation::push::<Effect, Event>(Screen::ServerAddressEntry)
+                navigation::replace_root(Screen::ServerAddressEntry)
                     .into_future(ctx)
                     .await;
             }
@@ -27,7 +27,9 @@ pub fn handle_startup(_: &mut Model) -> Command<Effect, Event> {
                     base_url: Some(Some(Url::parse(&stored_address).unwrap())),
                     ..Default::default()
                 }));
-                navigation::push(Screen::List).into_future(ctx).await;
+                navigation::replace_root(Screen::List)
+                    .into_future(ctx)
+                    .await;
             }
         }
     })

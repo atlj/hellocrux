@@ -6,7 +6,8 @@ use crate::features::playback::Episode;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum NavigationOperation {
-    Navigate(Screen),
+    Push(Screen),
+    ReplaceRoot(Screen),
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
@@ -30,10 +31,21 @@ impl Operation for NavigationOperation {
 }
 
 #[must_use]
+pub fn replace_root<Effect, Event>(
+    to: Screen,
+) -> RequestBuilder<Effect, Event, impl Future<Output = ()>>
+where
+    Effect: Send + From<Request<NavigationOperation>> + 'static,
+    Event: Send + 'static,
+{
+    Command::request_from_shell(NavigationOperation::ReplaceRoot(to))
+}
+
+#[must_use]
 pub fn push<Effect, Event>(to: Screen) -> RequestBuilder<Effect, Event, impl Future<Output = ()>>
 where
     Effect: Send + From<Request<NavigationOperation>> + 'static,
     Event: Send + 'static,
 {
-    Command::request_from_shell(NavigationOperation::Navigate(to))
+    Command::request_from_shell(NavigationOperation::Push(to))
 }

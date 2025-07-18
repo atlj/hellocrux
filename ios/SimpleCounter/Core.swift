@@ -50,8 +50,10 @@ class Core: ObservableObject {
             }
         case let .navigate(navigationOperation):
             switch navigationOperation {
-            case let .navigate(screen):
-                navigationObserver?.navigate(screen: screen)
+            case let .push(screen):
+                navigationObserver?.push(screen: screen)
+            case let .replaceRoot(screen):
+                navigationObserver?.replaceRoot(screen: screen)
             }
         case let .http(httpOperation):
             switch httpOperation {
@@ -90,5 +92,6 @@ class Core: ObservableObject {
 }
 
 protocol NavigationObserver {
-    func navigate(screen: Screen)
+    func push(screen: Screen)
+    func replaceRoot(screen: Screen)
 }
