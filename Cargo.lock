@@ -1453,6 +1453,7 @@ version = "0.0.0"
 dependencies = [
  "crux_core",
  "domain",
+ "futures",
  "partially",
  "serde",
  "serde_json",

@@ -9,7 +9,7 @@ tokio = { version = "1.45.1", features = ["macros", "fs", "rt-multi-thread"] }
 serde = { workspace = true }
 domain = { path = "../domain" }
 clap = { version = "4.5.40", features = ["derive"] }
-futures = "0.3.31"
+futures = { workspace = true }
 env_logger = "0.11.8"
 log = { version = "0.4.27", features = ["kv_serde"] }
 tower-http = { version = "0.6.6", features = ["fs"] }
