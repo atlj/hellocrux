@@ -10,7 +10,7 @@ class Core: ObservableObject {
     var navigationObserver: (any NavigationObserver)?
 
     init() {
-        view = try! .bincodeDeserialize(input: [UInt8](SimpleCounter.view()))
+        view = try! .bincodeDeserialize(input: [UInt8](Streamy.view()))
     }
 
     func update(_ event: Event) {
@@ -26,7 +26,7 @@ class Core: ObservableObject {
         print("request: \(request)")
         switch request.effect {
         case .render:
-            view = try! .bincodeDeserialize(input: [UInt8](SimpleCounter.view()))
+            view = try! .bincodeDeserialize(input: [UInt8](Streamy.view()))
         case let .store(storageOperation):
             switch storageOperation {
             case let .store(key, value):

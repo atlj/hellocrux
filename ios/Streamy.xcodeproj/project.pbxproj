@@ -14,6 +14,7 @@
 		207D11FB2E19C1F300632149 /* EpisodePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 207D11FA2E19C1F300632149 /* EpisodePicker.swift */; };
 		20956DE52E0F557600656DFE /* MediaDetailScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20956DE42E0F557600656DFE /* MediaDetailScreen.swift */; };
 		20956DE72E0F641900656DFE /* SettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20956DE62E0F641900656DFE /* SettingsScreen.swift */; };
+		20A9C62C2E3444CB0053FA3B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 20A9C62B2E3444CB0053FA3B /* Assets.xcassets */; };
 		20C2643E2E0CA8E800DC017A /* ListScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20C2643D2E0CA8E800DC017A /* ListScreen.swift */; };
 		2AD69AC61D674BB2BC300FC2 /* uniffi-bindgen in Resources */ = {isa = PBXBuildFile; fileRef = E75E53B837C6A0E03FDCEC5A /* uniffi-bindgen */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		401EA3CBD0D2AD8D475C10AF /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 842F8D01CC76E9BFCDBD2862 /* ContentView.swift */; };
@@ -84,20 +85,21 @@
 
 /* Begin PBXFileReference section */
 		02BD345E6AE3454655CDC6D2 /* Core.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core.swift; sourceTree = "<group>"; };
-		1974E5BC3D6D22A1D5676B40 /* SimpleCounter.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SimpleCounter.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1974E5BC3D6D22A1D5676B40 /* Streamy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Streamy.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2063F8222E0B412D00745BA9 /* ServerAddressEntryScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerAddressEntryScreen.swift; sourceTree = "<group>"; };
 		2063F8242E0B417D00745BA9 /* NavigationContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationContainer.swift; sourceTree = "<group>"; };
 		207D11F72E19455900632149 /* PlayerScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerScreen.swift; sourceTree = "<group>"; };
 		207D11FA2E19C1F300632149 /* EpisodePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EpisodePicker.swift; sourceTree = "<group>"; };
 		20956DE42E0F557600656DFE /* MediaDetailScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaDetailScreen.swift; sourceTree = "<group>"; };
 		20956DE62E0F641900656DFE /* SettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScreen.swift; sourceTree = "<group>"; };
+		20A9C62B2E3444CB0053FA3B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		20C2643D2E0CA8E800DC017A /* ListScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListScreen.swift; sourceTree = "<group>"; };
 		642CF26F4B57B0FF7348C6BF /* SharedTypes */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = SharedTypes; path = ../shared_types/generated/swift/SharedTypes; sourceTree = SOURCE_ROOT; };
 		842F8D01CC76E9BFCDBD2862 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		8B8EC4C63F3ECC2B26BBAEC2 /* shared.udl */ = {isa = PBXFileReference; lastKnownFileType = text; path = shared.udl; sourceTree = "<group>"; };
 		8EA6E09EE87596B896068D0E /* Shared */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Shared; path = ../shared/shared.xcodeproj; sourceTree = "<group>"; };
 		BD91B42EB1E1DA6D86D57AC3 /* App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App.swift; sourceTree = "<group>"; };
-		CF5BE0317D54587DCCF48AF4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		CF5BE0317D54587DCCF48AF4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = Info.plist; path = Streamy/Info.plist; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -116,7 +118,7 @@
 		1B8911D02E90EF25A711F2BE = {
 			isa = PBXGroup;
 			children = (
-				E6F6A75B1B8366C3D868D1E4 /* SimpleCounter */,
+				E6F6A75B1B8366C3D868D1E4 /* Streamy */,
 				E551F092584A1E0A747C2BEB /* Packages */,
 				A58FEB50EA86B3FEA463FCF0 /* src */,
 				D4D259F256E0F508B61E0EA9 /* Products */,
@@ -176,7 +178,7 @@
 		D4D259F256E0F508B61E0EA9 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				1974E5BC3D6D22A1D5676B40 /* SimpleCounter.app */,
+				1974E5BC3D6D22A1D5676B40 /* Streamy.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -189,24 +191,25 @@
 			name = Packages;
 			sourceTree = "<group>";
 		};
-		E6F6A75B1B8366C3D868D1E4 /* SimpleCounter */ = {
+		E6F6A75B1B8366C3D868D1E4 /* Streamy */ = {
 			isa = PBXGroup;
 			children = (
 				2063F8202E0B410F00745BA9 /* Screen */,
 				BD91B42EB1E1DA6D86D57AC3 /* App.swift */,
 				842F8D01CC76E9BFCDBD2862 /* ContentView.swift */,
-				02BD345E6AE3454655CDC6D2 /* Core.swift */,
 				CF5BE0317D54587DCCF48AF4 /* Info.plist */,
+				02BD345E6AE3454655CDC6D2 /* Core.swift */,
+				20A9C62B2E3444CB0053FA3B /* Assets.xcassets */,
 			);
-			path = SimpleCounter;
+			path = Streamy;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		8B6A9DC714EBBF344A0B8FE6 /* SimpleCounter */ = {
+		8B6A9DC714EBBF344A0B8FE6 /* Streamy */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 9E0AD7CAC5BB549B27CE41A2 /* Build configuration list for PBXNativeTarget "SimpleCounter" */;
+			buildConfigurationList = 9E0AD7CAC5BB549B27CE41A2 /* Build configuration list for PBXNativeTarget "Streamy" */;
 			buildPhases = (
 				478572120AF419B2ED7B1CD2 /* Sources */,
 				46D7FA9B53241FD3DF2E5739 /* Resources */,
@@ -219,12 +222,12 @@
 				67F44F942785A2C91B39A9CF /* PBXTargetDependency */,
 				E84F3F57B624C467D3657E3A /* PBXTargetDependency */,
 			);
-			name = SimpleCounter;
+			name = Streamy;
 			packageProductDependencies = (
 				ADFA4530638891CDAA6FCC5D /* SharedTypes */,
 			);
 			productName = SimpleCounter;
-			productReference = 1974E5BC3D6D22A1D5676B40 /* SimpleCounter.app */;
+			productReference = 1974E5BC3D6D22A1D5676B40 /* Streamy.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -236,7 +239,7 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 			};
-			buildConfigurationList = 2D6F50C7605F083A24BC32D1 /* Build configuration list for PBXProject "SimpleCounter" */;
+			buildConfigurationList = 2D6F50C7605F083A24BC32D1 /* Build configuration list for PBXProject "Streamy" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -257,7 +260,7 @@
 			);
 			projectRoot = "";
 			targets = (
-				8B6A9DC714EBBF344A0B8FE6 /* SimpleCounter */,
+				8B6A9DC714EBBF344A0B8FE6 /* Streamy */,
 			);
 		};
 /* End PBXProject section */
@@ -292,6 +295,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				2AD69AC61D674BB2BC300FC2 /* uniffi-bindgen in Resources */,
+				20A9C62C2E3444CB0053FA3B /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -339,7 +343,8 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = PJL7DA2X5F;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
-				INFOPLIST_FILE = SimpleCounter/Info.plist;
+				INFOPLIST_FILE = Streamy/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Streamy;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -349,7 +354,7 @@
 					"-w",
 					"-ObjC",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.simple_counter.SimpleCounter;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.example.simple-counter.Streamy";
 				SDKROOT = iphoneos;
 				SWIFT_OBJC_BRIDGING_HEADER = generated/sharedFFI.h;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -363,7 +368,8 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = PJL7DA2X5F;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
-				INFOPLIST_FILE = SimpleCounter/Info.plist;
+				INFOPLIST_FILE = Streamy/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Streamy;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -373,7 +379,7 @@
 					"-w",
 					"-ObjC",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.simple_counter.SimpleCounter;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.example.simple-counter.Streamy";
 				SDKROOT = iphoneos;
 				SWIFT_OBJC_BRIDGING_HEADER = generated/sharedFFI.h;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -500,7 +506,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		2D6F50C7605F083A24BC32D1 /* Build configuration list for PBXProject "SimpleCounter" */ = {
+		2D6F50C7605F083A24BC32D1 /* Build configuration list for PBXProject "Streamy" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				C945D4B7F010B5287F97D4A5 /* Debug */,
@@ -509,7 +515,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
-		9E0AD7CAC5BB549B27CE41A2 /* Build configuration list for PBXNativeTarget "SimpleCounter" */ = {
+		9E0AD7CAC5BB549B27CE41A2 /* Build configuration list for PBXNativeTarget "Streamy" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				38E9C57DFAFF962AE6CC44FE /* Debug */,
