@@ -68,5 +68,10 @@ struct MyPlayer: UIViewControllerRepresentable {
         uiViewController.player = player
     }
 
+    static func dismantleUIViewController(_ uiViewController: AVPlayerViewController, coordinator _: ()) {
+        uiViewController.player?.replaceCurrentItem(with: nil)
+        uiViewController.player = nil
+    }
+
     typealias UIViewControllerType = AVPlayerViewController
 }
