@@ -3,6 +3,7 @@ use crate::features::{
     playback::{PlayEvent, PlaybackProgressData},
     server_communication::ServerCommunicationEvent,
 };
+use crux_core::command::CommandContext;
 use crux_core::{App, Command, macros::effect, render::RenderOperation};
 use domain::Media;
 use partially::Partial;
@@ -34,6 +35,8 @@ pub enum Effect {
     Navigate(NavigationOperation),
     Http(HttpOperation),
 }
+
+pub type CruxContext = CommandContext<Effect, Event>;
 
 #[derive(Default, Partial, Clone, Debug)]
 #[partially(derive(Debug, Clone, Default))]

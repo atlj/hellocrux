@@ -41,6 +41,25 @@ struct ListScreen: View {
                 .padding(.horizontal)
             }
             .searchable(text: $searchString, prompt: "Search Media")
+            .overlay {
+                if items.isEmpty {
+                    VStack(spacing: 16.0) {
+                        Text("No media items found")
+                        Button("Try Again") {
+                            core.update(.screenChanged(.list))
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                }
+
+                if filteredItems.isEmpty, !searchString.isEmpty {
+                    /// In case there aren't any search results, we can
+                    /// show the new content unavailable view.
+                    if #available(iOS 17.0, *) {
+                        ContentUnavailableView.search
+                    }
+                }
+            }
         }
         .onAppear {
             core.update(.screenChanged(.list))
@@ -59,7 +78,7 @@ struct ListScreen: View {
 #Preview {
     ListScreen(
         overrideMediaItems: [
-            Media(id: "1", metadata: MediaMetaData(thumbnail: "https://m.media-amazon.com/images/M/MV5BMTkzMzM3OTM2Ml5BMl5BanBnXkFtZTgwMDM0NDU3MjI@._V1_FMjpg_UY2048_.jpg", title: "Emoji Movie"), content: MediaContent.movie("test.mp4")),
+            //            Media(id: "1", metadata: MediaMetaData(thumbnail: "https://m.media-amazon.com/images/M/MV5BMTkzMzM3OTM2Ml5BMl5BanBnXkFtZTgwMDM0NDU3MjI@._V1_FMjpg_UY2048_.jpg", title: "Emoji Movie"), content: MediaContent.movie("test.mp4")),
         ]
     )
     .environmentObject(Core())

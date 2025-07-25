@@ -6,7 +6,8 @@ format:
 	cargo clippy --fix --allow-dirty && \
 	cargo fmt --all & \
 	swiftlint lint --fix ios/**/*.swift && \
-	swiftformat ./**/*.swift --swiftversion 6.2
+	swiftformat ./**/*.swift --swiftversion 6.2 & \
+	wait
 
 .PHONY: convert_mkv
 convert_mkv: $(MOV_FILES)

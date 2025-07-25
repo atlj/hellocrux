@@ -14,7 +14,6 @@ class Core: ObservableObject {
     }
 
     func update(_ event: Event) {
-        print("event: \(event)")
         let effects = [UInt8](processEvent(Data(try! event.bincodeSerialize())))
 
         let requests: [Request] = try! .bincodeDeserialize(input: effects)

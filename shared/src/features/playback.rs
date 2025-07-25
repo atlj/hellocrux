@@ -1,9 +1,10 @@
 use crux_core::Command;
 use domain::MediaContent;
+use futures::{StreamExt, join};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    Effect, Event, Model,
+    CruxContext, Effect, Event, Model,
     capabilities::{
         navigation::{self, Screen},
         storage::{get_with_key_string, store_with_key_string},
@@ -17,11 +18,92 @@ pub enum PlayEvent {
     FromCertainEpisode { id: String, episode: Episode },
 }
 
+impl PlayEvent {
+    async fn get_position(&self, ctx: CruxContext) -> (Option<u64>, Option<Episode>) {
+        match self {
+            Self::FromStart { .. } => (None, None),
+            Self::FromLastPosition { id } => {
+                let last_episode = PlaybackProgressData::get_last_episode(id, ctx.clone()).await;
+                (
+                    PlaybackProgressData::get_from_storage(id, last_episode.as_ref(), ctx).await,
+                    last_episode,
+                )
+            }
+            Self::FromCertainEpisode { id, episode } => (
+                PlaybackProgressData::get_from_storage(id, Some(episode), ctx).await,
+                Some(episode.clone()),
+            ),
+        }
+    }
+
+    fn get_id(&self) -> &String {
+        match self {
+            PlayEvent::FromStart { id } => id,
+            PlayEvent::FromLastPosition { id } => id,
+            PlayEvent::FromCertainEpisode { id, .. } => id,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PlaybackProgressData {
     id: String,
     episode: Option<Episode>,
     progress_seconds: u64,
+}
+
+impl PlaybackProgressData {
+    async fn store(&self, ctx: CruxContext) {
+        let key = Self::get_key(&self.id, self.episode.as_ref());
+        let store_self_future =
+            store_with_key_string(key, self.progress_seconds.to_string()).into_future(ctx.clone());
+
+        match self.episode {
+            None => {
+                store_self_future.await;
+            }
+            Some(_) => {
+                join!(store_self_future, self.store_last_episode(ctx.clone()));
+            }
+        };
+    }
+
+    async fn get_from_storage(
+        id: &str,
+        episode: Option<&Episode>,
+        ctx: CruxContext,
+    ) -> Option<u64> {
+        let key = Self::get_key(id, episode);
+        get_with_key_string(key)
+            .into_future(ctx)
+            .await
+            .and_then(|value| value.parse().ok())
+    }
+
+    async fn store_last_episode(&self, ctx: CruxContext) {
+        let key = format!("last-episode-{}", self.id);
+        store_with_key_string(key, serde_json::to_string(&self.episode).unwrap())
+            .into_future(ctx)
+            .await;
+    }
+
+    async fn get_last_episode(id: &str, ctx: CruxContext) -> Option<Episode> {
+        let key = format!("last-episode-{id}");
+        get_with_key_string(key)
+            .into_future(ctx)
+            .await
+            .and_then(|stored_value| serde_json::from_str(&stored_value).ok())
+    }
+
+    fn get_key(id: &str, episode: Option<&Episode>) -> String {
+        match episode {
+            None => format!("progress-movie-{id}"),
+            Some(episode) => format!(
+                "progress-series-{id}-{}-{}",
+                episode.season, episode.episode
+            ),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -42,85 +124,55 @@ impl Default for Episode {
 pub fn handle_playback_progress(
     playback_progress_data: PlaybackProgressData,
 ) -> Command<Effect, Event> {
-    Command::new(|ctx| async move {
-        let key = format!("progress-{}", playback_progress_data.id);
-
-        store_with_key_string(key, serde_json::to_string(&playback_progress_data).unwrap())
-            .into_future(ctx)
-            .await;
-    })
+    Command::new(|ctx| async move { playback_progress_data.store(ctx).await })
 }
 
 pub fn handle_play(model: &mut Model, play_event: PlayEvent) -> Command<Effect, Event> {
-    let play_event_clone = play_event.clone();
-
-    let (id, episode) = match play_event {
-        PlayEvent::FromStart { id } => (id, None),
-        PlayEvent::FromLastPosition { id } => (id, None),
-        PlayEvent::FromCertainEpisode { id, episode } => (id, Some(episode)),
-    };
-
-    let item = model
+    let id = play_event.get_id().clone();
+    let item = if let Some(item) = model
         .media_items
         .as_ref()
-        .and_then(|items| items.iter().find(|item| item.id == id));
+        .and_then(|items| items.iter().find(|item| item.id == id))
+    {
+        item.clone()
+    } else {
+        unreachable!()
+    };
+    let base_url_clone = model.base_url.clone().unwrap();
 
-    let base_url = model.base_url.clone();
-
-    match item {
-        Some(item) => {
-            let url = match item.content {
-                MediaContent::Movie(ref content) => base_url
-                    .unwrap()
-                    .join("static/")
-                    .unwrap()
-                    .join(content)
-                    .unwrap(),
-                MediaContent::Series(ref episodes) => {
-                    let episode = episode.clone().unwrap_or_default();
-
-                    let season = episodes.get(&episode.season).unwrap();
-                    let episode = season.get(&episode.episode).unwrap();
-
-                    base_url
-                        .unwrap()
-                        .join("static/")
-                        .unwrap()
-                        .join(episode)
-                        .unwrap()
-                }
-            };
-
-            Command::new(|ctx| async move {
-                let initial_seconds: Option<u64> = match play_event_clone {
-                    PlayEvent::FromStart { .. } => None,
-                    PlayEvent::FromCertainEpisode { .. } => None,
-                    PlayEvent::FromLastPosition { id } => {
-                        let key = format!("progress-{}", id);
-                        let storage_string =
-                            get_with_key_string(key).into_future(ctx.clone()).await;
-                        match storage_string {
-                            Some(ref storage_string) => {
-                                let progress_data =
-                                    serde_json::from_str::<PlaybackProgressData>(storage_string)
-                                        .unwrap();
-                                Some(progress_data.progress_seconds)
-                            }
-                            None => None,
-                        }
-                    }
+    Command::new(|ctx| async move {
+        let (initial_seconds, episode) = play_event.get_position(ctx.clone()).await;
+        let url = match item.content {
+            MediaContent::Movie(content) => base_url_clone
+                .join("static/")
+                .unwrap()
+                .join(&content)
+                .unwrap(),
+            MediaContent::Series(episodes) => {
+                let defaulted_episode = match episode {
+                    Some(ref episode) => episode,
+                    None => &Episode::default(),
                 };
 
-                navigation::push(Screen::Player {
-                    id,
-                    episode,
-                    initial_seconds,
-                    url: url.to_string(),
-                })
-                .into_future(ctx)
-                .await;
-            })
-        }
-        None => todo!(),
-    }
+                let season = episodes.get(&defaulted_episode.season).unwrap();
+                let episode = season.get(&defaulted_episode.episode).unwrap();
+
+                base_url_clone
+                    .join("static/")
+                    .unwrap()
+                    .join(episode)
+                    .unwrap()
+            }
+        };
+
+        // TODO, only push url and initial seconds
+        navigation::push(Screen::Player {
+            id: id.clone(),
+            episode,
+            initial_seconds,
+            url: url.to_string(),
+        })
+        .into_future(ctx)
+        .await;
+    })
 }
