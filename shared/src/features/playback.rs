@@ -1,6 +1,6 @@
 use crux_core::Command;
 use domain::MediaContent;
-use futures::{StreamExt, join};
+use futures::join;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -16,6 +16,62 @@ pub enum PlayEvent {
     FromStart { id: String },
     FromLastPosition { id: String },
     FromCertainEpisode { id: String, episode: Episode },
+}
+
+pub fn handle_playback_progress(
+    playback_progress_data: PlaybackProgressData,
+) -> Command<Effect, Event> {
+    Command::new(|ctx| async move { playback_progress_data.store(ctx).await })
+}
+
+pub fn handle_play(model: &mut Model, play_event: PlayEvent) -> Command<Effect, Event> {
+    let id = play_event.get_id().clone();
+    let item = if let Some(item) = model
+        .media_items
+        .as_ref()
+        .and_then(|items| items.iter().find(|item| item.id == id))
+    {
+        item.clone()
+    } else {
+        unreachable!()
+    };
+    let base_url_clone = model.base_url.clone().unwrap();
+
+    Command::new(|ctx| async move {
+        let (initial_seconds, episode) = play_event.get_position(ctx.clone()).await;
+        let url = match item.content {
+            MediaContent::Movie(content) => base_url_clone
+                .join("static/")
+                .unwrap()
+                .join(&content)
+                .unwrap(),
+            MediaContent::Series(episodes) => {
+                let defaulted_episode = match episode {
+                    Some(ref episode) => episode,
+                    None => &Episode::default(),
+                };
+
+                let season = episodes.get(&defaulted_episode.season).unwrap();
+                let episode = season.get(&defaulted_episode.episode).unwrap();
+
+                base_url_clone
+                    .join("static/")
+                    .unwrap()
+                    .join(episode)
+                    .unwrap()
+            }
+        };
+
+        // TODO, only push url and initial seconds
+        navigation::push(Screen::Player {
+            id: id.clone(),
+            episode,
+            initial_seconds,
+            url: url.to_string(),
+        })
+        .into_future(ctx)
+        .await;
+    })
 }
 
 impl PlayEvent {
@@ -119,60 +175,4 @@ impl Default for Episode {
             episode: 1,
         }
     }
-}
-
-pub fn handle_playback_progress(
-    playback_progress_data: PlaybackProgressData,
-) -> Command<Effect, Event> {
-    Command::new(|ctx| async move { playback_progress_data.store(ctx).await })
-}
-
-pub fn handle_play(model: &mut Model, play_event: PlayEvent) -> Command<Effect, Event> {
-    let id = play_event.get_id().clone();
-    let item = if let Some(item) = model
-        .media_items
-        .as_ref()
-        .and_then(|items| items.iter().find(|item| item.id == id))
-    {
-        item.clone()
-    } else {
-        unreachable!()
-    };
-    let base_url_clone = model.base_url.clone().unwrap();
-
-    Command::new(|ctx| async move {
-        let (initial_seconds, episode) = play_event.get_position(ctx.clone()).await;
-        let url = match item.content {
-            MediaContent::Movie(content) => base_url_clone
-                .join("static/")
-                .unwrap()
-                .join(&content)
-                .unwrap(),
-            MediaContent::Series(episodes) => {
-                let defaulted_episode = match episode {
-                    Some(ref episode) => episode,
-                    None => &Episode::default(),
-                };
-
-                let season = episodes.get(&defaulted_episode.season).unwrap();
-                let episode = season.get(&defaulted_episode.episode).unwrap();
-
-                base_url_clone
-                    .join("static/")
-                    .unwrap()
-                    .join(episode)
-                    .unwrap()
-            }
-        };
-
-        // TODO, only push url and initial seconds
-        navigation::push(Screen::Player {
-            id: id.clone(),
-            episode,
-            initial_seconds,
-            url: url.to_string(),
-        })
-        .into_future(ctx)
-        .await;
-    })
 }
