@@ -38,6 +38,7 @@ struct MediaDetailScreen: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
+            .foregroundStyle(.primary)
             .padding(.horizontal)
             Button {
                 core.update(.play(.fromLastPosition(id: media.id)))
@@ -72,17 +73,29 @@ struct MediaDetailScreen: View {
 }
 
 #Preview {
-    MediaDetailScreen(
-        media: Media(id: "1", metadata: MediaMetaData(thumbnail: "https://m.media-amazon.com/images/M/MV5BMTkzMzM3OTM2Ml5BMl5BanBnXkFtZTgwMDM0NDU3MjI@._V1_FMjpg_UY2048_.jpg", title: "Emoji Movie"), content: MediaContent.movie("test.mp4"))
-    )
-    .environmentObject(Core())
+    if #available(iOS 16.0, *) {
+        NavigationStack {
+            MediaDetailScreen(
+                media: Media(id: "1", metadata: MediaMetaData(thumbnail: "https://m.media-amazon.com/images/M/MV5BMTkzMzM3OTM2Ml5BMl5BanBnXkFtZTgwMDM0NDU3MjI@._V1_FMjpg_UY2048_.jpg", title: "Emoji Movie"), content: MediaContent.movie("test.mp4"))
+            )
+            .environmentObject(Core())
+        }
+    } else {
+        // Fallback on earlier versions
+    }
 }
 
 #Preview {
-    MediaDetailScreen(
-        media: Media(id: "1", metadata: MediaMetaData(thumbnail: "https://m.media-amazon.com/images/M/MV5BMTkzMzM3OTM2Ml5BMl5BanBnXkFtZTgwMDM0NDU3MjI@._V1_FMjpg_UY2048_.jpg", title: "Emoji Movie"), content: MediaContent.series([1: [
-            1: "a",
-        ]]))
-    )
-    .environmentObject(Core())
+    if #available(iOS 16.0, *) {
+        NavigationStack {
+            MediaDetailScreen(
+                media: Media(id: "1", metadata: MediaMetaData(thumbnail: "https://m.media-amazon.com/images/M/MV5BMTkzMzM3OTM2Ml5BMl5BanBnXkFtZTgwMDM0NDU3MjI@._V1_FMjpg_UY2048_.jpg", title: "Emoji Movie"), content: MediaContent.series([1: [
+                    1: "a",
+                ]]))
+            )
+            .environmentObject(Core())
+        }
+    } else {
+        // Fallback on earlier versions
+    }
 }

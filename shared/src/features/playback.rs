@@ -12,7 +12,7 @@ use crate::{
     },
 };
 
-#[derive(Default, Serialize, Deserialize, Partial, Clone, Debug)]
+#[derive(Serialize, Deserialize, Partial, Clone, Debug)]
 #[partially(derive(Debug, Clone, Default))]
 pub struct PlaybackModel {
     pub last_position: PlaybackProgressData,
@@ -108,7 +108,7 @@ impl PlayEvent {
     }
 }
 
-#[derive(Clone, Default, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PlaybackProgressData {
     pub id: String,
     pub episode: Option<Episode>,
