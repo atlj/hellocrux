@@ -61,7 +61,7 @@ struct ListScreen: View {
             core.update(.screenChanged(.list))
         }
         .toolbar {
-            ToolbarItem(placement: .navigation) {
+            ToolbarItem(placement: .topBarTrailing) {
                 NavigationLink(value: Screen.settings) {
                     Label("Settings", systemImage: "gearshape")
                 }
@@ -72,10 +72,12 @@ struct ListScreen: View {
 }
 
 #Preview {
+    NavigationStack {
     ListScreen(
         overrideMediaItems: [
             Media(id: "1", metadata: MediaMetaData(thumbnail: "https://m.media-amazon.com/images/M/MV5BMTkzMzM3OTM2Ml5BMl5BanBnXkFtZTgwMDM0NDU3MjI@._V1_FMjpg_UY2048_.jpg", title: "Emoji Movie"), content: MediaContent.movie("test.mp4")),
         ]
     )
     .environmentObject(Core())
+    }
 }
