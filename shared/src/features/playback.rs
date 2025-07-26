@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crux_core::Command;
 use domain::MediaContent;
 use futures::join;
@@ -60,7 +62,9 @@ pub fn handle_play(model: &mut Model, play_event: PlayEvent) -> Command<Effect, 
                     .to_string(),
             },
             MediaContent::Series(episodes) => {
-                let defaulted_episode = episode.unwrap_or_default();
+                let defaulted_episode =
+                    episode.unwrap_or(Episode::find_earliest_available_episode(&episodes));
+
                 let season = episodes.get(&defaulted_episode.season).unwrap();
                 let episode_path = season.get(&defaulted_episode.episode).unwrap();
 
@@ -176,11 +180,20 @@ pub struct Episode {
     pub episode: u32,
 }
 
-impl Default for Episode {
-    fn default() -> Self {
+impl Episode {
+    pub fn find_earliest_available_episode(series: &HashMap<u32, HashMap<u32, String>>) -> Episode {
+        let earliest_season_number = series
+            .keys()
+            .min()
+            .expect("We should have at least one season");
+        let earliest_episode_number = series
+            .get(earliest_season_number)
+            .and_then(|season| season.keys().min())
+            .expect("The season must have at least one episode");
+
         Episode {
-            season: 1,
-            episode: 1,
+            season: *earliest_season_number,
+            episode: *earliest_episode_number,
         }
     }
 }
