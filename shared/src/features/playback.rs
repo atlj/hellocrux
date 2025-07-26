@@ -46,38 +46,39 @@ pub fn handle_play(model: &mut Model, play_event: PlayEvent) -> Command<Effect, 
 
     Command::new(|ctx| async move {
         let (initial_seconds, episode) = play_event.get_position(ctx.clone()).await;
-        let url = match item.content {
-            MediaContent::Movie(content) => base_url_clone
-                .join("static/")
-                .unwrap()
-                .join(&content)
-                .unwrap(),
-            MediaContent::Series(episodes) => {
-                let defaulted_episode = match episode {
-                    Some(ref episode) => episode,
-                    None => &Episode::default(),
-                };
 
-                let season = episodes.get(&defaulted_episode.season).unwrap();
-                let episode = season.get(&defaulted_episode.episode).unwrap();
-
-                base_url_clone
+        let screen = match item.content {
+            MediaContent::Movie(content) => Screen::Player {
+                id: id.clone(),
+                episode: None,
+                initial_seconds,
+                url: base_url_clone
                     .join("static/")
                     .unwrap()
-                    .join(episode)
+                    .join(&content)
                     .unwrap()
+                    .to_string(),
+            },
+            MediaContent::Series(episodes) => {
+                let defaulted_episode = episode.unwrap_or_default();
+                let season = episodes.get(&defaulted_episode.season).unwrap();
+                let episode_path = season.get(&defaulted_episode.episode).unwrap();
+
+                Screen::Player {
+                    id: id.clone(),
+                    episode: Some(defaulted_episode),
+                    initial_seconds,
+                    url: base_url_clone
+                        .join("static/")
+                        .unwrap()
+                        .join(episode_path)
+                        .unwrap()
+                        .to_string(),
+                }
             }
         };
 
-        // TODO, only push url and initial seconds
-        navigation::push(Screen::Player {
-            id: id.clone(),
-            episode,
-            initial_seconds,
-            url: url.to_string(),
-        })
-        .into_future(ctx)
-        .await;
+        navigation::push(screen).into_future(ctx).await;
     })
 }
 
