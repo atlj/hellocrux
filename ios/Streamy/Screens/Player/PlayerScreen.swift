@@ -7,6 +7,7 @@ struct PlayerScreen: View {
     let itemId: String
     let episode: Episode?
     let initialSeconds: UInt64?
+    let title: String
 
     @EnvironmentObject var core: Core
 
@@ -15,13 +16,15 @@ struct PlayerScreen: View {
 
             Core.shared.update(.playbackProgress(.init(id: itemId, episode: episode, progress_seconds: UInt64(time.seconds))))
         }
+        .navigationTitle(title)
     }
 }
 
 #Preview {
     PlayerScreen(
         url: URL(string: "http://localhost:3000/static/jaho/recording.mov")!,
-        itemId: "1", episode: nil, initialSeconds: nil
+        itemId: "1", episode: nil, initialSeconds: nil,
+        title: "My Item"
     )
     .environmentObject(Core())
 }

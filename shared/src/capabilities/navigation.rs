@@ -24,6 +24,7 @@ pub enum Screen {
         url: String,
         episode: Option<Episode>,
         initial_seconds: Option<u64>,
+        title: String,
     },
 }
 

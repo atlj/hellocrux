@@ -54,6 +54,7 @@ pub fn handle_play(model: &mut Model, play_event: PlayEvent) -> Command<Effect, 
                 id: id.clone(),
                 episode: None,
                 initial_seconds,
+                title: item.metadata.title.clone(),
                 url: base_url_clone
                     .join("static/")
                     .unwrap()
@@ -70,8 +71,12 @@ pub fn handle_play(model: &mut Model, play_event: PlayEvent) -> Command<Effect, 
 
                 Screen::Player {
                     id: id.clone(),
-                    episode: Some(defaulted_episode),
                     initial_seconds,
+                    title: format!(
+                        "{} S{} E{}",
+                        &item.metadata.title, &defaulted_episode.season, &defaulted_episode.episode
+                    ),
+                    episode: Some(defaulted_episode),
                     url: base_url_clone
                         .join("static/")
                         .unwrap()
