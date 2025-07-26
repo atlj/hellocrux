@@ -27,29 +27,36 @@ struct EpisodePicker: View {
             switch item.data {
             case let .season(seasonId):
                 Text("Season \(seasonId)")
+                    .font(.title3)
             case let .episode(seasonId, episodeId, _):
                 Button {
                     core.update(.play(.fromCertainEpisode(id: id, episode: .init(season: UInt32(seasonId), episode: UInt32(episodeId)))))
                 } label: {
-                    Text("Episode \(episodeId)")
+                    HStack {
+                        Text("Episode \(episodeId)")
+                        Spacer()
+                    }
                 }
             }
         }
+        .listRowBackground(Color.clear)
     }
 }
 
 #Preview {
-    EpisodePicker(
-        id: "test", series: [
-            1: [
-                8: "",
-                1: "",
-                2: "",
-            ],
-            2: [:],
-        ]
-    )
-    .environmentObject(Core())
+    VStack {
+        EpisodePicker(
+            id: "test", series: [
+                1: [
+                    8: "",
+                    1: "",
+                    2: "",
+                ],
+                2: [:],
+            ]
+        )
+        .environmentObject(Core())
+    }
 }
 
 struct Season: Hashable, Identifiable {
