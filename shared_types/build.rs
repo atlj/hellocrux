@@ -2,7 +2,7 @@ use crux_core::typegen::TypeGen;
 use domain::{Media, MediaContent, MediaMetaData};
 use shared::{
     CounterApp,
-    capabilities::{http::HttpRequestState, navigation::Screen},
+    capabilities::{http::ServerConnectionState, navigation::Screen},
     features::playback::PlayEvent,
 };
 use std::path::PathBuf;
@@ -13,7 +13,7 @@ fn main() -> anyhow::Result<()> {
     let mut typegen = TypeGen::new();
     typegen.register_app::<CounterApp>()?;
     typegen.register_type::<Screen>()?;
-    typegen.register_type::<HttpRequestState>()?;
+    typegen.register_type::<ServerConnectionState>()?;
     typegen.register_type::<PlayEvent>()?;
 
     // Domain

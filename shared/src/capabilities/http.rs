@@ -17,10 +17,10 @@ pub enum HttpOutput {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
-pub enum HttpRequestState {
+pub enum ServerConnectionState {
+    Connected,
     Pending,
     Error,
-    Success,
 }
 
 impl Operation for HttpOperation {

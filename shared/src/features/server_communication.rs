@@ -5,7 +5,7 @@ use url::Url;
 use crate::{
     Effect, Event, Model, PartialModel,
     capabilities::{
-        http::{self, HttpRequestState},
+        http::{self, ServerConnectionState},
         navigation::{self, Screen},
         storage::store,
     },
@@ -22,7 +22,7 @@ pub fn handle_server_communication(
 ) -> Command<Effect, Event> {
     match event {
         ServerCommunicationEvent::TryConnecting(mut address) => {
-            model.connection_state = Some(HttpRequestState::Pending);
+            model.connection_state = Some(ServerConnectionState::Pending);
             _ = render::<Effect, Event>();
 
             Command::new(|ctx| async move {
@@ -34,7 +34,7 @@ pub fn handle_server_communication(
                     url
                 } else {
                     ctx.send_event(Event::UpdateModel(PartialModel {
-                        connection_state: Some(Some(HttpRequestState::Error)),
+                        connection_state: Some(Some(ServerConnectionState::Error)),
                         ..Default::default()
                     }));
                     return;
@@ -42,15 +42,15 @@ pub fn handle_server_communication(
 
                 url.set_path("health");
                 let connection_state = match http::get(url.clone()).into_future(ctx.clone()).await {
-                    http::HttpOutput::Success { .. } => HttpRequestState::Success,
-                    http::HttpOutput::Error => HttpRequestState::Error,
+                    http::HttpOutput::Success { .. } => ServerConnectionState::Connected,
+                    http::HttpOutput::Error => ServerConnectionState::Error,
                 };
 
                 url.set_path("");
 
                 ctx.send_event(Event::UpdateModel(PartialModel {
                     connection_state: Some(Some(connection_state.clone())),
-                    base_url: if matches!(connection_state, HttpRequestState::Success) {
+                    base_url: if matches!(connection_state, ServerConnectionState::Connected) {
                         Some(Some(url.clone()))
                     } else {
                         None
@@ -58,7 +58,7 @@ pub fn handle_server_communication(
                     ..Default::default()
                 }));
 
-                if matches!(connection_state, HttpRequestState::Error) {
+                if matches!(connection_state, ServerConnectionState::Error) {
                     return;
                 }
 

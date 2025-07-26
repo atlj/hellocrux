@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::capabilities::{
-    http::{HttpOperation, HttpRequestState},
+    http::{HttpOperation, ServerConnectionState},
     navigation::{NavigationOperation, Screen},
     storage::StorageOperation,
 };
@@ -43,13 +43,13 @@ pub type CruxContext = CommandContext<Effect, Event>;
 pub struct Model {
     pub base_url: Option<Url>,
     pub current_screen: Screen,
-    pub connection_state: Option<HttpRequestState>,
+    pub connection_state: Option<ServerConnectionState>,
     pub media_items: Option<Vec<Media>>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct ViewModel {
-    connection_state: Option<HttpRequestState>,
+    connection_state: Option<ServerConnectionState>,
     media_items: Option<Vec<Media>>,
 }
 
