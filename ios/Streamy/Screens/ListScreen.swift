@@ -53,8 +53,6 @@ struct ListScreen: View {
                 }
 
                 if filteredItems.isEmpty, !searchString.isEmpty {
-                    /// In case there aren't any search results, we can
-                    /// show the new content unavailable view.
                     if #available(iOS 17.0, *) {
                         ContentUnavailableView.search
                     }

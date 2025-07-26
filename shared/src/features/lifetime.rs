@@ -12,6 +12,8 @@ use crate::{
     },
 };
 
+use super::playback::{PlaybackModel, PlaybackProgressData};
+
 pub fn handle_startup(_: &mut Model) -> Command<Effect, Event> {
     Command::new(|ctx| async move {
         let server_addres = if let Some(address) = storage::get("server_address")
@@ -69,10 +71,25 @@ pub fn handle_screen_change(model: &mut Model, screen: Screen) -> Command<Effect
                 }
             }
         }),
+        Screen::Detail(Media { id, .. }) => Command::new(|ctx| async move {
+            let last_episode = PlaybackProgressData::get_last_episode(ctx.clone(), &id).await;
+            let seconds =
+                PlaybackProgressData::get_from_storage(ctx.clone(), &id, last_episode.as_ref())
+                    .await;
+            ctx.send_event(Event::UpdateModel(PartialModel {
+                playback_detail: Some(Some(PlaybackModel {
+                    last_position: PlaybackProgressData {
+                        id,
+                        episode: last_episode,
+                        progress_seconds: seconds.unwrap_or(0),
+                    },
+                })),
+                ..Default::default()
+            }))
+        }),
 
         Screen::Startup => Command::done(),
         Screen::ServerAddressEntry => Command::done(),
-        Screen::Detail(_) => Command::done(),
         Screen::Settings => Command::done(),
         Screen::Player { .. } => Command::done(),
     }

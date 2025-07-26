@@ -1,4 +1,5 @@
 use crate::features;
+use crate::features::playback::PlaybackModel;
 use crate::features::{
     playback::{PlayEvent, PlaybackProgressData},
     server_communication::ServerCommunicationEvent,
@@ -45,12 +46,14 @@ pub struct Model {
     pub current_screen: Screen,
     pub connection_state: Option<ServerConnectionState>,
     pub media_items: Option<Vec<Media>>,
+    pub playback_detail: Option<PlaybackModel>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct ViewModel {
     connection_state: Option<ServerConnectionState>,
     media_items: Option<Vec<Media>>,
+    playback_detail: Option<PlaybackModel>,
 }
 
 #[derive(Default)]
@@ -96,6 +99,7 @@ impl App for CounterApp {
         ViewModel {
             connection_state: model.connection_state.clone(),
             media_items: model.media_items.clone(),
+            playback_detail: model.playback_detail.clone(),
         }
     }
 }

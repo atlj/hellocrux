@@ -4,6 +4,21 @@ import SwiftUI
 struct MediaDetailScreen: View {
     @EnvironmentObject var core: Core
 
+    var continueLabel: String {
+        var label = "Continue"
+        if let playbackDetail = core.view.playback_detail {
+            if let lastEpisode = playbackDetail.last_position.episode {
+                label = label.appending(" S\(lastEpisode.season) E\(lastEpisode.episode)")
+            }
+
+            let formatter = DateComponentsFormatter()
+            formatter.zeroFormattingBehavior = .dropLeading
+            let formattedTime = formatter.string(from: Double(playbackDetail.last_position.progress_seconds))!
+            label = label.appending(" at \(formattedTime)")
+        }
+        return label
+    }
+
     let media: Media
     var body: some View {
         VStack {
@@ -11,7 +26,10 @@ struct MediaDetailScreen: View {
             case .movie:
                 Spacer()
             case let .series(seriesData):
+                Spacer()
                 EpisodePicker(id: media.id, series: seriesData)
+                    .padding()
+                Spacer()
             }
             Button {
                 core.update(.play(.fromStart(id: media.id)))
@@ -24,7 +42,7 @@ struct MediaDetailScreen: View {
             Button {
                 core.update(.play(.fromLastPosition(id: media.id)))
             } label: {
-                Label("Continue", systemImage: "play.fill")
+                Label(continueLabel, systemImage: "play.fill")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
@@ -40,12 +58,8 @@ struct MediaDetailScreen: View {
             .overlay {
                 VStack {
                     Rectangle()
-                        .frame(maxWidth: .infinity, maxHeight: 300)
-                        .foregroundStyle(.linearGradient(.init(colors: [.black, .black.opacity(0.7), .black.opacity(0)]), startPoint: .top, endPoint: .bottom))
-                    Spacer()
-                    Rectangle()
-                        .frame(maxWidth: .infinity, maxHeight: 300)
-                        .foregroundStyle(.linearGradient(.init(colors: [.black, .black.opacity(0.7), .black.opacity(0)]), startPoint: .bottom, endPoint: .top))
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .foregroundStyle(.ultraThinMaterial)
                 }
                 .ignoresSafeArea()
             }

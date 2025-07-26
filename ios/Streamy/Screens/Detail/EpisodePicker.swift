@@ -1,10 +1,3 @@
-//
-//  EpisodePicker.swift
-//  SimpleCounter
-//
-//  Created by Burak Güner on 5.07.2025.
-//
-
 import SwiftUI
 
 struct EpisodePicker: View {
@@ -30,21 +23,18 @@ struct EpisodePicker: View {
     }
 
     var body: some View {
-        List {
-            OutlineGroup(data, children: \.children) { item in
-                switch item.data {
-                case let .season(seasonId):
-                    Text("Season \(seasonId)")
-                case let .episode(seasonId, episodeId, source):
-                    Button {
-                        core.update(.play(.fromCertainEpisode(id: id, episode: .init(season: UInt32(seasonId), episode: UInt32(episodeId)))))
-                    } label: {
-                        Text("Episode \(episodeId)")
-                    }
+        OutlineGroup(data, children: \.children) { item in
+            switch item.data {
+            case let .season(seasonId):
+                Text("Season \(seasonId)")
+            case let .episode(seasonId, episodeId, _):
+                Button {
+                    core.update(.play(.fromCertainEpisode(id: id, episode: .init(season: UInt32(seasonId), episode: UInt32(episodeId)))))
+                } label: {
+                    Text("Episode \(episodeId)")
                 }
             }
-            .listRowBackground(Color.clear)
-        }.background(.clear)
+        }
     }
 }
 

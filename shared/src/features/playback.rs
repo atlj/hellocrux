@@ -1,6 +1,7 @@
 use crux_core::Command;
 use domain::MediaContent;
 use futures::join;
+use partially::Partial;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -10,6 +11,12 @@ use crate::{
         storage::{get_with_key_string, store_with_key_string},
     },
 };
+
+#[derive(Default, Serialize, Deserialize, Partial, Clone, Debug)]
+#[partially(derive(Debug, Clone, Default))]
+pub struct PlaybackModel {
+    pub last_position: PlaybackProgressData,
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum PlayEvent {
@@ -79,14 +86,14 @@ impl PlayEvent {
         match self {
             Self::FromStart { .. } => (None, None),
             Self::FromLastPosition { id } => {
-                let last_episode = PlaybackProgressData::get_last_episode(id, ctx.clone()).await;
+                let last_episode = PlaybackProgressData::get_last_episode(ctx.clone(), id).await;
                 (
-                    PlaybackProgressData::get_from_storage(id, last_episode.as_ref(), ctx).await,
+                    PlaybackProgressData::get_from_storage(ctx, id, last_episode.as_ref()).await,
                     last_episode,
                 )
             }
             Self::FromCertainEpisode { id, episode } => (
-                PlaybackProgressData::get_from_storage(id, Some(episode), ctx).await,
+                PlaybackProgressData::get_from_storage(ctx, id, Some(episode)).await,
                 Some(episode.clone()),
             ),
         }
@@ -101,11 +108,11 @@ impl PlayEvent {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Default, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PlaybackProgressData {
-    id: String,
-    episode: Option<Episode>,
-    progress_seconds: u64,
+    pub id: String,
+    pub episode: Option<Episode>,
+    pub progress_seconds: u64,
 }
 
 impl PlaybackProgressData {
@@ -124,10 +131,10 @@ impl PlaybackProgressData {
         };
     }
 
-    async fn get_from_storage(
+    pub async fn get_from_storage(
+        ctx: CruxContext,
         id: &str,
         episode: Option<&Episode>,
-        ctx: CruxContext,
     ) -> Option<u64> {
         let key = Self::get_key(id, episode);
         get_with_key_string(key)
@@ -143,7 +150,7 @@ impl PlaybackProgressData {
             .await;
     }
 
-    async fn get_last_episode(id: &str, ctx: CruxContext) -> Option<Episode> {
+    pub async fn get_last_episode(ctx: CruxContext, id: &str) -> Option<Episode> {
         let key = format!("last-episode-{id}");
         get_with_key_string(key)
             .into_future(ctx)
