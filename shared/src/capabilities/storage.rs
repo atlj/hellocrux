@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 pub enum StorageOperation {
     Store { key: String, value: String },
     Get(String),
+    Remove(String),
 }
 
 impl Operation for StorageOperation {
@@ -58,4 +59,26 @@ where
     Event: Send + 'static,
 {
     Command::request_from_shell(StorageOperation::Get(key))
+}
+
+#[must_use]
+pub fn remove<Effect, Event>(
+    key: &str,
+) -> RequestBuilder<Effect, Event, impl Future<Output = Option<String>>>
+where
+    Effect: Send + From<Request<StorageOperation>> + 'static,
+    Event: Send + 'static,
+{
+    Command::request_from_shell(StorageOperation::Remove(key.to_string()))
+}
+
+#[must_use]
+pub fn remove_with_key_string<Effect, Event>(
+    key: String,
+) -> RequestBuilder<Effect, Event, impl Future<Output = Option<String>>>
+where
+    Effect: Send + From<Request<StorageOperation>> + 'static,
+    Event: Send + 'static,
+{
+    Command::request_from_shell(StorageOperation::Remove(key))
 }

@@ -8,6 +8,7 @@ use crate::features::playback::Episode;
 pub enum NavigationOperation {
     Push(Screen),
     ReplaceRoot(Screen),
+    Reset(Option<Screen>),
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
@@ -48,4 +49,15 @@ where
     Event: Send + 'static,
 {
     Command::request_from_shell(NavigationOperation::Push(to))
+}
+
+#[must_use]
+pub fn reset<Effect, Event>(
+    screen: Option<Screen>,
+) -> RequestBuilder<Effect, Event, impl Future<Output = ()>>
+where
+    Effect: Send + From<Request<NavigationOperation>> + 'static,
+    Event: Send + 'static,
+{
+    Command::request_from_shell(NavigationOperation::Reset(screen))
 }

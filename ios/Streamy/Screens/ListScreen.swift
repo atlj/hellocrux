@@ -25,9 +25,7 @@ struct ListScreen: View {
             ScrollView {
                 LazyVGrid(columns: columns) {
                     ForEach(filteredItems, id: \.id) { mediaItem in
-                        NavigationLink {
-                            MediaDetailScreen(media: mediaItem)
-                        } label: {
+                        NavigationLink(value: Screen.detail(mediaItem)) {
                             AsyncImage(url: URL(string: mediaItem.metadata.thumbnail)) { image in
                                 image.resizable()
                             } placeholder: {
@@ -63,10 +61,10 @@ struct ListScreen: View {
             core.update(.screenChanged(.list))
         }
         .toolbar {
-            NavigationLink {
-                SettingsScreen()
-            } label: {
-                Label("Settings", systemImage: "gearshape")
+            ToolbarItem(placement: .navigation) {
+                NavigationLink(value: Screen.settings) {
+                    Label("Settings", systemImage: "gearshape")
+                }
             }
         }
         .navigationTitle("Media")
@@ -76,7 +74,7 @@ struct ListScreen: View {
 #Preview {
     ListScreen(
         overrideMediaItems: [
-            //            Media(id: "1", metadata: MediaMetaData(thumbnail: "https://m.media-amazon.com/images/M/MV5BMTkzMzM3OTM2Ml5BMl5BanBnXkFtZTgwMDM0NDU3MjI@._V1_FMjpg_UY2048_.jpg", title: "Emoji Movie"), content: MediaContent.movie("test.mp4")),
+            Media(id: "1", metadata: MediaMetaData(thumbnail: "https://m.media-amazon.com/images/M/MV5BMTkzMzM3OTM2Ml5BMl5BanBnXkFtZTgwMDM0NDU3MjI@._V1_FMjpg_UY2048_.jpg", title: "Emoji Movie"), content: MediaContent.movie("test.mp4")),
         ]
     )
     .environmentObject(Core())

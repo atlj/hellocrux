@@ -5,23 +5,19 @@ struct NavigationContainer: View {
     @EnvironmentObject var core: Core
     @State private var rootView = Screen.startup
 
-    @State private var screens: [Screen] = []
+    @State private var navPath = NavigationPath()
 
     var body: some View {
-        if #available(iOS 16.0, *) {
-            NavigationStack(path: $screens) {
-                HStack {
-                    getView(screen: rootView)
-                }
-                .navigationDestination(for: Screen.self) { getView(screen: $0) }
-            }.onAppear {
-                core.navigationObserver = self
-                core.update(.startup)
-            }.onDisappear {
-                core.navigationObserver = nil
+        NavigationStack(path: $navPath) {
+            HStack {
+                getView(screen: rootView)
             }
-        } else {
-            // Fallback on earlier versions
+            .navigationDestination(for: Screen.self) { getView(screen: $0) }
+        }.onAppear {
+            core.navigationObserver = self
+            core.update(.startup)
+        }.onDisappear {
+            core.navigationObserver = nil
         }
     }
 
@@ -46,11 +42,18 @@ struct NavigationContainer: View {
 
 extension NavigationContainer: NavigationObserver {
     func push(screen: SharedTypes.Screen) {
-        screens.append(screen)
+        navPath.append(screen)
     }
 
     func replaceRoot(screen: Screen) {
         rootView = screen
+    }
+
+    func reset(screen: Screen?) {
+        if let screen {
+            rootView = screen
+        }
+        navPath.removeLast(navPath.count)
     }
 }
 

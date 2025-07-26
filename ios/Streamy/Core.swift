@@ -46,6 +46,9 @@ class Core: ObservableObject {
 
                 let response = serializer.get_bytes()
                 respond(request, response: response)
+            case let .remove(key):
+                UserDefaults.standard.removeObject(forKey: key)
+                respond(request, response: [0])
             }
         case let .navigate(navigationOperation):
             switch navigationOperation {
@@ -53,6 +56,8 @@ class Core: ObservableObject {
                 navigationObserver?.push(screen: screen)
             case let .replaceRoot(screen):
                 navigationObserver?.replaceRoot(screen: screen)
+            case let .reset(screen):
+                navigationObserver?.reset(screen: screen)
             }
         case let .http(httpOperation):
             switch httpOperation {
@@ -93,4 +98,5 @@ class Core: ObservableObject {
 protocol NavigationObserver {
     func push(screen: Screen)
     func replaceRoot(screen: Screen)
+    func reset(screen: Screen?)
 }

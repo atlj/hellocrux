@@ -7,13 +7,14 @@ use crate::{
     capabilities::{
         http::{self, ServerConnectionState},
         navigation::{self, Screen},
-        storage::store,
+        storage::{self, store},
     },
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ServerCommunicationEvent {
     TryConnecting(String),
+    Reset,
 }
 
 pub fn handle_server_communication(
@@ -70,5 +71,13 @@ pub fn handle_server_communication(
                     .await;
             })
         }
+        ServerCommunicationEvent::Reset => Command::new(|ctx| async move {
+            storage::remove("server_address")
+                .into_future(ctx.clone())
+                .await;
+            navigation::reset(Some(Screen::ServerAddressEntry))
+                .into_future(ctx)
+                .await;
+        }),
     }
 }
