@@ -45,10 +45,9 @@ pub fn handle_startup(_: &mut Model) -> Command<Effect, Event> {
 
 pub fn handle_screen_change(model: &mut Model, screen: Screen) -> Command<Effect, Event> {
     model.current_screen = screen.clone();
-    _ = render::<Effect, Event>();
     let base_url = model.base_url.clone();
 
-    match screen {
+    let command = match screen {
         Screen::List => Command::new(|ctx| async move {
             let mut url = if let Some(url) = base_url {
                 url
@@ -120,5 +119,7 @@ pub fn handle_screen_change(model: &mut Model, screen: Screen) -> Command<Effect
         Screen::ServerAddressEntry => Command::done(),
         Screen::Settings => Command::done(),
         Screen::Player => Command::done(),
-    }
+    };
+
+    render().and(command)
 }

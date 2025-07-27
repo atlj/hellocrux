@@ -50,17 +50,19 @@ pub fn handle_playback_progress(
     duration_seconds: u64,
     playback_progress: PlaybackPosition,
 ) -> Command<Effect, Event> {
-    update_next_episode(model, duration_seconds, &playback_progress);
-    Command::new(|ctx| async move {
+    let command =
+        update_next_episode(model, duration_seconds, &playback_progress).unwrap_or(Command::done());
+
+    command.and(Command::new(|ctx| async move {
         playback_progress.store(ctx).await;
-    })
+    }))
 }
 
 fn update_next_episode(
     model: &mut Model,
     duration_seconds: u64,
     playback_progress: &PlaybackPosition,
-) -> Option<()> {
+) -> Option<Command<Effect, Event>> {
     let progress_seconds = playback_progress.get_seconds();
 
     if duration_seconds.saturating_sub(progress_seconds) > 30 {
@@ -72,7 +74,7 @@ fn update_next_episode(
             .is_some()
         {
             model.playback.active_player.as_mut()?.next_episode = None;
-            _ = render::<Effect, Event>();
+            return Some(render());
         }
         return None;
     }
@@ -105,7 +107,7 @@ fn update_next_episode(
         }
 
         active_player.next_episode = Some(next_episode);
-        _ = render::<Effect, Event>();
+        return Some(render());
     }
 
     None
@@ -259,6 +261,7 @@ impl PlaybackPosition {
             } => *position_seconds,
         }
     }
+
     async fn store(&self, ctx: CruxContext) {
         match self {
             PlaybackPosition::Movie {

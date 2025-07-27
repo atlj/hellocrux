@@ -26,9 +26,8 @@ pub fn handle_server_communication(
     match event {
         ServerCommunicationEvent::TryConnecting(mut address) => {
             model.connection_state = Some(ServerConnectionState::Pending);
-            _ = render::<Effect, Event>();
 
-            Command::new(|ctx| async move {
+            let command = Command::new(|ctx| async move {
                 if !address.starts_with("http") {
                     address = "http://".to_owned() + &address;
                 }
@@ -77,7 +76,9 @@ pub fn handle_server_communication(
                 navigation::replace_root(Screen::List)
                     .into_future(ctx)
                     .await;
-            })
+            });
+
+            render().and(command)
         }
         ServerCommunicationEvent::Reset => Command::new(|ctx| async move {
             storage::remove("server_address")

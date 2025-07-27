@@ -10,9 +10,9 @@ struct Player: UIViewControllerRepresentable {
         URL(string: data.url)!
     }
 
-    private static var sharedPlayer: AVPlayer?
-    private static var sharedPlayerUrl: URL?
-    private static var timeObserver: Any?
+    static var sharedPlayer: AVPlayer?
+    static var sharedPlayerUrl: URL?
+    static var timeObserver: Any?
 
     private var player: AVPlayer {
         if let sharedPlayer = Player.sharedPlayer, Player.sharedPlayerUrl == url {
@@ -75,22 +75,34 @@ struct Player: UIViewControllerRepresentable {
             }
         }
         uiViewController.showNextButton(data.next_episode != nil)
+
+        if url != Player.sharedPlayerUrl {
+            uiViewController.player?.dismantle()
+        }
+
         uiViewController.player = player
     }
 
-    static func dismantleUIViewController(_ uiViewController: AVPlayerViewController, coordinator _: ()) {
-        if let timeObserver = Player.timeObserver {
-            uiViewController.player?.removeTimeObserver(timeObserver)
-            Player.timeObserver = nil
-        }
-
-        uiViewController.player?.replaceCurrentItem(with: nil)
+    static func dismantleUIViewController(_ uiViewController: PlayerViewController, coordinator _: ()) {
+        uiViewController.player?.dismantle()
         uiViewController.player = nil
-        Player.sharedPlayer = nil
-        Player.sharedPlayerUrl = nil
     }
 
     typealias UIViewControllerType = PlayerViewController
+}
+
+extension AVPlayer {
+    func dismantle() {
+        if let timeObserver = Player.timeObserver {
+            removeTimeObserver(timeObserver)
+            Player.timeObserver = nil
+        }
+
+        replaceCurrentItem(with: nil)
+
+        Player.sharedPlayer = nil
+        Player.sharedPlayerUrl = nil
+    }
 }
 
 #Preview {

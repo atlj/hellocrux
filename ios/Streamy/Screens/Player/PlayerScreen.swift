@@ -15,6 +15,9 @@ struct PlayerScreen: View {
             Player(data: data!) { duration, position in
                 Core.shared.update(.playbackProgress(.init(duration, position)))
             }
+            .onAppear {
+                core.update(.screenChanged(.player))
+            }
             .navigationTitle(data!.title)
         }
     }
