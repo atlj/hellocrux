@@ -29,6 +29,8 @@ pub enum Event {
 
     #[serde(skip)]
     UpdateModel(Box<PartialModel>),
+    #[serde(skip)]
+    PushIfNecessary(Screen),
 }
 
 #[effect(typegen)]
@@ -97,6 +99,9 @@ impl App for CounterApp {
             // Utils
             Event::UpdateModel(partial_model) => {
                 features::utils::handle_update_model(model, partial_model)
+            }
+            Event::PushIfNecessary(screen) => {
+                features::utils::handle_push_if_necessary(model, screen)
             }
         }
     }

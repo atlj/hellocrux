@@ -54,17 +54,27 @@ struct Player: UIViewControllerRepresentable {
         return player
     }
 
-    func makeUIViewController(context _: Context) -> AVPlayerViewController {
-        let viewController = AVPlayerViewController()
+    func makeUIViewController(context _: Context) -> PlayerViewController {
+        let viewController = PlayerViewController()
         viewController.player = player
         viewController.entersFullScreenWhenPlaybackBegins = true
         viewController.allowsPictureInPicturePlayback = true
         viewController.canStartPictureInPictureAutomaticallyFromInline = true
         viewController.updatesNowPlayingInfoCenter = true
+
+        viewController.addNextButton()
+        viewController.showNextButton(data.next_episode != nil)
+
         return viewController
     }
 
-    func updateUIViewController(_ uiViewController: AVPlayerViewController, context _: Context) {
+    func updateUIViewController(_ uiViewController: PlayerViewController, context _: Context) {
+        uiViewController.onNextButton = {
+            if let nextEpisode = data.next_episode {
+                Core.shared.update(.play(.fromCertainEpisode(id: data.position.getId(), episode: nextEpisode)))
+            }
+        }
+        uiViewController.showNextButton(data.next_episode != nil)
         uiViewController.player = player
     }
 
@@ -80,5 +90,52 @@ struct Player: UIViewControllerRepresentable {
         Player.sharedPlayerUrl = nil
     }
 
-    typealias UIViewControllerType = AVPlayerViewController
+    typealias UIViewControllerType = PlayerViewController
+}
+
+#Preview {
+    PlayerScreen(
+        overrideData: .init(position: .movie(id: "1", position_seconds: 0), url: "http://localhost:3000/static/jaho/recording.mov", title: "Test", next_episode: nil)
+    )
+    .environmentObject(Core())
+}
+
+class PlayerViewController: AVPlayerViewController {
+    var onNextButton: (() -> Void)?
+
+    func addNextButton() {
+        if let overlay = contentOverlayView {
+            var buttonConfig: UIButton.Configuration = .borderedProminent()
+            var container = AttributeContainer()
+            container.font = .boldSystemFont(ofSize: 40)
+            container.foregroundColor = .red
+
+            let title = AttributedString("Next Episode", attributes: container)
+
+            buttonConfig.attributedTitle = title
+            buttonConfig.buttonSize = .large
+
+            let button = UIButton(configuration: buttonConfig)
+            button.translatesAutoresizingMaskIntoConstraints = false
+
+            overlay.addSubview(button)
+
+            button.isHidden = true
+            button.addTarget(self, action: #selector(handleOnNextButton), for: .touchUpInside)
+
+            NSLayoutConstraint.activate([
+                button.bottomAnchor.constraint(greaterThanOrEqualTo: overlay.bottomAnchor, constant: -12),
+                button.trailingAnchor.constraint(equalTo: overlay.trailingAnchor, constant: -12),
+                button.bottomAnchor.constraint(greaterThanOrEqualTo: overlay.safeAreaLayoutGuide.bottomAnchor, constant: -12),
+            ])
+        }
+    }
+
+    func showNextButton(_ show: Bool) {
+        contentOverlayView?.subviews.first?.isHidden = !show
+    }
+
+    @IBAction func handleOnNextButton() {
+        onNextButton?()
+    }
 }

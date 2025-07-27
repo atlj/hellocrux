@@ -4,20 +4,27 @@ import SwiftUI
 
 struct PlayerScreen: View {
     @EnvironmentObject var core: Core
+    var overrideData: ActivePlayerData?
+
+    var data: ActivePlayerData? {
+        overrideData ?? core.view.playback_detail.active_player
+    }
 
     var body: some View {
-        if let playerData = core.view.playback_detail.active_player {
-            Player(data: playerData) { duration, position in
+        if data != nil {
+            Player(data: data!) { duration, position in
                 Core.shared.update(.playbackProgress(.init(duration, position)))
             }
-            .navigationTitle(playerData.title)
+            .navigationTitle(data!.title)
         }
     }
 }
 
 #Preview {
-    PlayerScreen()
-        .environmentObject(Core())
+    PlayerScreen(
+        overrideData: .init(position: .movie(id: "1", position_seconds: 0), url: "http://localhost:3000/static/jaho/recording.mov", title: "Test", next_episode: nil)
+    )
+    .environmentObject(Core())
 }
 
 extension SharedTypes.PlaybackPosition {
@@ -27,6 +34,15 @@ extension SharedTypes.PlaybackPosition {
             position_seconds
         case .seriesEpisode(id: _, episode_identifier: _, position_seconds: let position_seconds):
             position_seconds
+        }
+    }
+
+    func getId() -> String {
+        switch self {
+        case let .movie(id: id, position_seconds: _):
+            id
+        case let .seriesEpisode(id: id, episode_identifier: _, position_seconds: _):
+            id
         }
     }
 }

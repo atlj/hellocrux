@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     CruxContext, Effect, Event, Model,
     capabilities::{
-        navigation::{self, Screen},
+        navigation::Screen,
         storage::{self, get_with_key_string},
     },
 };
@@ -192,7 +192,7 @@ pub fn handle_play(model: &mut Model, play_event: PlayEvent) -> Command<Effect, 
             },
         );
 
-        navigation::push(Screen::Player).into_future(ctx).await;
+        ctx.send_event(Event::PushIfNecessary(Screen::Player));
     })
 }
 
