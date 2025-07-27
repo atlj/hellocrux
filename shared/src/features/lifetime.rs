@@ -1,6 +1,5 @@
 use crux_core::{Command, render::render};
 use domain::Media;
-use futures::join;
 use url::Url;
 
 use crate::{
@@ -28,18 +27,17 @@ pub fn handle_startup(_: &mut Model) -> Command<Effect, Event> {
                 .await;
         };
 
-        let update_model_handle = ctx.spawn(|ctx| async move {
-            update_model(
-                &ctx,
-                PartialModel {
-                    base_url: Some(Some(Url::parse(&server_addres).unwrap())),
-                    ..Default::default()
-                },
-            );
-        });
-        let replace_root_handle = navigation::replace_root(Screen::List).into_future(ctx);
+        update_model(
+            &ctx,
+            PartialModel {
+                base_url: Some(Some(Url::parse(&server_addres).unwrap())),
+                ..Default::default()
+            },
+        );
 
-        join!(update_model_handle, replace_root_handle);
+        navigation::replace_root(Screen::List)
+            .into_future(ctx)
+            .await;
     })
 }
 
