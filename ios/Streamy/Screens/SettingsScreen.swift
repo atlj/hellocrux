@@ -6,7 +6,7 @@ struct SettingsScreen: View {
     var body: some View {
         Form {
             Section("Server") {
-                Button("Change Server Address", systemImage: "externaldrive", role: .destructive) {
+                Button("Change Server Address", role: .destructive) {
                     core.update(.serverCommunication(.reset))
                 }
             }
