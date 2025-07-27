@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crux_core::Command;
+use crux_core::{Command, render::render};
 use domain::MediaContent;
 use futures::join;
 use partially::Partial;
@@ -26,9 +26,9 @@ pub struct PlaybackModel {
 #[derive(Serialize, Deserialize, Partial, Clone, Debug)]
 pub struct ActivePlayerData {
     pub position: PlaybackPosition,
-    pub duration_seconds: Option<u64>,
     pub url: String,
     pub title: String,
+    pub next_episode: Option<EpisodeIdentifier>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -50,21 +50,70 @@ pub fn handle_playback_progress(
     duration_seconds: u64,
     playback_progress: PlaybackPosition,
 ) -> Command<Effect, Event> {
-    if let Some(active_player) = model.playback.active_player.as_mut() {
-        active_player.duration_seconds = Some(duration_seconds);
-    }
-
+    update_next_episode(model, duration_seconds, &playback_progress);
     Command::new(|ctx| async move {
         playback_progress.store(ctx).await;
     })
 }
 
+fn update_next_episode(
+    model: &mut Model,
+    duration_seconds: u64,
+    playback_progress: &PlaybackPosition,
+) -> Option<()> {
+    let progress_seconds = playback_progress.get_seconds();
+
+    if duration_seconds.saturating_sub(progress_seconds) > 30 {
+        if model
+            .playback
+            .active_player
+            .as_mut()?
+            .next_episode
+            .is_some()
+        {
+            model.playback.active_player.as_mut()?.next_episode = None;
+            _ = render::<Effect, Event>();
+        }
+        return None;
+    }
+
+    if let PlaybackPosition::SeriesEpisode {
+        id,
+        episode_identifier,
+        ..
+    } = playback_progress
+    {
+        let playing_item = model
+            .media_items
+            .as_ref()
+            .and_then(|items| items.get(id))
+            .expect("Received playback progress from an unexistent series");
+
+        let content = if let MediaContent::Series(ref series_data) = playing_item.content {
+            series_data
+        } else {
+            unreachable!()
+        };
+
+        let next_episode = episode_identifier.find_next_episode(content)?;
+        let active_player = model.playback.active_player.as_mut()?;
+
+        if let Some(current_next_episode) = active_player.next_episode.as_ref() {
+            if *current_next_episode == next_episode {
+                return None;
+            }
+        }
+
+        active_player.next_episode = Some(next_episode);
+        _ = render::<Effect, Event>();
+    }
+
+    None
+}
+
 pub fn handle_play(model: &mut Model, play_event: PlayEvent) -> Command<Effect, Event> {
     let id = play_event.get_id().clone();
-    let media_item = if let Some(item) = model
-        .media_items
-        .as_ref()
-        .and_then(|items| items.iter().find(|item| item.id == id))
+    let media_item = if let Some(item) = model.media_items.as_ref().and_then(|items| items.get(&id))
     {
         item.clone()
     } else {
@@ -87,7 +136,7 @@ pub fn handle_play(model: &mut Model, play_event: PlayEvent) -> Command<Effect, 
                 PlaybackModel {
                     last_position,
                     active_player: Some(ActivePlayerData {
-                        duration_seconds: None,
+                        next_episode: None,
                         position: playback_data,
                         title: media_item.metadata.title.clone(),
                         url: base_url_clone
@@ -121,7 +170,7 @@ pub fn handle_play(model: &mut Model, play_event: PlayEvent) -> Command<Effect, 
                 PlaybackModel {
                     last_position,
                     active_player: Some(ActivePlayerData {
-                        duration_seconds: None,
+                        next_episode: None,
                         position: playback_data,
                         title,
                         url: base_url_clone
@@ -200,6 +249,16 @@ pub enum PlaybackPosition {
 }
 
 impl PlaybackPosition {
+    pub fn get_seconds(&self) -> u64 {
+        match self {
+            PlaybackPosition::Movie {
+                position_seconds, ..
+            } => *position_seconds,
+            PlaybackPosition::SeriesEpisode {
+                position_seconds, ..
+            } => *position_seconds,
+        }
+    }
     async fn store(&self, ctx: CruxContext) {
         match self {
             PlaybackPosition::Movie {
@@ -302,5 +361,39 @@ impl EpisodeIdentifier {
             season_no: *earliest_season_no,
             episode_no: *earliest_episode_no,
         }
+    }
+
+    pub fn find_next_episode(
+        &self,
+        series: &HashMap<u32, HashMap<u32, String>>,
+    ) -> Option<EpisodeIdentifier> {
+        // 1. Next episode is available
+        let current_season_episodes = series.get(&self.season_no).unwrap();
+        let next_episode_in_current_season = current_season_episodes
+            .keys()
+            .filter(|episode| **episode > self.episode_no)
+            .min();
+        if let Some(next_episode_in_current_season) = next_episode_in_current_season {
+            return Some(EpisodeIdentifier {
+                season_no: self.season_no,
+                episode_no: *next_episode_in_current_season,
+            });
+        }
+
+        // 2. Next season is available
+        let next_season_no = series
+            .keys()
+            .filter(|season| **season > self.season_no)
+            .min()?; // <- Tricky None return if there is no next season
+
+        let earliest_episode_in_next_season = series
+            .get(next_season_no)
+            .and_then(|season| season.keys().min())
+            .expect("The season must have at least one episode");
+
+        Some(EpisodeIdentifier {
+            season_no: *next_season_no,
+            episode_no: *earliest_episode_in_next_season,
+        })
     }
 }

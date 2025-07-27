@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::features;
 use crate::features::playback::PlaybackModel;
 use crate::features::{
@@ -45,14 +47,14 @@ pub struct Model {
     pub base_url: Option<Url>,
     pub current_screen: Screen,
     pub connection_state: Option<ServerConnectionState>,
-    pub media_items: Option<Vec<Media>>,
+    pub media_items: Option<HashMap<String, Media>>,
     pub playback: PlaybackModel,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct ViewModel {
     connection_state: Option<ServerConnectionState>,
-    media_items: Option<Vec<Media>>,
+    media_items: Option<HashMap<String, Media>>,
     playback_detail: PlaybackModel,
 }
 

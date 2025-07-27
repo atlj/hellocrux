@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crux_core::{Command, render::render};
 use domain::Media;
 use url::Url;
@@ -60,8 +62,17 @@ pub fn handle_screen_change(model: &mut Model, screen: Screen) -> Command<Effect
 
             match http::get(url).into_future(ctx.clone()).await {
                 http::HttpOutput::Success { data, .. } => {
-                    let movies =
-                        data.and_then(|data| serde_json::from_str::<Vec<Media>>(&data).ok());
+                    let movies = data
+                        .and_then(|data| serde_json::from_str::<Vec<Media>>(&data).ok())
+                        .map(|movies| {
+                            let mut movies_hashmap = HashMap::with_capacity(movies.len());
+
+                            movies.into_iter().for_each(|media| {
+                                movies_hashmap.insert(media.id.clone(), media);
+                            });
+
+                            movies_hashmap
+                        });
 
                     update_model(
                         &ctx,
