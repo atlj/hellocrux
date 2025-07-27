@@ -14,10 +14,20 @@ use crate::{
     },
 };
 
+use super::utils::update_model;
+
 #[derive(Serialize, Deserialize, Partial, Clone, Debug)]
 #[partially(derive(Debug, Clone, Default))]
 pub struct PlaybackModel {
-    pub last_position: PlaybackProgressData,
+    pub last_playback: PlaybackData,
+    pub active_player: Option<ActivePlayerData>,
+}
+
+#[derive(Serialize, Deserialize, Partial, Clone, Debug)]
+pub struct ActivePlayerData {
+    pub playback_data: PlaybackData,
+    pub url: String,
+    pub title: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -27,10 +37,8 @@ pub enum PlayEvent {
     FromCertainEpisode { id: String, episode: Episode },
 }
 
-pub fn handle_playback_progress(
-    playback_progress_data: PlaybackProgressData,
-) -> Command<Effect, Event> {
-    Command::new(|ctx| async move { playback_progress_data.store(ctx).await })
+pub fn handle_playback_progress(playback_progress: PlaybackData) -> Command<Effect, Event> {
+    Command::new(|ctx| async move { playback_progress.store(ctx).await })
 }
 
 pub fn handle_play(model: &mut Model, play_event: PlayEvent) -> Command<Effect, Event> {
@@ -49,45 +57,70 @@ pub fn handle_play(model: &mut Model, play_event: PlayEvent) -> Command<Effect, 
     Command::new(|ctx| async move {
         let (initial_seconds, episode) = play_event.get_position(ctx.clone()).await;
 
-        let screen = match item.content {
-            MediaContent::Movie(content) => Screen::Player {
-                id: id.clone(),
-                episode: None,
-                initial_seconds,
-                title: item.metadata.title.clone(),
-                url: base_url_clone
-                    .join("static/")
-                    .unwrap()
-                    .join(&content)
-                    .unwrap()
-                    .to_string(),
-            },
+        let playback_model = match item.content {
+            MediaContent::Movie(content) => {
+                let playback_data = PlaybackData {
+                    id: id.clone(),
+                    episode: None,
+                    initial_seconds: initial_seconds.unwrap_or(0),
+                };
+
+                PlaybackModel {
+                    last_playback: playback_data.clone(),
+                    active_player: Some(ActivePlayerData {
+                        playback_data,
+                        title: item.metadata.title.clone(),
+                        url: base_url_clone
+                            .join("static/")
+                            .unwrap()
+                            .join(&content)
+                            .unwrap()
+                            .to_string(),
+                    }),
+                }
+            }
             MediaContent::Series(episodes) => {
                 let defaulted_episode =
                     episode.unwrap_or(Episode::find_earliest_available_episode(&episodes));
 
                 let season = episodes.get(&defaulted_episode.season).unwrap();
                 let episode_path = season.get(&defaulted_episode.episode).unwrap();
-
-                Screen::Player {
+                let playback_data = PlaybackData {
                     id: id.clone(),
-                    initial_seconds,
-                    title: format!(
-                        "{} S{} E{}",
-                        &item.metadata.title, &defaulted_episode.season, &defaulted_episode.episode
-                    ),
-                    episode: Some(defaulted_episode),
-                    url: base_url_clone
-                        .join("static/")
-                        .unwrap()
-                        .join(episode_path)
-                        .unwrap()
-                        .to_string(),
+                    initial_seconds: initial_seconds.unwrap_or(0),
+                    episode: Some(defaulted_episode.clone()),
+                };
+
+                PlaybackModel {
+                    last_playback: playback_data.clone(),
+                    active_player: Some(ActivePlayerData {
+                        playback_data,
+                        title: format!(
+                            "{} S{} E{}",
+                            &item.metadata.title,
+                            &defaulted_episode.season,
+                            &defaulted_episode.episode
+                        ),
+                        url: base_url_clone
+                            .join("static/")
+                            .unwrap()
+                            .join(episode_path)
+                            .unwrap()
+                            .to_string(),
+                    }),
                 }
             }
         };
 
-        navigation::push(screen).into_future(ctx).await;
+        update_model(
+            &ctx,
+            crate::PartialModel {
+                playback_detail: Some(Some(playback_model)),
+                ..Default::default()
+            },
+        );
+
+        navigation::push(Screen::Player).into_future(ctx).await;
     })
 }
 
@@ -96,14 +129,14 @@ impl PlayEvent {
         match self {
             Self::FromStart { .. } => (None, None),
             Self::FromLastPosition { id } => {
-                let last_episode = PlaybackProgressData::get_last_episode(ctx.clone(), id).await;
+                let last_episode = PlaybackData::get_last_episode(ctx.clone(), id).await;
                 (
-                    PlaybackProgressData::get_from_storage(ctx, id, last_episode.as_ref()).await,
+                    PlaybackData::get_from_storage(ctx, id, last_episode.as_ref()).await,
                     last_episode,
                 )
             }
             Self::FromCertainEpisode { id, episode } => (
-                PlaybackProgressData::get_from_storage(ctx, id, Some(episode)).await,
+                PlaybackData::get_from_storage(ctx, id, Some(episode)).await,
                 Some(episode.clone()),
             ),
         }
@@ -119,17 +152,17 @@ impl PlayEvent {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
-pub struct PlaybackProgressData {
+pub struct PlaybackData {
     pub id: String,
     pub episode: Option<Episode>,
-    pub progress_seconds: u64,
+    pub initial_seconds: u64,
 }
 
-impl PlaybackProgressData {
+impl PlaybackData {
     async fn store(&self, ctx: CruxContext) {
         let key = Self::get_key(&self.id, self.episode.as_ref());
         let store_self_future =
-            store_with_key_string(key, self.progress_seconds.to_string()).into_future(ctx.clone());
+            store_with_key_string(key, self.initial_seconds.to_string()).into_future(ctx.clone());
 
         match self.episode {
             None => {

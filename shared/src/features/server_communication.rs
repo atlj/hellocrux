@@ -11,6 +11,8 @@ use crate::{
     },
 };
 
+use super::utils::update_model;
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ServerCommunicationEvent {
     TryConnecting(String),
@@ -34,10 +36,13 @@ pub fn handle_server_communication(
                 let mut url = if let Ok(url) = Url::parse(&address) {
                     url
                 } else {
-                    ctx.send_event(Event::UpdateModel(PartialModel {
-                        connection_state: Some(Some(ServerConnectionState::Error)),
-                        ..Default::default()
-                    }));
+                    update_model(
+                        &ctx,
+                        PartialModel {
+                            connection_state: Some(Some(ServerConnectionState::Error)),
+                            ..Default::default()
+                        },
+                    );
                     return;
                 };
 
@@ -49,15 +54,18 @@ pub fn handle_server_communication(
 
                 url.set_path("");
 
-                ctx.send_event(Event::UpdateModel(PartialModel {
-                    connection_state: Some(Some(connection_state.clone())),
-                    base_url: if matches!(connection_state, ServerConnectionState::Connected) {
-                        Some(Some(url.clone()))
-                    } else {
-                        None
+                update_model(
+                    &ctx,
+                    PartialModel {
+                        connection_state: Some(Some(connection_state.clone())),
+                        base_url: if matches!(connection_state, ServerConnectionState::Connected) {
+                            Some(Some(url.clone()))
+                        } else {
+                            None
+                        },
+                        ..Default::default()
                     },
-                    ..Default::default()
-                }));
+                );
 
                 if matches!(connection_state, ServerConnectionState::Error) {
                     return;

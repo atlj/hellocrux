@@ -1,7 +1,7 @@
 use crate::features;
 use crate::features::playback::PlaybackModel;
 use crate::features::{
-    playback::{PlayEvent, PlaybackProgressData},
+    playback::{PlayEvent, PlaybackData},
     server_communication::ServerCommunicationEvent,
 };
 use crux_core::command::CommandContext;
@@ -23,10 +23,10 @@ pub enum Event {
     ScreenChanged(Screen),
     ServerCommunication(ServerCommunicationEvent),
     Play(PlayEvent),
-    PlaybackProgress(PlaybackProgressData),
+    PlaybackProgress(PlaybackData),
 
     #[serde(skip)]
-    UpdateModel(PartialModel),
+    UpdateModel(Box<PartialModel>),
 }
 
 #[effect(typegen)]

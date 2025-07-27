@@ -10,9 +10,10 @@ use crate::{
         navigation::{self, Screen},
         storage,
     },
+    features::utils::update_model,
 };
 
-use super::playback::{PlaybackModel, PlaybackProgressData};
+use super::playback::{PlaybackData, PlaybackModel};
 
 pub fn handle_startup(_: &mut Model) -> Command<Effect, Event> {
     Command::new(|ctx| async move {
@@ -28,10 +29,13 @@ pub fn handle_startup(_: &mut Model) -> Command<Effect, Event> {
         };
 
         let update_model_handle = ctx.spawn(|ctx| async move {
-            ctx.send_event(Event::UpdateModel(PartialModel {
-                base_url: Some(Some(Url::parse(&server_addres).unwrap())),
-                ..Default::default()
-            }));
+            update_model(
+                &ctx,
+                PartialModel {
+                    base_url: Some(Some(Url::parse(&server_addres).unwrap())),
+                    ..Default::default()
+                },
+            );
         });
         let replace_root_handle = navigation::replace_root(Screen::List).into_future(ctx);
 
@@ -61,10 +65,13 @@ pub fn handle_screen_change(model: &mut Model, screen: Screen) -> Command<Effect
                     let movies =
                         data.and_then(|data| serde_json::from_str::<Vec<Media>>(&data).ok());
 
-                    ctx.send_event(Event::UpdateModel(PartialModel {
-                        media_items: Some(movies),
-                        ..Default::default()
-                    }));
+                    update_model(
+                        &ctx,
+                        PartialModel {
+                            media_items: Some(movies),
+                            ..Default::default()
+                        },
+                    );
                 }
                 http::HttpOutput::Error => {
                     // log
@@ -72,25 +79,28 @@ pub fn handle_screen_change(model: &mut Model, screen: Screen) -> Command<Effect
             }
         }),
         Screen::Detail(Media { id, .. }) => Command::new(|ctx| async move {
-            let last_episode = PlaybackProgressData::get_last_episode(ctx.clone(), &id).await;
+            let last_episode = PlaybackData::get_last_episode(ctx.clone(), &id).await;
             let seconds =
-                PlaybackProgressData::get_from_storage(ctx.clone(), &id, last_episode.as_ref())
-                    .await;
-            ctx.send_event(Event::UpdateModel(PartialModel {
-                playback_detail: Some(Some(PlaybackModel {
-                    last_position: PlaybackProgressData {
-                        id,
-                        episode: last_episode,
-                        progress_seconds: seconds.unwrap_or(0),
-                    },
-                })),
-                ..Default::default()
-            }))
+                PlaybackData::get_from_storage(ctx.clone(), &id, last_episode.as_ref()).await;
+            update_model(
+                &ctx,
+                PartialModel {
+                    playback_detail: Some(Some(PlaybackModel {
+                        last_playback: PlaybackData {
+                            id,
+                            episode: last_episode,
+                            initial_seconds: seconds.unwrap_or(0),
+                        },
+                        active_player: None,
+                    })),
+                    ..Default::default()
+                },
+            );
         }),
 
         Screen::Startup => Command::done(),
         Screen::ServerAddressEntry => Command::done(),
         Screen::Settings => Command::done(),
-        Screen::Player { .. } => Command::done(),
+        Screen::Player => Command::done(),
     }
 }
