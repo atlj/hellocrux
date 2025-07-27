@@ -12,6 +12,7 @@ struct Player: UIViewControllerRepresentable {
 
     private static var sharedPlayer: AVPlayer?
     private static var sharedPlayerUrl: URL?
+    private static var timeObserver: Any?
 
     private var player: AVPlayer {
         if let sharedPlayer = Player.sharedPlayer, Player.sharedPlayerUrl == url {
@@ -24,12 +25,15 @@ struct Player: UIViewControllerRepresentable {
 
         player.seek(to: .init(seconds: Double(data.position.getInitialSeconds()), preferredTimescale: CMTimeScale(NSEC_PER_SEC)))
 
-        player.addPeriodicTimeObserver(forInterval: .init(seconds: 1, preferredTimescale: CMTimeScale(NSEC_PER_SEC)), queue: .main) { time in
+        Player.timeObserver = player.addPeriodicTimeObserver(forInterval: .init(seconds: 1, preferredTimescale: CMTimeScale(NSEC_PER_SEC)), queue: .main) { time in
             if time.seconds.rounded(.towardZero) == 0 {
                 return
             }
 
-            guard let duration = player.currentItem?.duration, !duration.seconds.isNaN, !duration.seconds.isInfinite else {
+            guard let duration = player.currentItem?.duration,
+                  !duration.seconds.isNaN,
+                  !duration.seconds.isInfinite
+            else {
                 return
             }
 
@@ -65,6 +69,11 @@ struct Player: UIViewControllerRepresentable {
     }
 
     static func dismantleUIViewController(_ uiViewController: AVPlayerViewController, coordinator _: ()) {
+        if let timeObserver = Player.timeObserver {
+            uiViewController.player?.removeTimeObserver(timeObserver)
+            Player.timeObserver = nil
+        }
+
         uiViewController.player?.replaceCurrentItem(with: nil)
         uiViewController.player = nil
         Player.sharedPlayer = nil
