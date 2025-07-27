@@ -34,6 +34,14 @@ struct ListScreen: View {
                             .frame(height: proxy.size.width * 0.7)
                             .clipShape(RoundedRectangle(cornerRadius: 12.0))
                         }
+                        .contextMenu {
+                            Button("Play From Beginning", systemImage: "play.fill") {
+                                core.update(.play(.fromStart(id: mediaItem.id)))
+                            }
+                            Button("Continue", systemImage: "play.fill") {
+                                core.update(.play(.fromLastPosition(id: mediaItem.id)))
+                            }
+                        }
                     }
                 }
                 .padding(.horizontal)
@@ -73,11 +81,11 @@ struct ListScreen: View {
 
 #Preview {
     NavigationStack {
-    ListScreen(
-        overrideMediaItems: [
-            Media(id: "1", metadata: MediaMetaData(thumbnail: "https://m.media-amazon.com/images/M/MV5BMTkzMzM3OTM2Ml5BMl5BanBnXkFtZTgwMDM0NDU3MjI@._V1_FMjpg_UY2048_.jpg", title: "Emoji Movie"), content: MediaContent.movie("test.mp4")),
-        ]
-    )
-    .environmentObject(Core())
+        ListScreen(
+            overrideMediaItems: [
+                Media(id: "1", metadata: MediaMetaData(thumbnail: "https://m.media-amazon.com/images/M/MV5BMTkzMzM3OTM2Ml5BMl5BanBnXkFtZTgwMDM0NDU3MjI@._V1_FMjpg_UY2048_.jpg", title: "Emoji Movie"), content: MediaContent.movie("test.mp4")),
+            ]
+        )
+        .environmentObject(Core())
     }
 }
