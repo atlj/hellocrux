@@ -107,7 +107,7 @@ extension AVPlayer {
 
 #Preview {
     PlayerScreen(
-        overrideData: .init(position: .movie(id: "1", position_seconds: 0), url: "http://localhost:3000/static/jaho/recording.mov", title: "Test", next_episode: nil)
+        overrideData: .init(position: .movie(id: "1", position_seconds: 0), url: "http://localhost:3000/static/jaho/recording.mov", title: "Test", next_episode: EpisodeIdentifier(season_no: 1, episode_no: 1))
     )
     .environmentObject(Core())
 }
@@ -117,17 +117,18 @@ class PlayerViewController: AVPlayerViewController {
 
     func addNextButton() {
         if let overlay = contentOverlayView {
-            var buttonConfig: UIButton.Configuration = .borderedProminent()
+            var buttonConfig: UIButton.Configuration = .plain()
             var container = AttributeContainer()
             container.font = .boldSystemFont(ofSize: 40)
-            container.foregroundColor = .red
 
             let title = AttributedString("Next Episode", attributes: container)
 
             buttonConfig.attributedTitle = title
             buttonConfig.buttonSize = .large
+            buttonConfig.cornerStyle = .dynamic
 
             let button = UIButton(configuration: buttonConfig)
+            button.backgroundColor = .systemBackground.withAlphaComponent(0.5)
             button.translatesAutoresizingMaskIntoConstraints = false
 
             overlay.addSubview(button)
@@ -136,9 +137,10 @@ class PlayerViewController: AVPlayerViewController {
             button.addTarget(self, action: #selector(handleOnNextButton), for: .touchUpInside)
 
             NSLayoutConstraint.activate([
-                button.bottomAnchor.constraint(greaterThanOrEqualTo: overlay.bottomAnchor, constant: -12),
-                button.trailingAnchor.constraint(equalTo: overlay.trailingAnchor, constant: -12),
+                button.bottomAnchor.constraint(greaterThanOrEqualTo: overlay.bottomAnchor, constant: -24),
+                button.trailingAnchor.constraint(equalTo: overlay.trailingAnchor, constant: -24),
                 button.bottomAnchor.constraint(greaterThanOrEqualTo: overlay.safeAreaLayoutGuide.bottomAnchor, constant: -12),
+                button.trailingAnchor.constraint(greaterThanOrEqualTo: overlay.safeAreaLayoutGuide.trailingAnchor, constant: -12),
             ])
         }
     }
