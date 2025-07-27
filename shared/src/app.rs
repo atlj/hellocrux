@@ -1,7 +1,7 @@
 use crate::features;
 use crate::features::playback::PlaybackModel;
 use crate::features::{
-    playback::{PlayEvent, PlaybackData},
+    playback::{PlayEvent, PlaybackPosition},
     server_communication::ServerCommunicationEvent,
 };
 use crux_core::command::CommandContext;
@@ -23,7 +23,7 @@ pub enum Event {
     ScreenChanged(Screen),
     ServerCommunication(ServerCommunicationEvent),
     Play(PlayEvent),
-    PlaybackProgress(PlaybackData),
+    PlaybackProgress(PlaybackPosition),
 
     #[serde(skip)]
     UpdateModel(Box<PartialModel>),
@@ -46,14 +46,14 @@ pub struct Model {
     pub current_screen: Screen,
     pub connection_state: Option<ServerConnectionState>,
     pub media_items: Option<Vec<Media>>,
-    pub playback_detail: Option<PlaybackModel>,
+    pub playback: PlaybackModel,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct ViewModel {
     connection_state: Option<ServerConnectionState>,
     media_items: Option<Vec<Media>>,
-    playback_detail: Option<PlaybackModel>,
+    playback_detail: PlaybackModel,
 }
 
 #[derive(Default)]
@@ -99,7 +99,7 @@ impl App for CounterApp {
         ViewModel {
             connection_state: model.connection_state.clone(),
             media_items: model.media_items.clone(),
-            playback_detail: model.playback_detail.clone(),
+            playback_detail: model.playback.clone(),
         }
     }
 }

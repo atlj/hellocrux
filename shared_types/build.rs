@@ -3,7 +3,10 @@ use domain::{Media, MediaContent, MediaMetaData};
 use shared::{
     CounterApp,
     capabilities::{http::ServerConnectionState, navigation::Screen},
-    features::{playback::PlayEvent, server_communication::ServerCommunicationEvent},
+    features::{
+        playback::{PlayEvent, PlaybackPosition},
+        server_communication::ServerCommunicationEvent,
+    },
 };
 use std::path::PathBuf;
 
@@ -16,6 +19,7 @@ fn main() -> anyhow::Result<()> {
     typegen.register_type::<ServerConnectionState>()?;
     typegen.register_type::<PlayEvent>()?;
     typegen.register_type::<ServerCommunicationEvent>()?;
+    typegen.register_type::<PlaybackPosition>()?;
 
     // Domain
     typegen.register_type::<Media>()?;

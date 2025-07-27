@@ -12,7 +12,7 @@ use crate::{
     features::utils::update_model,
 };
 
-use super::playback::{PlaybackData, PlaybackModel};
+use super::playback::{PlayEvent, PlaybackModel, PlaybackPosition};
 
 pub fn handle_startup(_: &mut Model) -> Command<Effect, Event> {
     Command::new(|ctx| async move {
@@ -77,20 +77,32 @@ pub fn handle_screen_change(model: &mut Model, screen: Screen) -> Command<Effect
             }
         }),
         Screen::Detail(Media { id, .. }) => Command::new(|ctx| async move {
-            let last_episode = PlaybackData::get_last_episode(ctx.clone(), &id).await;
-            let seconds =
-                PlaybackData::get_from_storage(ctx.clone(), &id, last_episode.as_ref()).await;
+            let (initial_seconds, episode) = PlayEvent::FromSavedPosition { id: id.clone() }
+                .get_position(ctx.clone())
+                .await;
+
+            let position = match initial_seconds {
+                None => None,
+                Some(position_seconds) => Some(match episode {
+                    None => PlaybackPosition::Movie {
+                        id,
+                        position_seconds,
+                    },
+                    Some(episode_identifier) => PlaybackPosition::SeriesEpisode {
+                        id,
+                        episode_identifier,
+                        position_seconds,
+                    },
+                }),
+            };
+
             update_model(
                 &ctx,
                 PartialModel {
-                    playback_detail: Some(Some(PlaybackModel {
-                        last_playback: PlaybackData {
-                            id,
-                            episode: last_episode,
-                            initial_seconds: seconds.unwrap_or(0),
-                        },
+                    playback: Some(PlaybackModel {
+                        last_position: position,
                         active_player: None,
-                    })),
+                    }),
                     ..Default::default()
                 },
             );
