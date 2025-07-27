@@ -5,26 +5,25 @@ struct MediaDetailScreen: View {
     @EnvironmentObject var core: Core
 
     var continueLabel: String? {
-        guard let playbackDetail = core.view.playback_detail,
-              playbackDetail.last_position.progress_seconds != 0
-        else {
+        guard let lastPosition = core.view.playback_detail.last_position else {
             return nil
         }
 
-        var label = "Continue"
-        if let lastEpisode = playbackDetail.last_position.episode {
-            label = label.appending(" S\(lastEpisode.season) E\(lastEpisode.episode)")
-        }
-
+        let positionSeconds = lastPosition.getInitialSeconds()
         let formatter = DateComponentsFormatter()
         formatter.allowedUnits = [
             .hour,
             .minute,
             .second,
         ]
-        let formattedTime = formatter.string(from: Double(playbackDetail.last_position.progress_seconds))!
-        label = label.appending(" at \(formattedTime)")
-        return label
+        let formattedTime = formatter.string(from: Double(positionSeconds))!
+
+        return switch lastPosition {
+        case .movie:
+            "Continue at \(formattedTime)"
+        case let .seriesEpisode(id: _, episode_identifier: episodeIdentifier, position_seconds: _):
+            "Continue S\(episodeIdentifier.season_no) E\(episodeIdentifier.episode_no) at \(formattedTime)"
+        }
     }
 
     let media: Media
@@ -39,7 +38,7 @@ struct MediaDetailScreen: View {
             ToolbarItemGroup(placement: .bottomBar) {
                 if let continueLabel {
                     Button {
-                        core.update(.play(.fromStart(id: media.id)))
+                        core.update(.play(.fromBeginning(id: media.id)))
                     } label: {
                         Label("Play", systemImage: "play.fill")
                     }
@@ -47,7 +46,7 @@ struct MediaDetailScreen: View {
                     .foregroundStyle(.primary)
 
                     Button {
-                        core.update(.play(.fromLastPosition(id: media.id)))
+                        core.update(.play(.fromSavedPosition(id: media.id)))
                     } label: {
                         Label(continueLabel, systemImage: "play.fill")
                             .frame(maxWidth: .infinity)
@@ -55,7 +54,7 @@ struct MediaDetailScreen: View {
                     .buttonStyle(.borderedProminent)
                 } else {
                     Button {
-                        core.update(.play(.fromStart(id: media.id)))
+                        core.update(.play(.fromBeginning(id: media.id)))
                     } label: {
                         Label("Play", systemImage: "play.fill")
                             .frame(maxWidth: .infinity)

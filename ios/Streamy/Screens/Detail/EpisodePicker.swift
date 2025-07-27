@@ -30,7 +30,7 @@ struct EpisodePicker: View {
                     .font(.title3)
             case let .episode(seasonId, episodeId, _):
                 Button {
-                    core.update(.play(.fromCertainEpisode(id: id, episode: .init(season: UInt32(seasonId), episode: UInt32(episodeId)))))
+                    core.update(.play(.fromCertainEpisode(id: id, episode: .init(season_no: UInt32(seasonId), episode_no: UInt32(episodeId)))))
                 } label: {
                     HStack {
                         Text("Episode \(episodeId)")

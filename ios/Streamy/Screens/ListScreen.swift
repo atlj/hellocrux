@@ -36,10 +36,10 @@ struct ListScreen: View {
                         }
                         .contextMenu {
                             Button("Play From Beginning", systemImage: "play.fill") {
-                                core.update(.play(.fromStart(id: mediaItem.id)))
+                                core.update(.play(.fromBeginning(id: mediaItem.id)))
                             }
                             Button("Continue", systemImage: "play.fill") {
-                                core.update(.play(.fromLastPosition(id: mediaItem.id)))
+                                core.update(.play(.fromSavedPosition(id: mediaItem.id)))
                             }
                         }
                     }

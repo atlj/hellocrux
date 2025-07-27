@@ -3,28 +3,30 @@ import SharedTypes
 import SwiftUI
 
 struct PlayerScreen: View {
-    let url: URL
-    let itemId: String
-    let episode: Episode?
-    let initialSeconds: UInt64?
-    let title: String
-
     @EnvironmentObject var core: Core
 
     var body: some View {
-        Player(url: url, initialSeconds: initialSeconds) { time in
-
-            Core.shared.update(.playbackProgress(.init(id: itemId, episode: episode, progress_seconds: UInt64(time.seconds))))
+        if let playerData = core.view.playback_detail.active_player {
+            Player(data: playerData) { position in
+                Core.shared.update(.playbackProgress(position))
+            }
+            .navigationTitle(playerData.title)
         }
-        .navigationTitle(title)
     }
 }
 
 #Preview {
-    PlayerScreen(
-        url: URL(string: "http://localhost:3000/static/jaho/recording.mov")!,
-        itemId: "1", episode: nil, initialSeconds: nil,
-        title: "My Item"
-    )
-    .environmentObject(Core())
+    PlayerScreen()
+        .environmentObject(Core())
+}
+
+extension SharedTypes.PlaybackPosition {
+    func getInitialSeconds() -> UInt64 {
+        switch self {
+        case .movie(id: _, position_seconds: let position_seconds):
+            position_seconds
+        case .seriesEpisode(id: _, episode_identifier: _, position_seconds: let position_seconds):
+            position_seconds
+        }
+    }
 }

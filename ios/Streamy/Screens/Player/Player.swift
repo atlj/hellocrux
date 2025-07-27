@@ -1,10 +1,14 @@
 import AVKit
+import SharedTypes
 import SwiftUI
 
 struct Player: UIViewControllerRepresentable {
-    var url: URL
-    var initialSeconds: UInt64?
-    var onProgress: ((CMTime) -> Void)?
+    var data: ActivePlayerData
+    var onProgress: ((PlaybackPosition) -> Void)?
+
+    var url: URL {
+        URL(string: data.url)!
+    }
 
     private static var sharedPlayer: AVPlayer?
     private static var sharedPlayerUrl: URL?
@@ -18,16 +22,21 @@ struct Player: UIViewControllerRepresentable {
         Player.sharedPlayerUrl = url
         Player.sharedPlayer = player
 
-        if let initialSeconds {
-            player.seek(to: .init(seconds: Double(initialSeconds), preferredTimescale: CMTimeScale(NSEC_PER_SEC)))
-        }
+        player.seek(to: .init(seconds: Double(data.position.getInitialSeconds()), preferredTimescale: CMTimeScale(NSEC_PER_SEC)))
 
         player.addPeriodicTimeObserver(forInterval: .init(seconds: 1, preferredTimescale: CMTimeScale(NSEC_PER_SEC)), queue: .main) { time in
             if time.seconds.rounded(.towardZero) == 0 {
                 return
             }
 
-            onProgress?(time)
+            let progress: PlaybackPosition = switch data.position {
+            case let .movie(id: id, position_seconds: _):
+                .movie(id: id, position_seconds: UInt64(time.seconds))
+            case let .seriesEpisode(id: id, episode_identifier: episodeID, position_seconds: _):
+                .seriesEpisode(id: id, episode_identifier: episodeID, position_seconds: UInt64(time.seconds))
+            }
+
+            onProgress?(progress)
         }
 
         player.play()
