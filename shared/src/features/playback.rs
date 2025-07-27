@@ -26,6 +26,7 @@ pub struct PlaybackModel {
 #[derive(Serialize, Deserialize, Partial, Clone, Debug)]
 pub struct ActivePlayerData {
     pub position: PlaybackPosition,
+    pub duration_seconds: Option<u64>,
     pub url: String,
     pub title: String,
 }
@@ -44,8 +45,18 @@ pub enum PlayEvent {
     },
 }
 
-pub fn handle_playback_progress(playback_progress: PlaybackPosition) -> Command<Effect, Event> {
-    Command::new(|ctx| async move { playback_progress.store(ctx).await })
+pub fn handle_playback_progress(
+    model: &mut Model,
+    duration_seconds: u64,
+    playback_progress: PlaybackPosition,
+) -> Command<Effect, Event> {
+    if let Some(active_player) = model.playback.active_player.as_mut() {
+        active_player.duration_seconds = Some(duration_seconds);
+    }
+
+    Command::new(|ctx| async move {
+        playback_progress.store(ctx).await;
+    })
 }
 
 pub fn handle_play(model: &mut Model, play_event: PlayEvent) -> Command<Effect, Event> {
@@ -76,6 +87,7 @@ pub fn handle_play(model: &mut Model, play_event: PlayEvent) -> Command<Effect, 
                 PlaybackModel {
                     last_position,
                     active_player: Some(ActivePlayerData {
+                        duration_seconds: None,
                         position: playback_data,
                         title: media_item.metadata.title.clone(),
                         url: base_url_clone
@@ -109,6 +121,7 @@ pub fn handle_play(model: &mut Model, play_event: PlayEvent) -> Command<Effect, 
                 PlaybackModel {
                     last_position,
                     active_player: Some(ActivePlayerData {
+                        duration_seconds: None,
                         position: playback_data,
                         title,
                         url: base_url_clone

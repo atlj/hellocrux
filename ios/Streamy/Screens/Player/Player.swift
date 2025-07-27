@@ -4,7 +4,7 @@ import SwiftUI
 
 struct Player: UIViewControllerRepresentable {
     var data: ActivePlayerData
-    var onProgress: ((PlaybackPosition) -> Void)?
+    var onProgress: ((UInt64, PlaybackPosition) -> Void)?
 
     var url: URL {
         URL(string: data.url)!
@@ -29,6 +29,12 @@ struct Player: UIViewControllerRepresentable {
                 return
             }
 
+            guard let duration = player.currentItem?.duration, !duration.seconds.isNaN, !duration.seconds.isInfinite else {
+                return
+            }
+
+            let durationSeconds = UInt64(duration.seconds)
+
             let progress: PlaybackPosition = switch data.position {
             case let .movie(id: id, position_seconds: _):
                 .movie(id: id, position_seconds: UInt64(time.seconds))
@@ -36,7 +42,7 @@ struct Player: UIViewControllerRepresentable {
                 .seriesEpisode(id: id, episode_identifier: episodeID, position_seconds: UInt64(time.seconds))
             }
 
-            onProgress?(progress)
+            onProgress?(durationSeconds, progress)
         }
 
         player.play()

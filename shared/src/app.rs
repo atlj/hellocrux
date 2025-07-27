@@ -23,7 +23,7 @@ pub enum Event {
     ScreenChanged(Screen),
     ServerCommunication(ServerCommunicationEvent),
     Play(PlayEvent),
-    PlaybackProgress(PlaybackPosition),
+    PlaybackProgress((u64, PlaybackPosition)),
 
     #[serde(skip)]
     UpdateModel(Box<PartialModel>),
@@ -84,8 +84,12 @@ impl App for CounterApp {
 
             // Playback
             Event::Play(play_event) => features::playback::handle_play(model, play_event),
-            Event::PlaybackProgress(playback_progress_data) => {
-                features::playback::handle_playback_progress(playback_progress_data)
+            Event::PlaybackProgress((duration_seconds, playback_progress_data)) => {
+                features::playback::handle_playback_progress(
+                    model,
+                    duration_seconds,
+                    playback_progress_data,
+                )
             }
 
             // Utils

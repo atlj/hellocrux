@@ -7,8 +7,8 @@ struct PlayerScreen: View {
 
     var body: some View {
         if let playerData = core.view.playback_detail.active_player {
-            Player(data: playerData) { position in
-                Core.shared.update(.playbackProgress(position))
+            Player(data: playerData) { duration, position in
+                Core.shared.update(.playbackProgress(.init(duration, position)))
             }
             .navigationTitle(playerData.title)
         }
