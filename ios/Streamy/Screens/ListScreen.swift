@@ -8,7 +8,17 @@ struct ListScreen: View {
 
     @State var searchString = ""
     var items: [Media] {
-        overrideMediaItems ?? (core.view.media_items ?? [])
+        if let overrideMediaItems {
+            return overrideMediaItems
+        }
+
+        if let modelItems = core.view.media_items {
+            return Array(modelItems.values).sorted {
+                $0.metadata.title < $1.metadata.title
+            }
+        }
+
+        return []
     }
 
     var filteredItems: [Media] {
