@@ -224,8 +224,7 @@ impl PlaybackPosition {
         storage::get_with_key_string(storage_key)
             .into_future(ctx)
             .await
-            .map(|result| result.parse().ok())
-            .flatten()
+            .and_then(|result| result.parse().ok())
     }
 
     pub async fn get_series_position_from_storage(
@@ -237,8 +236,7 @@ impl PlaybackPosition {
         storage::get_with_key_string(storage_key)
             .into_future(ctx)
             .await
-            .map(|result| result.parse().ok())
-            .flatten()
+            .and_then(|result| result.parse().ok())
     }
 
     async fn get_last_played_episode_from_storage(

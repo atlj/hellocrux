@@ -81,20 +81,17 @@ pub fn handle_screen_change(model: &mut Model, screen: Screen) -> Command<Effect
                 .get_position(ctx.clone())
                 .await;
 
-            let position = match initial_seconds {
-                None => None,
-                Some(position_seconds) => Some(match episode {
-                    None => PlaybackPosition::Movie {
-                        id,
-                        position_seconds,
-                    },
-                    Some(episode_identifier) => PlaybackPosition::SeriesEpisode {
-                        id,
-                        episode_identifier,
-                        position_seconds,
-                    },
-                }),
-            };
+            let position = initial_seconds.map(|position_seconds| match episode {
+                None => PlaybackPosition::Movie {
+                    id,
+                    position_seconds,
+                },
+                Some(episode_identifier) => PlaybackPosition::SeriesEpisode {
+                    id,
+                    episode_identifier,
+                    position_seconds,
+                },
+            });
 
             update_model(
                 &ctx,
