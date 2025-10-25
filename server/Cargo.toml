@@ -4,8 +4,8 @@ edition = "2024"
 
 [dependencies]
 serde_json = { workspace = true }
+tokio = { workspace = true }
 axum = { version = "0.8.4", features = ["default", "json"] }
-tokio = { version = "1.45.1", features = ["macros", "fs", "rt-multi-thread"] }
 serde = { workspace = true }
 domain = { path = "../domain" }
 clap = { version = "4.5.40", features = ["derive"] }

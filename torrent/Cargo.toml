@@ -4,3 +4,4 @@ edition = "2024"
 
 [dependencies]
 serde_json = { workspace = true }
+tokio = { workspace = true }
