@@ -9,8 +9,14 @@ use tokio::task::JoinHandle;
 
 #[derive(Debug)]
 pub struct QBittorrentClient {
-    process_handle: Option<JoinHandle<()>>,
     profile_dir: PathBuf,
+    client_process: Option<QBittorrentClientProcess>,
+}
+
+#[derive(Debug)]
+struct QBittorrentClientProcess {
+    process_handle: JoinHandle<()>,
+    port: usize,
 }
 
 const QBITTORRENT_INI_FILE_CONTENTS: &str = r#"[LegalNotice]
@@ -21,13 +27,13 @@ General\Locale=en
 MailNotification\req_auth=true
 WebUI\Address=127.0.0.1
 WebUI\LocalHostAuth=false
-WebUI\Port=45432
+WebUI\Port=0
 "#;
 
 impl QBittorrentClient {
     pub fn try_new() -> QBittorrentResult<Self> {
         Ok(Self {
-            process_handle: None,
+            client_process: None,
             profile_dir: env::temp_dir().join("streamy-qbittorrent"),
         })
     }
@@ -60,9 +66,9 @@ impl QBittorrentClient {
 
         let mut stdout_lines = BufReader::new(stdout).lines();
 
-        self.process_handle = Some(tokio::spawn(async move {
+        let process_handle = tokio::spawn(async move {
             child.wait().await.expect("QBittorrent client was killed");
-        }));
+        });
 
         while let Ok(line) = stdout_lines.next_line().await {
             let line = match line {
@@ -71,6 +77,17 @@ impl QBittorrentClient {
             };
 
             if line.contains("To control qBittorrent, access the WebUI") {
+                let port = Self::extract_port(&line).ok_or_else(|| {
+                    QBittorrentError::CantSpawnQBittorrent(
+                        format!("Can't extract port value from stdout: {}", line).into(),
+                    )
+                })?;
+
+                self.client_process = Some(QBittorrentClientProcess {
+                    process_handle,
+                    port,
+                });
+
                 return Ok(());
             }
         }
@@ -153,12 +170,19 @@ impl QBittorrentClient {
 
         Ok(())
     }
+
+    fn extract_port(message: &str) -> Option<usize> {
+        message
+            .split(':')
+            .next_back()
+            .and_then(|last_element| last_element.parse().ok())
+    }
 }
 
 impl Drop for QBittorrentClient {
     fn drop(&mut self) {
-        if let Some(handle) = self.process_handle.take() {
-            handle.abort()
+        if let Some(process) = self.client_process.take() {
+            process.process_handle.abort();
         }
     }
 }
@@ -181,5 +205,23 @@ mod tests {
     async fn test_spawn_child() {
         let mut client = QBittorrentClient::try_new().unwrap();
         client.spawn_qbittorrent_web().await.unwrap();
+
+        dbg!(&client.client_process);
+        if client.client_process.is_none() {
+            panic!("client_process wasn't set")
+        }
+    }
+
+    #[test]
+    fn test_extract_port() {
+        assert_eq!(QBittorrentClient::extract_port(""), None);
+        assert_eq!(QBittorrentClient::extract_port(":1234"), Some(1234));
+        assert_eq!(QBittorrentClient::extract_port(":hey"), None);
+        assert_eq!(
+            QBittorrentClient::extract_port(
+                "To control qBittorrent, access the WebUI at http://127.0.0.1:8472"
+            ),
+            Some(8472)
+        );
     }
 }
