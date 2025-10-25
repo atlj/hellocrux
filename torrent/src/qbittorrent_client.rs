@@ -1,23 +1,40 @@
 use std::env;
+use std::path::PathBuf;
 use std::process::Stdio;
 
-use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio::fs::OpenOptions;
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
 use tokio::task::JoinHandle;
 
 #[derive(Debug)]
 pub struct QBittorrentClient {
     process_handle: Option<JoinHandle<()>>,
+    profile_dir: PathBuf,
 }
+
+const QBITTORRENT_INI_FILE_CONTENTS: &str = r#"[LegalNotice]
+Accepted=true
+
+[Preferences]
+General\Locale=en
+MailNotification\req_auth=true
+WebUI\Address=127.0.0.1
+WebUI\LocalHostAuth=false
+WebUI\Port=45432
+"#;
 
 impl QBittorrentClient {
     pub fn try_new() -> QBittorrentResult<Self> {
         Ok(Self {
             process_handle: None,
+            profile_dir: env::temp_dir().join("streamy-qbittorrent"),
         })
     }
 
     async fn spawn_qbittorrent_web(&mut self) -> QBittorrentResult<()> {
+        self.create_profile().await;
+
         let profile_path = {
             let mut current_dir = env::current_dir().expect("Current working dir is invalid");
             current_dir.push("qbittorrent_config");
@@ -65,11 +82,53 @@ impl QBittorrentClient {
 
         Err(QBittorrentError::QBittorrentDidntPrintReady)
     }
+
+    async fn create_profile(&self) {
+        let config_dir = {
+            let mut config_dir = self.profile_dir.clone();
+            config_dir.push("qBittorrent");
+            config_dir.push("config");
+            config_dir
+        };
+
+        tokio::fs::create_dir_all(&config_dir)
+            .await
+            .unwrap_or_else(|_| panic!("Couldn't create qBittorrent profile config dir at {}",
+                config_dir.to_str().unwrap()));
+
+        let ini_file_path = {
+            let mut ini_file_path = config_dir.clone();
+            ini_file_path.push("qBittorrent.ini");
+            ini_file_path
+        };
+
+        if tokio::fs::try_exists(&ini_file_path).await.unwrap_or_else(|_| panic!("Couldn't access the qBittorrent ini file path at {}",
+            ini_file_path.to_str().unwrap())) && tokio::fs::remove_file(&ini_file_path).await.is_err() {
+            panic!(
+                "Couldn't remove previous qBittorrent.ini file at {}",
+                ini_file_path.to_str().unwrap()
+            )
+        }
+
+        let mut ini_file = OpenOptions::new()
+            .create_new(true)
+            .write(true)
+            .open(&ini_file_path)
+            .await
+            .unwrap_or_else(|_| panic!("Couldn't create and open qBittorrent.ini file at {}",
+                ini_file_path.to_str().unwrap()));
+
+        ini_file
+            .write_all(QBITTORRENT_INI_FILE_CONTENTS.as_bytes())
+            .await
+            .unwrap_or_else(|_| panic!("Couldn't write to qBittorrent.ini file at {}",
+                ini_file_path.to_str().unwrap()));
+    }
 }
 
 impl Drop for QBittorrentClient {
     fn drop(&mut self) {
-        self.process_handle.take().map(|handle| handle.abort());
+        if let Some(handle) = self.process_handle.take() { handle.abort() }
     }
 }
 
