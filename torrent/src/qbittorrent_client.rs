@@ -38,6 +38,7 @@ impl QBittorrentClient {
         let result = Command::new("qbittorrent-nox")
             .args([format!("--profile={}", self.profile_dir.to_string_lossy())])
             .stdout(Stdio::piped())
+            .kill_on_drop(true)
             .spawn();
 
         let mut child = match result {
