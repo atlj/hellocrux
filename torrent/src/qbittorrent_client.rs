@@ -33,16 +33,10 @@ impl QBittorrentClient {
     }
 
     async fn spawn_qbittorrent_web(&mut self) -> QBittorrentResult<()> {
-        self.create_profile().await;
-
-        let profile_path = {
-            let mut current_dir = env::current_dir().expect("Current working dir is invalid");
-            current_dir.push("qbittorrent_config");
-            current_dir
-        };
+        self.create_profile().await?;
 
         let result = Command::new("qbittorrent-nox")
-            .args([format!("--profile={}", profile_path.to_string_lossy())])
+            .args([format!("--profile={}", self.profile_dir.to_string_lossy())])
             .stdout(Stdio::piped())
             .spawn();
 
@@ -83,7 +77,9 @@ impl QBittorrentClient {
         Err(QBittorrentError::QBittorrentDidntPrintReady)
     }
 
-    async fn create_profile(&self) {
+    async fn create_profile(&self) -> QBittorrentResult<()> {
+        use QBittorrentError as Error;
+
         let config_dir = {
             let mut config_dir = self.profile_dir.clone();
             config_dir.push("qBittorrent");
@@ -91,10 +87,15 @@ impl QBittorrentClient {
             config_dir
         };
 
-        tokio::fs::create_dir_all(&config_dir)
-            .await
-            .unwrap_or_else(|_| panic!("Couldn't create qBittorrent profile config dir at {}",
-                config_dir.to_str().unwrap()));
+        tokio::fs::create_dir_all(&config_dir).await.map_err(|_| {
+            Error::CantSpawnQBittorrent(
+                format!(
+                    "Couldn't create qBittorrent profile config dir at {}",
+                    config_dir.to_str().unwrap()
+                )
+                .into(),
+            )
+        })?;
 
         let ini_file_path = {
             let mut ini_file_path = config_dir.clone();
@@ -102,12 +103,23 @@ impl QBittorrentClient {
             ini_file_path
         };
 
-        if tokio::fs::try_exists(&ini_file_path).await.unwrap_or_else(|_| panic!("Couldn't access the qBittorrent ini file path at {}",
-            ini_file_path.to_str().unwrap())) && tokio::fs::remove_file(&ini_file_path).await.is_err() {
-            panic!(
-                "Couldn't remove previous qBittorrent.ini file at {}",
-                ini_file_path.to_str().unwrap()
+        if tokio::fs::try_exists(&ini_file_path).await.map_err(|_| {
+            Error::CantGenerateProfile(
+                format!(
+                    "Couldn't access the qBittorrent ini file path at {}",
+                    ini_file_path.to_str().unwrap()
+                )
+                .into(),
             )
+        })? && tokio::fs::remove_file(&ini_file_path).await.is_err()
+        {
+            return Err(Error::CantSpawnQBittorrent(
+                format!(
+                    "Couldn't remove previous qBittorrent.ini file at {}",
+                    ini_file_path.to_str().unwrap()
+                )
+                .into(),
+            ));
         }
 
         let mut ini_file = OpenOptions::new()
@@ -115,20 +127,38 @@ impl QBittorrentClient {
             .write(true)
             .open(&ini_file_path)
             .await
-            .unwrap_or_else(|_| panic!("Couldn't create and open qBittorrent.ini file at {}",
-                ini_file_path.to_str().unwrap()));
+            .map_err(|_| {
+                Error::CantGenerateProfile(
+                    format!(
+                        "Couldn't create and open qBittorrent.ini file at {}",
+                        ini_file_path.to_str().unwrap()
+                    )
+                    .into(),
+                )
+            })?;
 
         ini_file
             .write_all(QBITTORRENT_INI_FILE_CONTENTS.as_bytes())
             .await
-            .unwrap_or_else(|_| panic!("Couldn't write to qBittorrent.ini file at {}",
-                ini_file_path.to_str().unwrap()));
+            .map_err(|_| {
+                Error::CantGenerateProfile(
+                    format!(
+                        "Couldn't write to qBittorrent.ini file at {}",
+                        ini_file_path.to_str().unwrap()
+                    )
+                    .into(),
+                )
+            })?;
+
+        Ok(())
     }
 }
 
 impl Drop for QBittorrentClient {
     fn drop(&mut self) {
-        if let Some(handle) = self.process_handle.take() { handle.abort() }
+        if let Some(handle) = self.process_handle.take() {
+            handle.abort()
+        }
     }
 }
 
@@ -139,6 +169,7 @@ pub enum QBittorrentError {
     QBittorrentNoxNotInstalled,
     CantSpawnQBittorrent(Box<str>),
     QBittorrentDidntPrintReady,
+    CantGenerateProfile(Box<str>),
 }
 
 #[cfg(test)]
