@@ -1,5 +1,5 @@
 [workspace]
-members = ["shared", "shared_types", "domain", "server"]
+members = ["shared", "shared_types", "domain", "server", "torrent"]
 resolver = "1"
 
 [workspace.dependencies]

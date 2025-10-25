@@ -1,0 +1,6 @@
+[package]
+name = "torrent"
+edition = "2024"
+
+[dependencies]
+serde_json = { workspace = true }
