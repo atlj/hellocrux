@@ -4,7 +4,11 @@ use crate::api_types::TorrentInfo;
 
 const BASE_URL: &str = "http://127.0.0.1";
 
-async fn add_torrent(client: &Client, port: usize, hash: &str) -> QBittorrentWebApiResult<()> {
+pub(crate) async fn add_torrent(
+    client: &Client,
+    port: usize,
+    hash: &str,
+) -> QBittorrentWebApiResult<()> {
     let url: Url = {
         let mut url: Url = BASE_URL.parse().unwrap();
         url.set_port(Some(port as u16))
@@ -37,7 +41,7 @@ struct AddTorrentForm<'a> {
     urls: &'a str,
 }
 
-async fn get_torrent_list(
+pub(crate) async fn get_torrent_list(
     client: &Client,
     port: usize,
 ) -> QBittorrentWebApiResult<Box<[TorrentInfo]>> {

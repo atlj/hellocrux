@@ -7,6 +7,9 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
 use tokio::task::JoinHandle;
 
+use crate::api_types::TorrentInfo;
+use crate::qbittorrent_web_api::{QBittorrentWebApiResult, add_torrent, get_torrent_list};
+
 #[derive(Debug)]
 pub struct QBittorrentClient {
     profile_dir: PathBuf,
@@ -31,11 +34,55 @@ WebUI\Port=0
 "#;
 
 impl QBittorrentClient {
+    /// `None` as `profile_dir` will use a temp directory. Ideal for testing.
     pub fn try_new(profile_dir: Option<PathBuf>) -> QBittorrentResult<Self> {
         Ok(Self {
             client_process: None,
             profile_dir: profile_dir.unwrap_or(env::temp_dir().join("streamy-qbittorrent")),
         })
+    }
+
+    pub async fn event_loop(
+        &self,
+        mut receiver: tokio::sync::mpsc::Receiver<QBittorrentClientMessage<'_>>,
+        state_updater: tokio::sync::watch::Sender<Box<[TorrentInfo]>>,
+    ) -> QBittorrentResult<()> {
+        let process_client = self.spawn_qbittorrent_web().await?;
+        let http_client = reqwest::Client::new();
+
+        loop {
+            let message = if let Some(message) = receiver.recv().await {
+                message
+            } else {
+                break;
+            };
+
+            match message {
+                QBittorrentClientMessage::AddTorrent {
+                    hash,
+                    result_sender,
+                } => {
+                    let result = add_torrent(&http_client, process_client.port, hash).await;
+                    // TODO: add logging here
+                    let _ = result_sender.send(result);
+                }
+                QBittorrentClientMessage::UpdateTorrentList { result_sender } => {
+                    match get_torrent_list(&http_client, process_client.port).await {
+                        Ok(torrent_list) => {
+                            // TODO: add logging here
+                            let _ = state_updater.send(torrent_list);
+                            let _ = result_sender.send(Ok(()));
+                        }
+                        Err(err) => {
+                            // TODO: add logging here
+                            let _ = result_sender.send(Err(err));
+                        }
+                    }
+                }
+            };
+        }
+
+        Ok(())
     }
 
     pub(crate) async fn spawn_qbittorrent_web(
@@ -179,6 +226,17 @@ impl QBittorrentClient {
             .next_back()
             .and_then(|last_element| last_element.parse().ok())
     }
+}
+
+#[derive(Debug)]
+pub enum QBittorrentClientMessage<'a> {
+    AddTorrent {
+        hash: &'a str,
+        result_sender: tokio::sync::oneshot::Sender<QBittorrentWebApiResult<()>>,
+    },
+    UpdateTorrentList {
+        result_sender: tokio::sync::oneshot::Sender<QBittorrentWebApiResult<()>>,
+    },
 }
 
 impl Drop for QBittorrentClient {
