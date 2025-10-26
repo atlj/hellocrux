@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub struct TorrentInfo {
     added_on: usize,
     name: Box<str>,
@@ -38,7 +38,7 @@ pub struct TorrentInfo {
     upspeed: usize,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub enum TorrentState {
     /// Some error occurred, applies to paused torrents
     #[serde(rename = "error")]

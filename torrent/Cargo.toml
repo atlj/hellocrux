@@ -3,6 +3,7 @@ name = "torrent"
 edition = "2024"
 
 [dependencies]
+reqwest = "0.12.24"
 serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true }

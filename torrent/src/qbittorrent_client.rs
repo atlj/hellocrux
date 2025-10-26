@@ -14,9 +14,9 @@ pub struct QBittorrentClient {
 }
 
 #[derive(Debug)]
-struct QBittorrentClientProcess {
-    process_handle: JoinHandle<()>,
-    port: usize,
+pub(crate) struct QBittorrentClientProcess {
+    pub process_handle: JoinHandle<()>,
+    pub port: usize,
 }
 
 const QBITTORRENT_INI_FILE_CONTENTS: &str = r#"[LegalNotice]
@@ -38,7 +38,9 @@ impl QBittorrentClient {
         })
     }
 
-    async fn spawn_qbittorrent_web(&self) -> QBittorrentResult<QBittorrentClientProcess> {
+    pub(crate) async fn spawn_qbittorrent_web(
+        &self,
+    ) -> QBittorrentResult<QBittorrentClientProcess> {
         self.create_profile().await?;
 
         let result = Command::new("qbittorrent-nox")
@@ -202,7 +204,7 @@ mod tests {
     use crate::qbittorrent_client::QBittorrentClient;
 
     #[tokio::test]
-    async fn test_get_torrents() {
+    async fn test_spawn_process() {
         let mut client = QBittorrentClient::try_new().unwrap();
         let client_process = client.spawn_qbittorrent_web().await.unwrap();
         client.client_process = Some(client_process);
