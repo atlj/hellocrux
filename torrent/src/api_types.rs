@@ -9,7 +9,7 @@ pub struct TorrentInfo {
     /// in bytes
     completed: usize,
     /// estimated completion date
-    completion_on: usize,
+    completion_on: isize,
     content_path: PathBuf,
     /// in bytes
     dlspeed: usize,
@@ -21,7 +21,7 @@ pub struct TorrentInfo {
     magnet_uri: Box<str>,
     num_seeds: usize,
     /// percentage/100
-    progress: usize,
+    progress: f32,
     /// With torrent folder
     root_path: PathBuf,
     /// Without torrent folder
