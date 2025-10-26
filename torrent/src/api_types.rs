@@ -1,3 +1,6 @@
+use std::path::PathBuf;
+
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct TorrentInfo {
     added_on: usize,
     name: Box<str>,
@@ -7,7 +10,7 @@ pub struct TorrentInfo {
     completed: usize,
     /// estimated completion date
     completion_on: usize,
-    content_path: Box<str>,
+    content_path: PathBuf,
     /// in bytes
     dlspeed: usize,
     /// in bytes
@@ -20,15 +23,16 @@ pub struct TorrentInfo {
     /// percentage/100
     progress: usize,
     /// With torrent folder
-    root_path: Box<str>,
+    root_path: PathBuf,
     /// Without torrent folder
-    save_path: Box<str>,
+    save_path: PathBuf,
     /// in bytes
     size: usize,
     /// enum
     state: TorrentState,
     /// comma separated
-    tags: Box<str>,
+    #[serde(with = "comma_separated_list_parser")]
+    tags: Box<[Box<str>]>,
     /// In bytes
     uploaded: usize,
     upspeed: usize,
@@ -93,4 +97,70 @@ pub enum TorrentState {
     /// Unknown status
     #[serde(rename = "unknown")]
     Unknown,
+}
+
+mod comma_separated_list_parser {
+    use serde::{Deserializer, Serializer, de::Visitor};
+
+    pub fn serialize<S>(input: &[Box<str>], serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&input.join(","))
+    }
+
+    struct CommaSeparatedListVisitor;
+
+    impl<'de> Visitor<'de> for CommaSeparatedListVisitor {
+        type Value = Box<[Box<str>]>;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("A comma separated list")
+        }
+
+        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            Ok(v.split(',').map(|elem| elem.into()).collect())
+        }
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Box<[Box<str>]>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_str(CommaSeparatedListVisitor)
+    }
+
+    #[cfg(test)]
+    mod tests {
+        #[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+        struct CustomData {
+            #[serde(with = "super")]
+            comma_separated_list: Box<[Box<str>]>,
+        }
+
+        #[test]
+        fn test_comma_separated_list_deserialize() {
+            let str = r#"{"comma_separated_list": "val1,hey,val2"}"#;
+            assert_eq!(
+                serde_json::from_str::<CustomData>(str).unwrap(),
+                CustomData {
+                    comma_separated_list: Box::new(["val1".into(), "hey".into(), "val2".into()])
+                }
+            )
+        }
+
+        #[test]
+        fn test_comma_separated_list_serialize() {
+            assert_eq!(
+                serde_json::to_string(&CustomData {
+                    comma_separated_list: Box::new(["hey".into(), "there".into()]),
+                })
+                .unwrap(),
+                r#"{"comma_separated_list":"hey,there"}"#
+            )
+        }
+    }
 }
