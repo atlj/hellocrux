@@ -81,7 +81,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_add_torrent() {
-        let client = QBittorrentClient::try_new().unwrap();
+        let client = QBittorrentClient::try_new(None).unwrap();
         let client_process = client.spawn_qbittorrent_web().await.unwrap();
 
         dbg!(&client_process);
@@ -101,7 +101,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_add_faulty_torrent() {
-        let client = QBittorrentClient::try_new().unwrap();
+        let client = QBittorrentClient::try_new(None).unwrap();
         let client_process = client.spawn_qbittorrent_web().await.unwrap();
 
         dbg!(&client_process);
@@ -121,7 +121,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_torrent_list() {
-        let client = QBittorrentClient::try_new().unwrap();
+        let client = QBittorrentClient::try_new(None).unwrap();
         let client_process = client.spawn_qbittorrent_web().await.unwrap();
 
         dbg!(&client_process);

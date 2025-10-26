@@ -31,10 +31,10 @@ WebUI\Port=0
 "#;
 
 impl QBittorrentClient {
-    pub fn try_new() -> QBittorrentResult<Self> {
+    pub fn try_new(profile_dir: Option<PathBuf>) -> QBittorrentResult<Self> {
         Ok(Self {
             client_process: None,
-            profile_dir: env::temp_dir().join("streamy-qbittorrent"),
+            profile_dir: profile_dir.unwrap_or(env::temp_dir().join("streamy-qbittorrent")),
         })
     }
 
@@ -205,7 +205,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_spawn_process() {
-        let mut client = QBittorrentClient::try_new().unwrap();
+        let mut client = QBittorrentClient::try_new(None).unwrap();
         let client_process = client.spawn_qbittorrent_web().await.unwrap();
         client.client_process = Some(client_process);
 
