@@ -38,7 +38,7 @@ impl QBittorrentClient {
         })
     }
 
-    async fn spawn_qbittorrent_web(&mut self) -> QBittorrentResult<()> {
+    async fn spawn_qbittorrent_web(&self) -> QBittorrentResult<QBittorrentClientProcess> {
         self.create_profile().await?;
 
         let result = Command::new("qbittorrent-nox")
@@ -83,12 +83,10 @@ impl QBittorrentClient {
                     )
                 })?;
 
-                self.client_process = Some(QBittorrentClientProcess {
+                return Ok(QBittorrentClientProcess {
                     process_handle,
                     port,
                 });
-
-                return Ok(());
             }
         }
 
@@ -204,12 +202,22 @@ mod tests {
     #[tokio::test]
     async fn test_spawn_child() {
         let mut client = QBittorrentClient::try_new().unwrap();
-        client.spawn_qbittorrent_web().await.unwrap();
+        let client_process = client.spawn_qbittorrent_web().await.unwrap();
+        client.client_process = Some(client_process);
 
         dbg!(&client.client_process);
         if client.client_process.is_none() {
             panic!("client_process wasn't set")
         }
+    }
+
+    #[tokio::test]
+    async fn test_get_torrents() {
+        let mut client = QBittorrentClient::try_new().unwrap();
+        let client_process = client.spawn_qbittorrent_web().await.unwrap();
+        client.client_process = Some(client_process);
+
+        dbg!(&client.client_process);
     }
 
     #[test]
