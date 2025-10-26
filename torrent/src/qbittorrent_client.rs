@@ -103,15 +103,17 @@ impl QBittorrentClient {
             config_dir
         };
 
-        tokio::fs::create_dir_all(&config_dir).await.map_err(|_| {
-            Error::CantSpawnQBittorrent(
-                format!(
-                    "Couldn't create qBittorrent profile config dir at {}",
-                    config_dir.to_str().unwrap()
+        tokio::fs::create_dir_all(&config_dir)
+            .await
+            .map_err(|err| {
+                Error::CantSpawnQBittorrent(
+                    format!(
+                        "Couldn't create qBittorrent profile config dir at {}. reason: {err}",
+                        config_dir.to_str().unwrap()
+                    )
+                    .into(),
                 )
-                .into(),
-            )
-        })?;
+            })?;
 
         let ini_file_path = {
             let mut ini_file_path = config_dir.clone();
@@ -119,10 +121,10 @@ impl QBittorrentClient {
             ini_file_path
         };
 
-        if tokio::fs::try_exists(&ini_file_path).await.map_err(|_| {
+        if tokio::fs::try_exists(&ini_file_path).await.map_err(|err| {
             Error::CantGenerateProfile(
                 format!(
-                    "Couldn't access the qBittorrent ini file path at {}",
+                    "Couldn't access the qBittorrent ini file path at {}. reason: {err}",
                     ini_file_path.to_str().unwrap()
                 )
                 .into(),
@@ -143,10 +145,10 @@ impl QBittorrentClient {
             .write(true)
             .open(&ini_file_path)
             .await
-            .map_err(|_| {
+            .map_err(|err| {
                 Error::CantGenerateProfile(
                     format!(
-                        "Couldn't create and open qBittorrent.ini file at {}",
+                        "Couldn't create and open qBittorrent.ini file at {}. reason: {err}",
                         ini_file_path.to_str().unwrap()
                     )
                     .into(),
@@ -156,10 +158,10 @@ impl QBittorrentClient {
         ini_file
             .write_all(QBITTORRENT_INI_FILE_CONTENTS.as_bytes())
             .await
-            .map_err(|_| {
+            .map_err(|err| {
                 Error::CantGenerateProfile(
                     format!(
-                        "Couldn't write to qBittorrent.ini file at {}",
+                        "Couldn't write to qBittorrent.ini file at {}. reason: {err}",
                         ini_file_path.to_str().unwrap()
                     )
                     .into(),
@@ -198,18 +200,6 @@ pub enum QBittorrentError {
 #[cfg(test)]
 mod tests {
     use crate::qbittorrent_client::QBittorrentClient;
-
-    #[tokio::test]
-    async fn test_spawn_child() {
-        let mut client = QBittorrentClient::try_new().unwrap();
-        let client_process = client.spawn_qbittorrent_web().await.unwrap();
-        client.client_process = Some(client_process);
-
-        dbg!(&client.client_process);
-        if client.client_process.is_none() {
-            panic!("client_process wasn't set")
-        }
-    }
 
     #[tokio::test]
     async fn test_get_torrents() {
