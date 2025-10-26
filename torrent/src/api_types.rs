@@ -2,43 +2,43 @@ use std::path::PathBuf;
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub struct TorrentInfo {
-    added_on: usize,
-    name: Box<str>,
+    pub added_on: usize,
+    pub name: Box<str>,
     /// in bytes
-    amount_left: usize,
+    pub amount_left: usize,
     /// in bytes
-    completed: usize,
+    pub completed: usize,
     /// estimated completion date
-    completion_on: isize,
-    content_path: PathBuf,
+    pub completion_on: isize,
+    pub content_path: PathBuf,
     /// in bytes
-    dlspeed: usize,
+    pub dlspeed: usize,
     /// in bytes
-    downloaded: usize,
+    pub downloaded: usize,
     /// in seconds
-    eta: usize,
-    hash: Box<str>,
-    magnet_uri: Box<str>,
-    num_seeds: usize,
+    pub eta: usize,
+    pub hash: Box<str>,
+    pub magnet_uri: Box<str>,
+    pub num_seeds: usize,
     /// percentage/100
-    progress: f32,
+    pub progress: f32,
     /// With torrent folder
-    root_path: PathBuf,
+    pub root_path: PathBuf,
     /// Without torrent folder
-    save_path: PathBuf,
+    pub save_path: PathBuf,
     /// in bytes
-    size: usize,
+    pub size: usize,
     /// enum
-    state: TorrentState,
+    pub state: TorrentState,
     /// comma separated
     #[serde(with = "comma_separated_list_parser")]
-    tags: Box<[Box<str>]>,
+    pub tags: Box<[Box<str>]>,
     /// In bytes
-    uploaded: usize,
-    upspeed: usize,
+    pub uploaded: usize,
+    pub upspeed: usize,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq, Eq)]
 pub enum TorrentState {
     /// Some error occurred, applies to paused torrents
     #[serde(rename = "error")]
@@ -97,6 +97,12 @@ pub enum TorrentState {
     /// Unknown status
     #[serde(rename = "unknown")]
     Unknown,
+}
+
+impl TorrentState {
+    pub fn should_stop(&self) -> bool {
+        [Self::Error, Self::Uploading, Self::MissingFiles].contains(self)
+    }
 }
 
 mod comma_separated_list_parser {

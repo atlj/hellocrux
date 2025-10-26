@@ -13,7 +13,6 @@ use crate::qbittorrent_web_api::{QBittorrentWebApiResult, add_torrent, get_torre
 #[derive(Debug)]
 pub struct QBittorrentClient {
     pub profile_dir: PathBuf,
-    client_process: Option<QBittorrentClientProcess>,
 }
 
 #[derive(Debug)]
@@ -37,7 +36,6 @@ impl QBittorrentClient {
     /// `None` as `profile_dir` will use a temp directory. Ideal for testing.
     pub fn try_new(profile_dir: Option<PathBuf>) -> QBittorrentResult<Self> {
         Ok(Self {
-            client_process: None,
             profile_dir: profile_dir.unwrap_or(env::temp_dir().join("streamy-qbittorrent")),
         })
     }
@@ -47,7 +45,7 @@ impl QBittorrentClient {
         mut receiver: tokio::sync::mpsc::Receiver<QBittorrentClientMessage<'_>>,
         state_updater: tokio::sync::watch::Sender<Box<[TorrentInfo]>>,
     ) -> QBittorrentResult<()> {
-        let process_client = self.spawn_qbittorrent_web().await?;
+        let mut process_client: Option<QBittorrentClientProcess> = None;
         let http_client = reqwest::Client::new();
 
         loop {
@@ -62,13 +60,33 @@ impl QBittorrentClient {
                     hash,
                     result_sender,
                 } => {
+                    let process_client = if let Some(client) = &process_client {
+                        client
+                    } else {
+                        process_client = Some(self.spawn_qbittorrent_web().await?);
+                        process_client.as_ref().unwrap()
+                    };
+
                     let result = add_torrent(&http_client, process_client.port, hash).await;
                     // TODO: add logging here
                     let _ = result_sender.send(result);
                 }
                 QBittorrentClientMessage::UpdateTorrentList { result_sender } => {
-                    match get_torrent_list(&http_client, process_client.port).await {
+                    let process_client_ref = if let Some(process_client) = &process_client {
+                        process_client
+                    } else {
+                        continue;
+                    };
+
+                    match get_torrent_list(&http_client, process_client_ref.port).await {
                         Ok(torrent_list) => {
+                            // If all torrents are done, drop the client.
+                            if torrent_list.is_empty()
+                                || torrent_list.iter().all(|item| item.state.should_stop())
+                            {
+                                process_client = None;
+                            }
+
                             // TODO: add logging here
                             let _ = state_updater.send(torrent_list);
                             let _ = result_sender.send(Ok(()));
@@ -239,11 +257,9 @@ pub enum QBittorrentClientMessage<'a> {
     },
 }
 
-impl Drop for QBittorrentClient {
+impl Drop for QBittorrentClientProcess {
     fn drop(&mut self) {
-        if let Some(process) = self.client_process.take() {
-            process.process_handle.abort();
-        }
+        self.process_handle.abort();
     }
 }
 
@@ -263,11 +279,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_spawn_process() {
-        let mut client = QBittorrentClient::try_new(None).unwrap();
+        let client = QBittorrentClient::try_new(None).unwrap();
         let client_process = client.spawn_qbittorrent_web().await.unwrap();
-        client.client_process = Some(client_process);
 
-        dbg!(&client.client_process);
+        dbg!(&client_process);
     }
 
     #[test]
