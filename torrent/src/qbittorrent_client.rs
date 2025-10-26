@@ -12,7 +12,7 @@ use crate::qbittorrent_web_api::{QBittorrentWebApiResult, add_torrent, get_torre
 
 #[derive(Debug)]
 pub struct QBittorrentClient {
-    profile_dir: PathBuf,
+    pub profile_dir: PathBuf,
     client_process: Option<QBittorrentClientProcess>,
 }
 

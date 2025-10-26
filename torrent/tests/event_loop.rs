@@ -10,7 +10,12 @@ async fn test_event_loop() {
     // 1. Generate client
     let client = QBittorrentClient::try_new(None).unwrap();
 
-    // 2. Spawn event loop
+    // 2. Remove what's on profile dir
+    tokio::fs::remove_dir_all(&client.profile_dir)
+        .await
+        .unwrap();
+
+    // 3. Spawn event loop
     let (torrent_list_sender, torrent_list_receiver): (
         tokio::sync::watch::Sender<Box<[TorrentInfo]>>,
         _,
@@ -24,19 +29,24 @@ async fn test_event_loop() {
             .unwrap();
     });
 
-    // 3. Add new torrent
+    // 4. Add new torrent
     {
         let (add_torrent_result_sender, add_torrent_result_receiver) =
             tokio::sync::oneshot::channel();
-        torrent_event_loop_sender.send(QBittorrentClientMessage::AddTorrent { hash: "https://cdimage.debian.org/debian-cd/current/arm64/bt-cd/debian-13.1.0-arm64-netinst.iso.torrent", result_sender: add_torrent_result_sender }).await.unwrap();
+        torrent_event_loop_sender.send(
+            QBittorrentClientMessage::AddTorrent {
+                hash: "https://cdimage.debian.org/debian-cd/current/arm64/bt-cd/debian-13.1.0-arm64-netinst.iso.torrent",
+                result_sender: add_torrent_result_sender 
+            }
+         ).await.unwrap();
 
         add_torrent_result_receiver.await.unwrap().unwrap();
     }
 
-    // 4. Wait a bit because QBittorrent doesn't immediately add the torrent.
+    // 5. Wait a bit because QBittorrent doesn't immediately add the torrent.
     tokio::time::sleep(Duration::from_secs(5)).await;
 
-    // 5. Ask client to update its torrent list
+    // 6. Ask client to update its torrent list
     {
         let (update_torrent_list_result_sender, update_torrent_list_result_receiver) =
             tokio::sync::oneshot::channel();
@@ -51,11 +61,11 @@ async fn test_event_loop() {
         update_torrent_list_result_receiver.await.unwrap().unwrap();
     }
 
-    // 6. Make sure the list is not empty
+    // 7. Make sure the list is not empty
     let value = torrent_list_receiver.borrow();
     dbg!(&value);
     assert!(!value.is_empty());
 
-    // 7. Clean up the event loop explicitly
+    // 8. Clean up the event loop explicitly
     event_loop_handle.abort();
 }
