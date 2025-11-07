@@ -42,7 +42,7 @@ impl QBittorrentClient {
 
     pub async fn event_loop(
         &self,
-        mut receiver: tokio::sync::mpsc::Receiver<QBittorrentClientMessage<'_>>,
+        mut receiver: tokio::sync::mpsc::Receiver<QBittorrentClientMessage>,
         state_updater: tokio::sync::watch::Sender<Box<[TorrentInfo]>>,
     ) -> QBittorrentResult<()> {
         let mut process_client: Option<QBittorrentClientProcess> = None;
@@ -54,6 +54,8 @@ impl QBittorrentClient {
             } else {
                 break;
             };
+
+            dbg!(&message);
 
             match message {
                 QBittorrentClientMessage::AddTorrent {
@@ -67,7 +69,7 @@ impl QBittorrentClient {
                         process_client.as_ref().unwrap()
                     };
 
-                    let result = add_torrent(&http_client, process_client.port, hash).await;
+                    let result = add_torrent(&http_client, process_client.port, &hash).await;
                     // TODO: add logging here
                     let _ = result_sender.send(result);
                 }
@@ -149,6 +151,8 @@ impl QBittorrentClient {
                         format!("Can't extract port value from stdout: {}", line).into(),
                     )
                 })?;
+
+                dbg!(port);
 
                 return Ok(QBittorrentClientProcess {
                     process_handle,
@@ -247,9 +251,9 @@ impl QBittorrentClient {
 }
 
 #[derive(Debug)]
-pub enum QBittorrentClientMessage<'a> {
+pub enum QBittorrentClientMessage {
     AddTorrent {
-        hash: &'a str,
+        hash: Box<str>,
         result_sender: tokio::sync::oneshot::Sender<QBittorrentWebApiResult<()>>,
     },
     UpdateTorrentList {

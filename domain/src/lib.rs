@@ -20,3 +20,9 @@ pub struct MediaMetaData {
     pub thumbnail: String,
     pub title: String,
 }
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct Download {
+    pub title: Box<str>,
+    pub progress: f32,
+}

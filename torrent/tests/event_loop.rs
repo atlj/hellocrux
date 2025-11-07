@@ -35,7 +35,7 @@ async fn test_event_loop() {
             tokio::sync::oneshot::channel();
         torrent_event_loop_sender.send(
             QBittorrentClientMessage::AddTorrent {
-                hash: "https://cdimage.debian.org/debian-cd/current/arm64/bt-cd/debian-13.1.0-arm64-netinst.iso.torrent",
+                hash: "https://cdimage.debian.org/debian-cd/current/arm64/bt-cd/debian-13.1.0-arm64-netinst.iso.torrent".into(),
                 result_sender: add_torrent_result_sender 
             }
          ).await.unwrap();

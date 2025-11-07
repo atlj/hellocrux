@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct TorrentInfo {
     pub added_on: usize,
     pub name: Box<str>,
@@ -38,7 +38,7 @@ pub struct TorrentInfo {
     pub upspeed: usize,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq, Eq)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum TorrentState {
     /// Some error occurred, applies to paused torrents
     #[serde(rename = "error")]
@@ -167,6 +167,21 @@ mod comma_separated_list_parser {
                 .unwrap(),
                 r#"{"comma_separated_list":"hey,there"}"#
             )
+        }
+    }
+}
+
+#[cfg(feature = "into_domain")]
+pub mod into_domain {
+    use crate::TorrentInfo;
+    use domain::Download;
+
+    impl From<TorrentInfo> for Download {
+        fn from(val: TorrentInfo) -> Self {
+            Download {
+                title: val.name,
+                progress: val.progress,
+            }
         }
     }
 }
