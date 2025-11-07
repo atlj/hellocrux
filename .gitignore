@@ -5,3 +5,4 @@ ios/generated
 **/xcuserdata
 .idea
 media/
+tmp

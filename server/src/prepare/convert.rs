@@ -69,3 +69,30 @@ async fn convert_file_to_mp4(input_path: &Path, output_path: &Path) -> super::Re
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use crate::prepare::convert::convert_file_to_mp4;
+
+    #[tokio::test]
+    async fn test_convert_file_to_mp4() {
+        let test_data_path: PathBuf = concat!(env!("CARGO_MANIFEST_DIR"), "/test-data").into();
+
+        let _ = tokio::fs::remove_dir_all(test_data_path.join("tmp")).await;
+
+        convert_file_to_mp4(
+            &test_data_path.join("test.mkv"),
+            &test_data_path.join("tmp/test.mp4"),
+        )
+        .await
+        .unwrap();
+
+        assert!(
+            tokio::fs::try_exists(test_data_path.join("tmp/test.mp4"))
+                .await
+                .unwrap()
+        );
+    }
+}
