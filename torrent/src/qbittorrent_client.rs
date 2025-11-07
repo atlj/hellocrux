@@ -45,7 +45,7 @@ impl QBittorrentClient {
         mut receiver: tokio::sync::mpsc::Receiver<QBittorrentClientMessage>,
         state_updater: tokio::sync::watch::Sender<Box<[TorrentInfo]>>,
     ) -> QBittorrentResult<()> {
-        let mut process_client: Option<QBittorrentClientProcess> = None;
+        let mut process_client = Some(self.spawn_qbittorrent_web().await?);
         let http_client = reqwest::Client::new();
 
         loop {
@@ -77,6 +77,8 @@ impl QBittorrentClient {
                     let process_client_ref = if let Some(process_client) = &process_client {
                         process_client
                     } else {
+                        // TODO: add logging here
+                        let _ = result_sender.send(Ok(()));
                         continue;
                     };
 
