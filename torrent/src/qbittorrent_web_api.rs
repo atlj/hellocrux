@@ -19,7 +19,10 @@ pub(crate) async fn add_torrent(
 
     let result = client
         .post(url)
-        .form(&AddTorrentForm { urls: hash })
+        .form(&AddTorrentForm {
+            urls: hash,
+            root_folder: true,
+        })
         .send()
         .await
         .map_err(|err| QBittorrentWebApiError::CouldntCallApi(err.to_string().into()))?
@@ -39,6 +42,7 @@ pub(crate) async fn add_torrent(
 #[derive(serde::Serialize)]
 struct AddTorrentForm<'a> {
     urls: &'a str,
+    root_folder: bool,
 }
 
 pub(crate) async fn get_torrent_list(
