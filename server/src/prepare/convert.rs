@@ -80,7 +80,7 @@ mod tests {
     async fn test_convert_file_to_mp4() {
         let test_data_path: PathBuf = concat!(env!("CARGO_MANIFEST_DIR"), "/test-data").into();
 
-        let _ = tokio::fs::remove_dir_all(test_data_path.join("tmp")).await;
+        let _ = tokio::fs::remove_dir_all(test_data_path.join("tmp/test.mp4")).await;
 
         convert_file_to_mp4(
             &test_data_path.join("test.mkv"),
