@@ -1,4 +1,5 @@
 pub mod media;
+pub mod prepare;
 use std::path::PathBuf;
 
 use clap::Parser;
