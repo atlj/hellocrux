@@ -23,6 +23,8 @@ pub struct MediaMetaData {
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct Download {
+    pub id: Box<str>,
     pub title: Box<str>,
     pub progress: f32,
+    pub is_paused: bool,
 }

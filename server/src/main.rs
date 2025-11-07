@@ -34,8 +34,14 @@ async fn main() {
 
     info!("Found {:#?} media items", entries.len());
 
+    let download_path = {
+        let mut download_path = args.media_dir.clone();
+        download_path.push("qbittorrent");
+        download_path
+    };
+
     let (sender, value_receiver, join_handle) =
-        download_handlers::spawn_download_event_loop().await;
+        download_handlers::spawn_download_event_loop(download_path).await;
 
     let shared_state = AppState {
         entries,
@@ -71,6 +77,8 @@ async fn health_handler() -> String {
 }
 
 mod download_handlers {
+    use std::path::PathBuf;
+
     use axum::{Json, extract, http::StatusCode};
     use domain::Download;
     use tokio::task::JoinHandle;
@@ -81,19 +89,32 @@ mod download_handlers {
 
     use crate::State;
 
-    pub async fn spawn_download_event_loop() -> (
+    pub async fn spawn_download_event_loop(
+        path: PathBuf,
+    ) -> (
         tokio::sync::mpsc::Sender<QBittorrentClientMessage>,
         tokio::sync::watch::Receiver<Box<[TorrentInfo]>>,
         JoinHandle<()>,
     ) {
-        let client = QBittorrentClient::try_new(None).unwrap();
+        let client = QBittorrentClient::try_new(Some(path)).unwrap();
         let (sender, receiver) = tokio::sync::mpsc::channel(100);
         let (list_sender, list_receiver) =
             tokio::sync::watch::channel::<Box<[TorrentInfo]>>(Box::new([]));
 
         let handle = tokio::spawn(async move {
-            let _ = client.event_loop(receiver, list_sender).await;
+            client
+                .event_loop(receiver, list_sender)
+                .await
+                .expect("Event loop exited sooner than expected");
         });
+
+        let (result_sender, result_receiver) = tokio::sync::oneshot::channel();
+        sender
+            .send(QBittorrentClientMessage::UpdateTorrentList { result_sender })
+            .await
+            .unwrap();
+
+        result_receiver.await.unwrap().unwrap();
 
         (sender, list_receiver, handle)
     }
@@ -101,6 +122,7 @@ mod download_handlers {
     pub async fn get_downloads(extract::State(state): State) -> Json<Box<[Download]>> {
         let (result_sender, result_receiver) = tokio::sync::oneshot::channel();
 
+        // TODO: make this a periodic call.
         state
             .download_channels
             .0
@@ -149,6 +171,14 @@ mod download_handlers {
     }
 
     pub async fn remove_download() -> axum::response::Result<()> {
+        todo!()
+    }
+
+    pub async fn pause_download() -> axum::response::Result<()> {
+        todo!()
+    }
+
+    pub async fn resume_download() -> axum::response::Result<()> {
         todo!()
     }
 }

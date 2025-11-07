@@ -1,3 +1,0 @@
-impl Into<> for   {
-    
-}

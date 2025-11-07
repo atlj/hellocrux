@@ -78,6 +78,8 @@ pub enum QBittorrentWebApiError {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
     use crate::{
         qbittorrent_client::QBittorrentClient,
         qbittorrent_web_api::{QBittorrentWebApiError, add_torrent, get_torrent_list},
@@ -93,6 +95,8 @@ mod tests {
         let http_client = reqwest::Client::new();
 
         add_torrent(&http_client, client_process.port, "https://cdimage.debian.org/debian-cd/current/arm64/bt-cd/debian-13.1.0-arm64-netinst.iso.torrent").await.unwrap();
+
+        tokio::time::sleep(Duration::from_secs(5)).await;
 
         let torrent_list = get_torrent_list(&http_client, client_process.port)
             .await

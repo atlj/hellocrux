@@ -29,7 +29,22 @@ async fn test_event_loop() {
             .unwrap();
     });
 
-    // 4. Add new torrent
+    // 4. Try adding a faulty torrent
+    {
+        let (add_torrent_result_sender, add_torrent_result_receiver) =
+            tokio::sync::oneshot::channel();
+        torrent_event_loop_sender.send(
+            QBittorrentClientMessage::AddTorrent {
+                hash: "faulty-hash".into(),
+                result_sender: add_torrent_result_sender 
+            }
+         ).await.unwrap();
+
+        assert!(add_torrent_result_receiver.await.unwrap().is_err());
+    }
+
+
+    // 5. Add new torrent
     {
         let (add_torrent_result_sender, add_torrent_result_receiver) =
             tokio::sync::oneshot::channel();
@@ -43,10 +58,10 @@ async fn test_event_loop() {
         add_torrent_result_receiver.await.unwrap().unwrap();
     }
 
-    // 5. Wait a bit because QBittorrent doesn't immediately add the torrent.
+    // 6. Wait a bit because QBittorrent doesn't immediately add the torrent.
     tokio::time::sleep(Duration::from_secs(5)).await;
 
-    // 6. Ask client to update its torrent list
+    // 7. Ask client to update its torrent list
     {
         let (update_torrent_list_result_sender, update_torrent_list_result_receiver) =
             tokio::sync::oneshot::channel();
@@ -61,11 +76,11 @@ async fn test_event_loop() {
         update_torrent_list_result_receiver.await.unwrap().unwrap();
     }
 
-    // 7. Make sure the list is not empty
+    // 8. Make sure the list is not empty
     let value = torrent_list_receiver.borrow();
     dbg!(&value);
     assert!(!value.is_empty());
 
-    // 8. Clean up the event loop explicitly
+    // 9. Clean up the event loop explicitly
     event_loop_handle.abort();
 }

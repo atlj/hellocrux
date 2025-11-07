@@ -97,11 +97,22 @@ pub enum TorrentState {
     /// Unknown status
     #[serde(rename = "unknown")]
     Unknown,
+    // Not included in docs
+    #[serde(rename = "stoppedDL")]
+    StoppedDL,
 }
 
 impl TorrentState {
     pub fn should_stop(&self) -> bool {
-        [Self::Error, Self::Uploading, Self::MissingFiles].contains(self)
+        matches!(
+            self,
+            Self::Error
+                | Self::Uploading
+                | Self::MissingFiles
+                | Self::StoppedDL
+                | Self::PausedUP
+                | Self::PausedDL
+        )
     }
 }
 
@@ -179,8 +190,13 @@ pub mod into_domain {
     impl From<TorrentInfo> for Download {
         fn from(val: TorrentInfo) -> Self {
             Download {
+                id: val.hash,
                 title: val.name,
                 progress: val.progress,
+                is_paused: matches!(
+                    val.state,
+                    super::TorrentState::PausedDL | super::TorrentState::PausedUP
+                ),
             }
         }
     }

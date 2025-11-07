@@ -66,6 +66,7 @@ impl QBittorrentClient {
                         client
                     } else {
                         process_client = Some(self.spawn_qbittorrent_web().await?);
+                        dbg!("Spawned process again");
                         process_client.as_ref().unwrap()
                     };
 
@@ -77,7 +78,7 @@ impl QBittorrentClient {
                     let process_client_ref = if let Some(process_client) = &process_client {
                         process_client
                     } else {
-                        // TODO: add logging here
+                        dbg!("Process client was killed, not asking for torrents");
                         let _ = result_sender.send(Ok(()));
                         continue;
                     };
@@ -88,6 +89,7 @@ impl QBittorrentClient {
                             if torrent_list.is_empty()
                                 || torrent_list.iter().all(|item| item.state.should_stop())
                             {
+                                dbg!("All torrents are done, killing the process");
                                 process_client = None;
                             }
 
