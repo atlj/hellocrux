@@ -4,9 +4,9 @@ use domain::MediaMetaData;
 use tokio::io::AsyncWriteExt;
 
 async fn generate_movie_media(
-    metadata: &MediaMetaData,
-    movie_file: &Path,
     media_dir: &Path,
+    movie_file: &Path,
+    metadata: &MediaMetaData,
 ) -> super::Result<()> {
     let target_dir = media_dir.join(&metadata.title);
 
@@ -103,9 +103,9 @@ mod tests {
         let _ = tokio::fs::remove_dir_all(test_data_path.join("tmp/generate_movie_media")).await;
 
         generate_movie_media(
-            &metadata,
-            &test_data_path.join("test_copy.mkv"),
             &test_data_path.join("tmp/generate_movie_media"),
+            &test_data_path.join("test_copy.mkv"),
+            &metadata,
         )
         .await
         .unwrap();
