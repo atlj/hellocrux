@@ -1,6 +1,6 @@
 use std::{path::Path, process::Stdio};
 
-async fn convert_file_to_mp4(input_path: &Path, output_path: &Path) -> super::Result<()> {
+pub async fn convert_file_to_mp4(input_path: &Path, output_path: &Path) -> super::Result<()> {
     // 1. Check for input file
     {
         let does_input_file_exist = tokio::fs::try_exists(input_path).await.map_err(|err| {
@@ -68,6 +68,22 @@ async fn convert_file_to_mp4(input_path: &Path, output_path: &Path) -> super::Re
     }
 
     Ok(())
+}
+
+/// ## Panics
+/// Panics when `media_file` has no extension or it's not a file
+pub fn should_convert(media_file: &Path) -> bool {
+    match media_file.extension() {
+        Some(extension) => match extension.to_string_lossy().as_ref() {
+            "mp4" => false,
+            "mkv" | "mov" => true,
+            _ => {
+                // TODO: add logging here
+                true
+            }
+        },
+        None => unreachable!(""),
+    }
 }
 
 #[cfg(test)]

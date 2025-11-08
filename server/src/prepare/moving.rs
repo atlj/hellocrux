@@ -1,13 +1,13 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use domain::MediaMetaData;
 use tokio::io::AsyncWriteExt;
 
-async fn generate_movie_media(
+pub async fn generate_movie_media(
     media_dir: &Path,
     movie_file: &Path,
     metadata: &MediaMetaData,
-) -> super::Result<()> {
+) -> super::Result<PathBuf> {
     let target_dir = media_dir.join(&metadata.title);
 
     // 1. Create destination dir
@@ -73,7 +73,7 @@ async fn generate_movie_media(
             })?;
     }
 
-    Ok(())
+    Ok(target_dir)
 }
 
 #[cfg(test)]

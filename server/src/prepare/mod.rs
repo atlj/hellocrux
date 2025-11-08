@@ -19,7 +19,42 @@ pub async fn prepare_movie(
     metadata: &MediaMetaData,
     source_dir: &Path,
 ) -> Result<()> {
-    todo!()
+    // 1. Find movie file
+    let movie_file = find_movie_file(source_dir)
+        .await?
+        .ok_or(Error::PrepareError(
+            format!("No movie file found at {}", source_dir.display()).into(),
+        ))?;
+
+    // 2. Move movie media and generate metadata
+    let target_dir = moving::generate_movie_media(media_dir, &movie_file, metadata).await?;
+
+    // 3. Convert if needed
+    {
+        let moved_file = target_dir.join(
+            movie_file
+                .file_name()
+                .expect("File with no filename detected"),
+        );
+
+        if convert::should_convert(&moved_file) {
+            // TODO add log
+            convert::convert_file_to_mp4(&moved_file, &moved_file.with_extension("mp4")).await?;
+
+            // 3a. Delete old file
+            tokio::fs::remove_file(&moved_file).await.map_err(|err| {
+            Error::PrepareError(
+                format!(
+                    "Converted a movie file but couldn't delete the source file at {}. Reason: {err}",
+                    movie_file.display()
+                )
+                .into(),
+            )
+        })?;
+        }
+    }
+
+    Ok(())
 }
 
 async fn find_movie_file(source_dir: &Path) -> Result<Option<PathBuf>> {
@@ -62,9 +97,57 @@ fn check_if_video_file(path: &Path) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
+    use std::{
+        fs::{self, OpenOptions},
+        io::{self, Read},
+        path::{Path, PathBuf},
+    };
 
-    use crate::prepare::find_movie_file;
+    use domain::MediaMetaData;
+
+    use crate::prepare::{find_movie_file, prepare_movie};
+
+    #[tokio::test]
+    async fn test_prepare_movie() {
+        let test_data_path: PathBuf = concat!(env!("CARGO_MANIFEST_DIR"), "/test-data").into();
+
+        copy_dir_all(
+            test_data_path.join("prepare"),
+            test_data_path.join("tmp/prepare_source"),
+        )
+        .unwrap();
+
+        let metadata = MediaMetaData {
+            title: "Jellyfish".to_string(),
+            thumbnail: "https://some-link".to_string(),
+        };
+
+        prepare_movie(
+            &test_data_path.join("tmp/prepare"),
+            &metadata,
+            &test_data_path.join("tmp/prepare_source"),
+        )
+        .await
+        .unwrap();
+
+        tokio::fs::try_exists(&test_data_path.join("tmp/prepare/Jellyfish/movie.mp4"))
+            .await
+            .unwrap();
+
+        let meta_file_contents = {
+            let mut meta_file = OpenOptions::new()
+                .read(true)
+                .open(test_data_path.join("tmp/prepare/Jellyfish/meta.json"))
+                .unwrap();
+            let mut string = String::new();
+            meta_file.read_to_string(&mut string).unwrap();
+            string
+        };
+
+        let saved_metadata: MediaMetaData = serde_json::from_str(&meta_file_contents).unwrap();
+
+        assert_eq!(metadata, saved_metadata);
+    }
 
     #[tokio::test]
     async fn test_find_movie_file() {
@@ -116,5 +199,19 @@ mod tests {
                 .unwrap()
                 .is_none()
         );
+    }
+
+    fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> io::Result<()> {
+        fs::create_dir_all(&dst)?;
+        for entry in fs::read_dir(src)? {
+            let entry = entry?;
+            let ty = entry.file_type()?;
+            if ty.is_dir() {
+                copy_dir_all(entry.path(), dst.as_ref().join(entry.file_name()))?;
+            } else {
+                fs::copy(entry.path(), dst.as_ref().join(entry.file_name()))?;
+            }
+        }
+        Ok(())
     }
 }
