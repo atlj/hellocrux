@@ -6,6 +6,7 @@ use axum::{
 };
 use clap::Parser;
 use domain::Media;
+use download_handlers::watch_and_process_downloads;
 use log::info;
 use server::{Args, media::get_media_items};
 use tokio::net::TcpListener;
@@ -43,6 +44,12 @@ async fn main() {
     let (sender, value_receiver, join_handle) =
         download_handlers::spawn_download_event_loop(download_path).await;
 
+    let torrent_watcher_handle = {
+        let media_dir_clone = args.media_dir.clone();
+        let receiver_clone = value_receiver.clone();
+        tokio::spawn(watch_and_process_downloads(media_dir_clone, receiver_clone))
+    };
+
     let shared_state = AppState {
         entries,
         download_channels: (sender, value_receiver),
@@ -65,6 +72,7 @@ async fn main() {
 
     axum::serve(listener, app).await.unwrap();
 
+    torrent_watcher_handle.abort();
     join_handle.abort();
 }
 
@@ -77,10 +85,10 @@ async fn health_handler() -> String {
 }
 
 mod download_handlers {
-    use std::path::PathBuf;
+    use std::{collections::HashSet, path::PathBuf};
 
     use axum::{Json, extract, http::StatusCode};
-    use domain::Download;
+    use domain::{Download, MediaMetaData};
     use tokio::task::JoinHandle;
     use torrent::{
         TorrentInfo,
@@ -88,6 +96,48 @@ mod download_handlers {
     };
 
     use crate::State;
+
+    pub async fn watch_and_process_downloads(
+        media_dir: PathBuf,
+        mut receiver: tokio::sync::watch::Receiver<Box<[TorrentInfo]>>,
+    ) {
+        let mut processed_hashes: HashSet<Box<str>> = HashSet::new();
+
+        loop {
+            let hashes = {
+                let torrents = receiver.borrow_and_update().clone();
+
+                let futures = torrents
+                .into_iter()
+                .filter(|torrent| torrent.state.is_done())
+                .filter(|torrent| !processed_hashes.contains(&torrent.hash))
+                .map(async |torrent| {
+                    let metadata = MediaMetaData{
+                        title: "Big Buck Bunny".to_string(),
+                        thumbnail: "https://www.themoviedb.org/t/p/w600_and_h900_bestv2/i9jJzvoXET4D9pOkoEwncSdNNER.jpg".to_string(),
+                    };
+
+                    dbg!("preparing movie", &torrent.name);
+
+                    // TODO remove unwrap and add logging instead
+                    server::prepare::prepare_movie(&media_dir, &metadata, &torrent.content_path).await.unwrap();
+                    torrent.hash.clone()
+                });
+
+                futures::future::join_all(futures).await
+            };
+
+            // TODO delete processed torrents
+
+            processed_hashes.extend(hashes);
+
+            if receiver.changed().await.is_err() {
+                break;
+            }
+        }
+
+        unreachable!("Torrent channel was dropped")
+    }
 
     pub async fn spawn_download_event_loop(
         path: PathBuf,
@@ -138,6 +188,9 @@ mod download_handlers {
                 .1
                 .borrow()
                 .iter()
+                .inspect(|&torrent| {
+                    dbg!(torrent);
+                })
                 .map(|torrent| torrent.clone().into())
                 .collect(),
         )

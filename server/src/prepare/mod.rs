@@ -88,10 +88,10 @@ async fn find_movie_file(source_dir: &Path) -> Result<Option<PathBuf>> {
 fn check_if_video_file(path: &Path) -> bool {
     match path.extension() {
         None => false,
-        Some(extension) => match extension.to_string_lossy().as_ref() {
-            "mp4" | "mov" | "mkv" | "ts" => true,
-            _ => false,
-        },
+        Some(extension) => matches!(
+            extension.to_string_lossy().as_ref(),
+            "mp4" | "mov" | "mkv" | "ts",
+        ),
     }
 }
 

@@ -112,7 +112,16 @@ impl TorrentState {
                 | Self::StoppedDL
                 | Self::PausedUP
                 | Self::PausedDL
+                | Self::StalledUP
         )
+    }
+
+    pub fn is_done(&self) -> bool {
+        matches!(self, Self::Uploading | Self::StalledUP)
+    }
+
+    pub fn is_paused(&self) -> bool {
+        matches!(self, Self::PausedDL | Self::PausedUP | Self::StoppedDL)
     }
 }
 
@@ -193,10 +202,7 @@ pub mod into_domain {
                 id: val.hash,
                 title: val.name,
                 progress: val.progress,
-                is_paused: matches!(
-                    val.state,
-                    super::TorrentState::PausedDL | super::TorrentState::PausedUP
-                ),
+                is_paused: val.state.is_paused(),
             }
         }
     }
