@@ -81,6 +81,47 @@ async fn test_event_loop() {
     dbg!(&value);
     assert!(!value.is_empty());
 
-    // 9. Clean up the event loop explicitly
+    // 9. Remove torrent
+    {
+        let (update_torrent_list_result_sender, update_torrent_list_result_receiver) =
+            tokio::sync::oneshot::channel();
+
+        torrent_event_loop_sender
+            .send(QBittorrentClientMessage::RemoveTorrent {
+                id: value.first().unwrap().hash.clone(),
+                result_sender: update_torrent_list_result_sender,
+            })
+            .await
+            .unwrap();
+
+        update_torrent_list_result_receiver.await.unwrap().unwrap();
+
+    }
+
+    // 10. Wait a bit because QBittorrent doesn't immediately remove a torrent.
+    tokio::time::sleep(Duration::from_secs(5)).await;
+
+    // 11. Ask client to update its torrent list
+    {
+        let (update_torrent_list_result_sender, update_torrent_list_result_receiver) =
+            tokio::sync::oneshot::channel();
+
+        torrent_event_loop_sender
+            .send(QBittorrentClientMessage::UpdateTorrentList {
+                result_sender: update_torrent_list_result_sender,
+            })
+            .await
+            .unwrap();
+
+        update_torrent_list_result_receiver.await.unwrap().unwrap();
+    }
+
+
+    // 12. Make sure the list is empty
+    let value = torrent_list_receiver.borrow();
+    dbg!(&value);
+    assert!(value.is_empty());
+
+    // 13. Clean up the event loop explicitly
     event_loop_handle.abort();
 }
