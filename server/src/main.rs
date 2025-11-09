@@ -128,7 +128,7 @@ mod download_handlers {
             };
 
             // TODO delete processed torrents
-
+            // TODO delete missing torrents
             processed_hashes.extend(hashes);
 
             if receiver.changed().await.is_err() {

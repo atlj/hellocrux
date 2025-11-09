@@ -39,10 +39,46 @@ pub(crate) async fn add_torrent(
     Ok(())
 }
 
+pub(crate) async fn remove_torrent(
+    client: &Client,
+    port: usize,
+    id: &str,
+) -> QBittorrentWebApiResult<()> {
+    let url: Url = {
+        let mut url: Url = BASE_URL.parse().unwrap();
+        url.set_port(Some(port as u16))
+            .expect("Invalid port was passed");
+        url.set_path("api/v2/torrents/delete");
+        url
+    };
+
+    client
+        .post(url)
+        .form(&RemoveTorrentForm {
+            hashes: id,
+            delete_files: true,
+        })
+        .send()
+        .await
+        .map_err(|err| QBittorrentWebApiError::CouldntCallApi(err.to_string().into()))?
+        .text()
+        .await
+        .map_err(|err| QBittorrentWebApiError::CantGetTextContent(err.to_string().into()))?;
+
+    Ok(())
+}
+
 #[derive(serde::Serialize)]
 struct AddTorrentForm<'a> {
     urls: &'a str,
     root_folder: bool,
+}
+
+#[derive(serde::Serialize)]
+struct RemoveTorrentForm<'a> {
+    hashes: &'a str,
+    #[serde(rename = "deleteFiles")]
+    delete_files: bool,
 }
 
 pub(crate) async fn get_torrent_list(
@@ -78,6 +114,7 @@ pub enum QBittorrentWebApiError {
     CantGetTextContent(Box<str>),
     CantDeserialize(Box<str>),
     CantAddTorrent(Box<str>),
+    CantDeleteTorrent(Box<str>),
 }
 
 #[cfg(test)]
@@ -86,7 +123,9 @@ mod tests {
 
     use crate::{
         qbittorrent_client::QBittorrentClient,
-        qbittorrent_web_api::{QBittorrentWebApiError, add_torrent, get_torrent_list},
+        qbittorrent_web_api::{
+            QBittorrentWebApiError, add_torrent, get_torrent_list, remove_torrent,
+        },
     };
 
     #[tokio::test]
@@ -129,6 +168,48 @@ mod tests {
             .await,
             Err(QBittorrentWebApiError::CantAddTorrent(_))
         ));
+    }
+
+    #[tokio::test]
+    async fn test_remove_torrent() {
+        let client = QBittorrentClient::try_new(None).unwrap();
+        let client_process = client.spawn_qbittorrent_web().await.unwrap();
+
+        dbg!(&client_process);
+
+        let http_client = reqwest::Client::new();
+
+        add_torrent(&http_client, client_process.port, "https://cdimage.debian.org/debian-cd/current/arm64/bt-cd/debian-13.1.0-arm64-netinst.iso.torrent").await.unwrap();
+
+        tokio::time::sleep(Duration::from_secs(5)).await;
+
+        let torrent_list = get_torrent_list(&http_client, client_process.port)
+            .await
+            .unwrap();
+
+        assert!(!torrent_list.is_empty());
+
+        dbg!(&torrent_list);
+
+        let first_item_hash = &torrent_list.first().unwrap().hash;
+
+        remove_torrent(&http_client, client_process.port, first_item_hash)
+            .await
+            .unwrap();
+
+        tokio::time::sleep(Duration::from_secs(5)).await;
+
+        let torrent_list = get_torrent_list(&http_client, client_process.port)
+            .await
+            .unwrap();
+
+        assert!(
+            !torrent_list
+                .iter()
+                .any(|torrent| torrent.hash == *first_item_hash)
+        );
+
+        dbg!(&torrent_list);
     }
 
     #[tokio::test]

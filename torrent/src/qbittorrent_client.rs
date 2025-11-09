@@ -8,7 +8,9 @@ use tokio::process::Command;
 use tokio::task::JoinHandle;
 
 use crate::api_types::TorrentInfo;
-use crate::qbittorrent_web_api::{QBittorrentWebApiResult, add_torrent, get_torrent_list};
+use crate::qbittorrent_web_api::{
+    QBittorrentWebApiResult, add_torrent, get_torrent_list, remove_torrent,
+};
 
 #[derive(Debug)]
 pub struct QBittorrentClient {
@@ -71,6 +73,19 @@ impl QBittorrentClient {
                     };
 
                     let result = add_torrent(&http_client, process_client.port, &hash).await;
+                    // TODO: add logging here
+                    let _ = result_sender.send(result);
+                }
+                QBittorrentClientMessage::RemoveTorrent { id, result_sender } => {
+                    let process_client = if let Some(client) = &process_client {
+                        client
+                    } else {
+                        process_client = Some(self.spawn_qbittorrent_web().await?);
+                        dbg!("Spawned process again");
+                        process_client.as_ref().unwrap()
+                    };
+
+                    let result = remove_torrent(&http_client, process_client.port, &id).await;
                     // TODO: add logging here
                     let _ = result_sender.send(result);
                 }
@@ -258,6 +273,10 @@ impl QBittorrentClient {
 pub enum QBittorrentClientMessage {
     AddTorrent {
         hash: Box<str>,
+        result_sender: tokio::sync::oneshot::Sender<QBittorrentWebApiResult<()>>,
+    },
+    RemoveTorrent {
+        id: Box<str>,
         result_sender: tokio::sync::oneshot::Sender<QBittorrentWebApiResult<()>>,
     },
     UpdateTorrentList {
