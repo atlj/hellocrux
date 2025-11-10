@@ -29,6 +29,10 @@ async fn main() {
     env_logger::init();
     let args = Args::parse();
 
+    tokio::fs::create_dir_all(&args.media_dir)
+        .await
+        .expect("Couldn't create media dir");
+
     info!("Crawling media items");
 
     let entries: Arc<[Media]> = get_media_items(args.media_dir.clone()).await.into();
@@ -213,6 +217,9 @@ mod download_handlers {
                 .1
                 .borrow()
                 .iter()
+                .inspect(|torrents| {
+                    dbg!(torrents);
+                })
                 .map(|torrent| torrent.clone().into())
                 .collect(),
         )
