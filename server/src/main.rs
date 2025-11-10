@@ -47,7 +47,12 @@ async fn main() {
     let torrent_watcher_handle = {
         let media_dir_clone = args.media_dir.clone();
         let receiver_clone = value_receiver.clone();
-        tokio::spawn(watch_and_process_downloads(media_dir_clone, receiver_clone))
+        let sender_clone = sender.clone();
+        tokio::spawn(watch_and_process_downloads(
+            media_dir_clone,
+            receiver_clone,
+            sender_clone,
+        ))
     };
 
     let shared_state = AppState {
@@ -100,6 +105,7 @@ mod download_handlers {
     pub async fn watch_and_process_downloads(
         media_dir: PathBuf,
         mut receiver: tokio::sync::watch::Receiver<Box<[TorrentInfo]>>,
+        sender: tokio::sync::mpsc::Sender<QBittorrentClientMessage>,
     ) {
         let mut processed_hashes: HashSet<Box<str>> = HashSet::new();
 
@@ -127,7 +133,22 @@ mod download_handlers {
                 futures::future::join_all(futures).await
             };
 
-            // TODO delete processed torrents
+            let removal_futures = hashes.iter().map(async |hash| {
+                let (result_sender, result_receiver) = tokio::sync::oneshot::channel();
+                // TODO add logging when result is Err
+                let _ = sender
+                    .send(QBittorrentClientMessage::RemoveTorrent {
+                        id: hash.clone(),
+                        result_sender,
+                    })
+                    .await;
+
+                // TODO add logging when result is Err
+                let _ = result_receiver.await;
+            });
+
+            futures::future::join_all(removal_futures).await;
+
             // TODO delete missing torrents
             processed_hashes.extend(hashes);
 
@@ -200,14 +221,12 @@ mod download_handlers {
         extract::State(state): State,
         body: String,
     ) -> axum::response::Result<()> {
-        use QBittorrentClientMessage as Message;
-
         let (result_sender, result_receiver) = tokio::sync::oneshot::channel();
 
         state
             .download_channels
             .0
-            .send(Message::AddTorrent {
+            .send(QBittorrentClientMessage::AddTorrent {
                 hash: body.into(),
                 result_sender,
             })
@@ -223,8 +242,29 @@ mod download_handlers {
         Ok(())
     }
 
-    pub async fn remove_download() -> axum::response::Result<()> {
-        todo!()
+    pub async fn remove_download(
+        extract::State(state): State,
+        body: String,
+    ) -> axum::response::Result<()> {
+        let (result_sender, result_receiver) = tokio::sync::oneshot::channel();
+
+        state
+            .download_channels
+            .0
+            .send(QBittorrentClientMessage::RemoveTorrent {
+                id: body.into(),
+                result_sender,
+            })
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        let result = result_receiver
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        result.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        Ok(())
     }
 
     pub async fn pause_download() -> axum::response::Result<()> {
