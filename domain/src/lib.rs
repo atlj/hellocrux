@@ -28,3 +28,9 @@ pub struct Download {
     pub progress: f32,
     pub is_paused: bool,
 }
+
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct DownloadForm {
+    pub hash: Box<str>,
+    pub metadata: MediaMetaData,
+}

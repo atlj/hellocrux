@@ -2,6 +2,7 @@ use std::env;
 use std::path::PathBuf;
 use std::process::Stdio;
 
+use domain::MediaMetaData;
 use tokio::fs::OpenOptions;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
@@ -63,6 +64,7 @@ impl QBittorrentClient {
                 QBittorrentClientMessage::AddTorrent {
                     hash,
                     result_sender,
+                    metadata,
                 } => {
                     let process_client = if let Some(client) = &process_client {
                         client
@@ -72,7 +74,8 @@ impl QBittorrentClient {
                         process_client.as_ref().unwrap()
                     };
 
-                    let result = add_torrent(&http_client, process_client.port, &hash).await;
+                    let result =
+                        add_torrent(&http_client, process_client.port, &hash, &metadata).await;
                     // TODO: add logging here
                     let _ = result_sender.send(result);
                 }
@@ -273,6 +276,7 @@ impl QBittorrentClient {
 pub enum QBittorrentClientMessage {
     AddTorrent {
         hash: Box<str>,
+        metadata: Box<MediaMetaData>,
         result_sender: tokio::sync::oneshot::Sender<QBittorrentWebApiResult<()>>,
     },
     RemoveTorrent {

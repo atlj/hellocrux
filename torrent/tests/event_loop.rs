@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use domain::MediaMetaData;
 use torrent::{
     TorrentInfo,
     qbittorrent_client::{QBittorrentClient, QBittorrentClientMessage},
@@ -29,29 +30,37 @@ async fn test_event_loop() {
             .unwrap();
     });
 
+    let metadata = MediaMetaData {
+        title: "My Movie".to_string(),
+        thumbnail: "https://image.com".to_string(),
+    };
+
     // 4. Try adding a faulty torrent
     {
         let (add_torrent_result_sender, add_torrent_result_receiver) =
             tokio::sync::oneshot::channel();
-        torrent_event_loop_sender.send(
-            QBittorrentClientMessage::AddTorrent {
+        torrent_event_loop_sender
+            .send(QBittorrentClientMessage::AddTorrent {
                 hash: "faulty-hash".into(),
-                result_sender: add_torrent_result_sender 
-            }
-         ).await.unwrap();
+                result_sender: add_torrent_result_sender,
+                metadata: Box::new(metadata.clone()),
+            })
+            .await
+            .unwrap();
 
         assert!(add_torrent_result_receiver.await.unwrap().is_err());
     }
-
 
     // 5. Add new torrent
     {
         let (add_torrent_result_sender, add_torrent_result_receiver) =
             tokio::sync::oneshot::channel();
+
         torrent_event_loop_sender.send(
             QBittorrentClientMessage::AddTorrent {
                 hash: "https://cdimage.debian.org/debian-cd/current/arm64/bt-cd/debian-13.1.0-arm64-netinst.iso.torrent".into(),
-                result_sender: add_torrent_result_sender 
+                result_sender: add_torrent_result_sender,
+                metadata: Box::new(metadata)
             }
          ).await.unwrap();
 
@@ -95,7 +104,6 @@ async fn test_event_loop() {
             .unwrap();
 
         update_torrent_list_result_receiver.await.unwrap().unwrap();
-
     }
 
     // 10. Wait a bit because QBittorrent doesn't immediately remove a torrent.
@@ -115,7 +123,6 @@ async fn test_event_loop() {
 
         update_torrent_list_result_receiver.await.unwrap().unwrap();
     }
-
 
     // 12. Make sure the list is empty
     let value = torrent_list_receiver.borrow();

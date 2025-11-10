@@ -1,3 +1,4 @@
+use domain::MediaMetaData;
 use reqwest::{Client, Url};
 
 use crate::api_types::TorrentInfo;
@@ -8,6 +9,7 @@ pub(crate) async fn add_torrent(
     client: &Client,
     port: usize,
     hash: &str,
+    metadata: &MediaMetaData,
 ) -> QBittorrentWebApiResult<()> {
     let url: Url = {
         let mut url: Url = BASE_URL.parse().unwrap();
@@ -17,10 +19,17 @@ pub(crate) async fn add_torrent(
         url
     };
 
+    let category_string = serde_json::to_string(metadata).map_err(|err| {
+        QBittorrentWebApiError::CantAddTorrent(
+            format!("Can't serialize metadata {:?}. Reason: {err}", &metadata).into(),
+        )
+    })?;
+
     let result = client
         .post(url)
         .form(&AddTorrentForm {
             urls: hash,
+            category: &category_string,
             root_folder: true,
         })
         .send()
@@ -71,6 +80,7 @@ pub(crate) async fn remove_torrent(
 #[derive(serde::Serialize)]
 struct AddTorrentForm<'a> {
     urls: &'a str,
+    category: &'a str,
     root_folder: bool,
 }
 
@@ -121,6 +131,8 @@ pub enum QBittorrentWebApiError {
 mod tests {
     use std::time::Duration;
 
+    use domain::MediaMetaData;
+
     use crate::{
         qbittorrent_client::QBittorrentClient,
         qbittorrent_web_api::{
@@ -137,7 +149,11 @@ mod tests {
 
         let http_client = reqwest::Client::new();
 
-        add_torrent(&http_client, client_process.port, "https://cdimage.debian.org/debian-cd/current/arm64/bt-cd/debian-13.1.0-arm64-netinst.iso.torrent").await.unwrap();
+        let metadata = MediaMetaData {
+            title: "My Movie".to_string(),
+            thumbnail: "https://image.com".to_string(),
+        };
+        add_torrent(&http_client, client_process.port, "https://cdimage.debian.org/debian-cd/current/arm64/bt-cd/debian-13.1.0-arm64-netinst.iso.torrent", &metadata).await.unwrap();
 
         tokio::time::sleep(Duration::from_secs(5)).await;
 
@@ -159,11 +175,16 @@ mod tests {
 
         let http_client = reqwest::Client::new();
 
+        let metadata = MediaMetaData {
+            title: "My Movie".to_string(),
+            thumbnail: "https://image.com".to_string(),
+        };
         assert!(matches!(
             add_torrent(
                 &http_client,
                 client_process.port,
                 "non_existent_link_for_torrent",
+                &metadata
             )
             .await,
             Err(QBittorrentWebApiError::CantAddTorrent(_))
@@ -179,7 +200,11 @@ mod tests {
 
         let http_client = reqwest::Client::new();
 
-        add_torrent(&http_client, client_process.port, "https://cdimage.debian.org/debian-cd/current/arm64/bt-cd/debian-13.1.0-arm64-netinst.iso.torrent").await.unwrap();
+        let metadata = MediaMetaData {
+            title: "My Movie".to_string(),
+            thumbnail: "https://image.com".to_string(),
+        };
+        add_torrent(&http_client, client_process.port, "https://cdimage.debian.org/debian-cd/current/arm64/bt-cd/debian-13.1.0-arm64-netinst.iso.torrent", &metadata).await.unwrap();
 
         tokio::time::sleep(Duration::from_secs(5)).await;
 

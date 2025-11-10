@@ -93,7 +93,7 @@ mod download_handlers {
     use std::{collections::HashSet, path::PathBuf};
 
     use axum::{Json, extract, http::StatusCode};
-    use domain::{Download, MediaMetaData};
+    use domain::{Download, DownloadForm, MediaMetaData};
     use tokio::task::JoinHandle;
     use torrent::{
         TorrentInfo,
@@ -114,21 +114,25 @@ mod download_handlers {
                 let torrents = receiver.borrow_and_update().clone();
 
                 let futures = torrents
-                .into_iter()
-                .filter(|torrent| torrent.state.is_done())
-                .filter(|torrent| !processed_hashes.contains(&torrent.hash))
-                .map(async |torrent| {
-                    let metadata = MediaMetaData{
-                        title: "Big Buck Bunny".to_string(),
-                        thumbnail: "https://www.themoviedb.org/t/p/w600_and_h900_bestv2/i9jJzvoXET4D9pOkoEwncSdNNER.jpg".to_string(),
-                    };
+                    .into_iter()
+                    .filter(|torrent| torrent.state.is_done())
+                    .filter(|torrent| !processed_hashes.contains(&torrent.hash))
+                    .map(async |torrent| {
+                        // TODO: Don't use unwrap. Log an error instead.
+                        let metadata: MediaMetaData =
+                            serde_json::from_str(&torrent.category).unwrap();
+                        dbg!("preparing movie", &torrent.name);
 
-                    dbg!("preparing movie", &torrent.name);
-
-                    // TODO remove unwrap and add logging instead
-                    server::prepare::prepare_movie(&media_dir, &metadata, &torrent.content_path).await.unwrap();
-                    torrent.hash.clone()
-                });
+                        // TODO: remove unwrap and add logging instead
+                        server::prepare::prepare_movie(
+                            &media_dir,
+                            &metadata,
+                            &torrent.content_path,
+                        )
+                        .await
+                        .unwrap();
+                        torrent.hash.clone()
+                    });
 
                 futures::future::join_all(futures).await
             };
@@ -209,9 +213,6 @@ mod download_handlers {
                 .1
                 .borrow()
                 .iter()
-                .inspect(|&torrent| {
-                    dbg!(torrent);
-                })
                 .map(|torrent| torrent.clone().into())
                 .collect(),
         )
@@ -219,7 +220,7 @@ mod download_handlers {
 
     pub async fn add_download(
         extract::State(state): State,
-        body: String,
+        Json(form): Json<DownloadForm>,
     ) -> axum::response::Result<()> {
         let (result_sender, result_receiver) = tokio::sync::oneshot::channel();
 
@@ -227,8 +228,9 @@ mod download_handlers {
             .download_channels
             .0
             .send(QBittorrentClientMessage::AddTorrent {
-                hash: body.into(),
+                hash: form.hash,
                 result_sender,
+                metadata: Box::new(form.metadata),
             })
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;

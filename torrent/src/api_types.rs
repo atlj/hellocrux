@@ -6,6 +6,8 @@ pub struct TorrentInfo {
     pub name: Box<str>,
     /// in bytes
     pub amount_left: usize,
+    /// Category of the torrent. We use this internally to store `MediaMetaData`
+    pub category: Box<str>,
     /// in bytes
     pub completed: usize,
     /// estimated completion date
