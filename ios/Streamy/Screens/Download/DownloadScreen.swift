@@ -30,6 +30,12 @@ struct DownloadScreen: View {
             }
         }
         .navigationTitle("Downloads")
+        .task {
+            while true {
+                core.update(.updateData(.downloads))
+                try? await Task.sleep(for: .seconds(5))
+            }
+        }
     }
 }
 

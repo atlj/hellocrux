@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct NewDownloadScreen: View {
+    @EnvironmentObject var core: Core
     @State var hash = ""
     @State var thumbnail = ""
     @State var title = ""
