@@ -56,6 +56,10 @@ struct ListScreen: View {
                 }
                 .padding(.horizontal)
             }
+            .refreshable {
+                // TODO Fix UI being janky
+                core.update(.updateData(.getMedia))
+            }
             .searchable(text: $searchString, prompt: "Search Media")
             .overlay {
                 if items.isEmpty {
