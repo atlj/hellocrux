@@ -30,9 +30,14 @@ pub async fn watch_and_process_downloads(
                         .as_ref()
                         .try_into()
                         .inspect_err(|err| {
-                            error!("Couldn't extract download form from torrent's category. {err}")
+                            error!("Couldn't extract extra from torrent's category. {err}")
                         })
                         .ok()?;
+
+                    if extra.needs_file_mapping() {
+                        return None;
+                    }
+
                     info!("Preparing torrent named {}.", &torrent.name);
 
                     crate::prepare::prepare_movie(
@@ -213,21 +218,23 @@ pub async fn remove_download(
 
 pub async fn update_file_mapping(
     extract::State(state): State,
-    Json(file_mapping_form): extract::Json<EditFileMappingForm>,
+    Json(file_mapping_form): Json<EditFileMappingForm>,
 ) -> axum::response::Result<()> {
-    let torrent_list = state.download_channels.1.borrow();
-    let torrent = torrent_list
-        .iter()
-        .find(|torrent| torrent.hash == file_mapping_form.id)
-        .ok_or(StatusCode::NOT_FOUND)?;
+    let current_extra: TorrentExtra = {
+        let torrent_list = state.download_channels.1.borrow();
+        let torrent = torrent_list
+            .iter()
+            .find(|torrent| torrent.hash == file_mapping_form.id)
+            .ok_or(StatusCode::NOT_FOUND)?;
 
-    let current_extra: TorrentExtra = torrent.try_into().map_err(|_| {
-        error!(
-            "Detected faulty category string on torrent with name {}",
-            torrent.name
-        );
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+        torrent.try_into().map_err(|_| {
+            error!(
+                "Detected faulty category string on torrent with name {}",
+                torrent.name
+            );
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
+    };
 
     let new_extra = match current_extra {
         TorrentExtra::Movie { .. } => return Err(StatusCode::BAD_REQUEST.into()),
@@ -242,7 +249,7 @@ pub async fn update_file_mapping(
         .download_channels
         .0
         .send(QBittorrentClientMessage::SetExtra {
-            id: file_mapping_form.id,
+            id: file_mapping_form.id.clone(),
             extra: Box::new(new_extra),
             result_sender,
         })

@@ -37,6 +37,7 @@ pub struct DownloadForm {
     pub is_series: bool,
 }
 
+#[derive(serde::Deserialize, serde::Serialize, Clone, PartialEq, Eq, Debug)]
 pub struct EditFileMappingForm {
     pub id: Box<str>,
     pub file_mapping: SeriesFileMapping,

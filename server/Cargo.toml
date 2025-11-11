@@ -5,7 +5,7 @@ edition = "2024"
 [dependencies]
 serde_json = { workspace = true }
 tokio = { workspace = true }
-axum = { version = "0.8.4", features = ["default", "json"] }
+axum = { version = "0.8.4", features = ["default", "json", "macros"] }
 serde = { workspace = true }
 domain = { path = "../domain" }
 torrent = { path = "../torrent" }

@@ -51,6 +51,10 @@ async fn main() {
         .route("/get_movies", get(movie_list_handler))
         .route("/download/add", post(download_handlers::add_download))
         .route("/download/remove", post(download_handlers::remove_download))
+        .route(
+            "/download/file-mapping",
+            post(download_handlers::update_file_mapping),
+        )
         .route("/download/get", get(download_handlers::get_downloads))
         .with_state(shared_state);
 
