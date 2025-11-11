@@ -18,6 +18,7 @@ pub enum Screen {
     Detail(Media),
     Settings,
     Player,
+    ServerDownloads,
 }
 
 impl Operation for NavigationOperation {

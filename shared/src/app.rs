@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use crate::features;
+use crate::features::data::DataRequest;
 use crate::features::playback::PlaybackModel;
 use crate::features::{
     playback::{PlayEvent, PlaybackPosition},
@@ -23,6 +24,7 @@ use crate::capabilities::{
 pub enum Event {
     Startup,
     ScreenChanged(Screen),
+    UpdateData(DataRequest),
     ServerCommunication(ServerCommunicationEvent),
     Play(PlayEvent),
     PlaybackProgress((u64, PlaybackPosition)),
@@ -80,6 +82,9 @@ impl App for CounterApp {
             // Lifetime
             Event::Startup => features::lifetime::handle_startup(model),
             Event::ScreenChanged(screen) => features::lifetime::handle_screen_change(model, screen),
+
+            // Data
+            Event::UpdateData(request) => features::data::update_data(model, request),
 
             // Server communication
             Event::ServerCommunication(event) => {
