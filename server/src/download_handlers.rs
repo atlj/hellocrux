@@ -1,6 +1,6 @@
 use super::State;
 use axum::{Json, extract, http::StatusCode};
-use domain::{Download, DownloadForm, MediaMetaData};
+use domain::{Download, DownloadForm};
 use log::{debug, error, info};
 use std::{collections::HashSet, path::PathBuf};
 use tokio::task::JoinHandle;
@@ -26,24 +26,28 @@ pub async fn watch_and_process_downloads(
                 .filter(|torrent| torrent.state.is_done())
                 .filter(|torrent| !processed_hashes.contains(&torrent.hash))
                 .map(async |torrent| -> Option<Box<str>> {
-                    let metadata: MediaMetaData = torrent
+                    let download_form: DownloadForm = torrent
                         .as_ref()
                         .try_into()
                         .inspect_err(|err| {
-                            error!("Couldn't extract metadata from torrent's category. {err}")
+                            error!("Couldn't extract download form from torrent's category. {err}")
                         })
                         .ok()?;
                     info!("Preparing torrent named {}.", &torrent.name);
 
-                    crate::prepare::prepare_movie(&media_dir, &metadata, &torrent.content_path)
-                        .await
-                        .inspect_err(|err| {
-                            error!(
-                                "Couldn't prepare movie with title {}. Reason: {err}.",
-                                &metadata.title
-                            )
-                        })
-                        .ok()?;
+                    crate::prepare::prepare_movie(
+                        &media_dir,
+                        &download_form.metadata,
+                        &torrent.content_path,
+                    )
+                    .await
+                    .inspect_err(|err| {
+                        error!(
+                            "Couldn't prepare movie with title {}. Reason: {err}.",
+                            &download_form.metadata.title
+                        )
+                    })
+                    .ok()?;
 
                     Some(torrent.hash.clone())
                 });

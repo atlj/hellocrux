@@ -205,13 +205,13 @@ pub mod into_domain {
     use std::fmt::Display;
 
     use crate::TorrentInfo;
-    use domain::{Download, MediaMetaData};
+    use domain::{Download, DownloadForm};
 
     #[derive(Debug)]
     pub enum Error {
         CantDecodeUsingBase64(Box<str>),
         CantConvertBase64BytesToString(Box<str>),
-        CantDeserializeStringToMediaMetadata(Box<str>),
+        CantDeserializeStringToDownloadForm(Box<str>),
     }
 
     impl Display for Error {
@@ -219,12 +219,12 @@ pub mod into_domain {
             f.write_str(match self {
                 Error::CantDecodeUsingBase64(msg) => msg,
                 Error::CantConvertBase64BytesToString(msg) => msg,
-                Error::CantDeserializeStringToMediaMetadata(msg) => msg,
+                Error::CantDeserializeStringToDownloadForm(msg) => msg,
             })
         }
     }
 
-    impl TryFrom<&TorrentInfo> for MediaMetaData {
+    impl TryFrom<&TorrentInfo> for DownloadForm {
         type Error = Error;
 
         fn try_from(value: &TorrentInfo) -> Result<Self, Self::Error> {
@@ -249,7 +249,7 @@ pub mod into_domain {
                     })?;
 
             serde_json::from_str(metadata_string).map_err(|err| {
-                Error::CantDeserializeStringToMediaMetadata(
+                Error::CantDeserializeStringToDownloadForm(
                     format!(
                         "Couldn't deserialize torrent named {}'s category ({}). Reason: {err}",
                         value.name, value.category
@@ -263,8 +263,8 @@ pub mod into_domain {
     impl From<TorrentInfo> for Download {
         fn from(val: TorrentInfo) -> Self {
             let title = {
-                let metadata: Option<MediaMetaData> = val.as_ref().try_into().ok();
-                metadata.map(|metadata| metadata.title.into_boxed_str())
+                let download_form: Option<DownloadForm> = val.as_ref().try_into().ok();
+                download_form.map(|download_form| download_form.metadata.title.into_boxed_str())
             }
             .unwrap_or(val.name);
 

@@ -33,4 +33,5 @@ pub struct Download {
 pub struct DownloadForm {
     pub hash: Box<str>,
     pub metadata: MediaMetaData,
+    pub is_series: bool,
 }
