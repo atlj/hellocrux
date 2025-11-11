@@ -18,6 +18,7 @@
 		20956DE72E0F641900656DFE /* SettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20956DE62E0F641900656DFE /* SettingsScreen.swift */; };
 		20A9C62C2E3444CB0053FA3B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 20A9C62B2E3444CB0053FA3B /* Assets.xcassets */; };
 		20C2643E2E0CA8E800DC017A /* ListScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20C2643D2E0CA8E800DC017A /* ListScreen.swift */; };
+		20CE70432EC37112004BDA54 /* NewDownloadScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20CE70422EC37112004BDA54 /* NewDownloadScreen.swift */; };
 		20DA34022E352778007A3933 /* Player.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20DA34012E352777007A3933 /* Player.swift */; };
 		2AD69AC61D674BB2BC300FC2 /* uniffi-bindgen in Resources */ = {isa = PBXBuildFile; fileRef = E75E53B837C6A0E03FDCEC5A /* uniffi-bindgen */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		A022BC4B1B16254762ED55B3 /* shared.udl in Sources */ = {isa = PBXBuildFile; fileRef = 8B8EC4C63F3ECC2B26BBAEC2 /* shared.udl */; };
@@ -98,6 +99,7 @@
 		20956DE62E0F641900656DFE /* SettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScreen.swift; sourceTree = "<group>"; };
 		20A9C62B2E3444CB0053FA3B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		20C2643D2E0CA8E800DC017A /* ListScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListScreen.swift; sourceTree = "<group>"; };
+		20CE70422EC37112004BDA54 /* NewDownloadScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewDownloadScreen.swift; sourceTree = "<group>"; };
 		20DA34012E352777007A3933 /* Player.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Player.swift; sourceTree = "<group>"; };
 		642CF26F4B57B0FF7348C6BF /* SharedTypes */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = SharedTypes; path = ../shared_types/generated/swift/SharedTypes; sourceTree = SOURCE_ROOT; };
 		8B8EC4C63F3ECC2B26BBAEC2 /* shared.udl */ = {isa = PBXFileReference; lastKnownFileType = text; path = shared.udl; sourceTree = "<group>"; };
@@ -135,6 +137,7 @@
 			children = (
 				2023BE112EC34B15002FDDF9 /* DownloadScreen.swift */,
 				2023BE132EC3552B002FDDF9 /* DownloadItem.swift */,
+				20CE70422EC37112004BDA54 /* NewDownloadScreen.swift */,
 			);
 			path = Download;
 			sourceTree = "<group>";
@@ -336,6 +339,7 @@
 				20C2643E2E0CA8E800DC017A /* ListScreen.swift in Sources */,
 				D47B166DEAAF41F0FC860C3B /* App.swift in Sources */,
 				2063F8252E0B417D00745BA9 /* NavigationContainer.swift in Sources */,
+				20CE70432EC37112004BDA54 /* NewDownloadScreen.swift in Sources */,
 				2023BE122EC34B18002FDDF9 /* DownloadScreen.swift in Sources */,
 				DE3600B1A063D422BDA42B19 /* Core.swift in Sources */,
 				A022BC4B1B16254762ED55B3 /* shared.udl in Sources */,

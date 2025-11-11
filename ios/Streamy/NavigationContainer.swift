@@ -39,7 +39,7 @@ struct NavigationContainer: View {
         case .serverDownloads:
             DownloadScreen()
         case .addDownload:
-            Spacer()
+            NewDownloadScreen()
         }
     }
 }
