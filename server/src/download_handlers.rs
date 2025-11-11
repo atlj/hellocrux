@@ -2,6 +2,7 @@ use super::State;
 use axum::{Json, extract, http::StatusCode};
 use base64::{Engine as _, engine::general_purpose::URL_SAFE};
 use domain::{Download, DownloadForm, MediaMetaData};
+use log::{debug, error, info};
 use std::{collections::HashSet, path::PathBuf};
 use tokio::task::JoinHandle;
 use torrent::{
@@ -18,45 +19,76 @@ pub async fn watch_and_process_downloads(
     let mut processed_hashes: HashSet<Box<str>> = HashSet::new();
 
     loop {
-        let hashes = {
+        let hashes: Box<[_]> = {
             let torrents = receiver.borrow_and_update().clone();
 
             let futures = torrents
                 .into_iter()
                 .filter(|torrent| torrent.state.is_done())
                 .filter(|torrent| !processed_hashes.contains(&torrent.hash))
-                .map(async |torrent| {
-                    // TODO: Don't use unwrap. Log an error instead.
-                    let metadata_str_bytes = URL_SAFE.decode(torrent.category.as_bytes()).unwrap();
-                    // TODO: Don't use unwrap. Log an error instead.
-                    let metadata_string = str::from_utf8(&metadata_str_bytes).unwrap();
-                    // TODO: Don't use unwrap. Log an error instead.
-                    let metadata: MediaMetaData = serde_json::from_str(metadata_string).unwrap();
+                .map(async |torrent| -> Option<Box<str>> {
 
-                    dbg!("preparing movie", &torrent.name);
+                    let metadata_str_bytes = URL_SAFE
+                        .decode(torrent.category.as_bytes())
+                        .inspect_err(|err| {
+                            error!(
+                                "Couldn't decode torrent named {}'s category ({}) using base64. Reason: {err}",
+                                &torrent.name, &torrent.category
+                            );
+                        })
+                        .ok()?;
 
-                    // TODO: remove unwrap and add logging instead
+                    let metadata_string = str::from_utf8(&metadata_str_bytes).inspect_err(|err| {
+                        error!(
+                            "Couldn't convert b64 decoded bytes from torrent with name {}'s category ({}) to a string. Reason: {err}",
+                            &torrent.name,
+                            &torrent.category
+                        )
+                    }).ok()?;
+
+                    let metadata: MediaMetaData = serde_json::from_str(metadata_string).inspect_err(|err| {
+                        error!(
+                            "Couldn't deserialize torrent named {}'s category ({}). Reason: {err}",
+                            &torrent.name,
+                            &torrent.category
+                        )
+                    }).ok()?;
+
+                    info!("Preparing torrent named {}.", &torrent.name);
+
                     crate::prepare::prepare_movie(&media_dir, &metadata, &torrent.content_path)
                         .await
-                        .unwrap();
-                    torrent.hash.clone()
-                });
+                        .inspect_err(|err| 
+                            error!("Couldn't prepare movie with title {}. Reason: {err}.", &metadata.title)).ok()?;
 
-            futures::future::join_all(futures).await
+                    Some(torrent.hash.clone())
+                    }
+                );
+
+            futures::future::join_all(futures).await.into_iter().flatten().collect()
         };
 
         let removal_futures = hashes.iter().map(async |hash| {
             let (result_sender, result_receiver) = tokio::sync::oneshot::channel();
-            // TODO add logging when result is Err
-            let _ = sender
+
+            sender
                 .send(QBittorrentClientMessage::RemoveTorrent {
                     id: hash.clone(),
                     result_sender,
                 })
-                .await;
+                .await.inspect_err(|err| {
+                    error!("QBittorrent Client was dropped. Reason: {err}")
+                }).ok()?;
 
-            // TODO add logging when result is Err
-            let _ = result_receiver.await;
+            result_receiver.await
+                .inspect_err(|err| {
+                    error!("QBittorrent Client was dropped. Reason: {err}")
+                }).ok()?
+                .inspect_err(|err| {
+                error!("Couldn't remove torrent with hash {hash}. Reason: {err}")
+            }).ok()?;
+
+            Some(())
         });
 
         futures::future::join_all(removal_futures).await;
@@ -70,8 +102,9 @@ pub async fn watch_and_process_downloads(
         }
 
         if did_media_library_change {
-            // TODO handle this
-            let _ = media_update_request_sender.send(()).await;
+            let _ = media_update_request_sender.send(()).await.inspect_err(|_| {
+                error!("Media library watcher loop was dropped.")
+            });
         }
     }
 
@@ -128,7 +161,7 @@ pub async fn get_downloads(extract::State(state): State) -> Json<Box<[Download]>
             .borrow()
             .iter()
             .inspect(|torrents| {
-                dbg!(torrents);
+                debug!("Requested torrents list {:?}", torrents)
             })
             .map(|torrent| torrent.clone().into())
             .collect(),

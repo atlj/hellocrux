@@ -1,4 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::{
+    fmt::Display,
+    path::{Path, PathBuf},
+};
 
 use domain::MediaMetaData;
 
@@ -12,6 +15,16 @@ pub enum Error {
     ConvertError(Box<str>),
     MoveError(Box<str>),
     PrepareError(Box<str>),
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Error::ConvertError(message) => message,
+            Error::MoveError(message) => message,
+            Error::PrepareError(message) => message,
+        })
+    }
 }
 
 pub async fn prepare_movie(

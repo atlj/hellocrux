@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use base64::{Engine as _, engine::general_purpose::URL_SAFE};
 use domain::MediaMetaData;
 use reqwest::{Client, Url};
@@ -130,6 +132,18 @@ pub enum QBittorrentWebApiError {
     CantDeserialize(Box<str>),
     CantAddTorrent(Box<str>),
     CantDeleteTorrent(Box<str>),
+}
+
+impl Display for QBittorrentWebApiError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            QBittorrentWebApiError::CouldntCallApi(msg) => msg,
+            QBittorrentWebApiError::CantGetTextContent(msg) => msg,
+            QBittorrentWebApiError::CantDeserialize(msg) => msg,
+            QBittorrentWebApiError::CantAddTorrent(msg) => msg,
+            QBittorrentWebApiError::CantDeleteTorrent(msg) => msg,
+        })
+    }
 }
 
 #[cfg(test)]

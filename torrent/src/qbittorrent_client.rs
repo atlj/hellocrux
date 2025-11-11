@@ -1,4 +1,5 @@
 use std::env;
+use std::fmt::Display;
 use std::path::PathBuf;
 use std::process::Stdio;
 
@@ -302,6 +303,19 @@ pub enum QBittorrentError {
     CantSpawnQBittorrent(Box<str>),
     QBittorrentDidntPrintReady,
     CantGenerateProfile(Box<str>),
+}
+
+impl Display for QBittorrentError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            QBittorrentError::QBittorrentNoxNotInstalled => "qbittorrent-nox isn't installed",
+            QBittorrentError::CantSpawnQBittorrent(err) => err,
+            QBittorrentError::QBittorrentDidntPrintReady => {
+                "qbittorrent-nox didn't print ready message"
+            }
+            QBittorrentError::CantGenerateProfile(err) => err,
+        })
+    }
 }
 
 #[cfg(test)]

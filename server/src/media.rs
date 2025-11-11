@@ -35,13 +35,16 @@ pub async fn watch_media_items(
 
             info!("Found {:#?} media items", entries.len());
 
-            // TODO log failure here
-            let _ = media_list_sender.send(entries);
+            if media_list_sender.send(entries).is_err() {
+                error!("Media list receiver was dropped. Can't update the media library")
+            }
         }
     });
 
-    // TODO handle this
-    let _ = update_request_sender.send(()).await;
+    update_request_sender
+        .send(())
+        .await
+        .expect("Update request listener was dropped. Is media watcher loop alive?");
 
     (update_request_sender, media_list_receiver, join_handle)
 }
@@ -101,6 +104,7 @@ fn get_media_item(dir_entry: DirEntry, root_path: &Path) -> Option<Media> {
 
                 let mut file_contents = String::new();
                 file.read_to_string(&mut file_contents).unwrap_or_else(|_| {
+                    // TODO remove this panic
                     panic!("Couldn't read json file at: {:#?}", path.clone().to_str())
                 });
 

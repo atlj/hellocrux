@@ -62,6 +62,8 @@ async fn main() {
 
     axum::serve(listener, app).await.unwrap();
 
+    info!("Killing the server");
+
     torrent_watcher_handle.abort();
     bittorrent_client_join_handle.abort();
     media_watcher_join_handler.abort();
