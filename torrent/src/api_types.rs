@@ -262,9 +262,15 @@ pub mod into_domain {
 
     impl From<TorrentInfo> for Download {
         fn from(val: TorrentInfo) -> Self {
+            let title = {
+                let metadata: Option<MediaMetaData> = val.as_ref().try_into().ok();
+                metadata.map(|metadata| metadata.title.into_boxed_str())
+            }
+            .unwrap_or(val.name);
+
             Download {
                 id: val.hash,
-                title: val.name,
+                title,
                 progress: val.progress,
                 is_paused: val.state.is_paused(),
             }
