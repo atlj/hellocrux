@@ -60,6 +60,7 @@ struct ListScreen: View {
                 // TODO Fix UI being janky
                 core.update(.updateData(.getMedia))
             }
+            // TODO search appears later
             .searchable(text: $searchString, prompt: "Search Media")
             .overlay {
                 if items.isEmpty {

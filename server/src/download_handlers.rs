@@ -61,6 +61,7 @@ pub async fn watch_and_process_downloads(
 
         futures::future::join_all(removal_futures).await;
 
+        let did_media_library_change = !hashes.is_empty();
         // TODO delete missing torrents
         processed_hashes.extend(hashes);
 
@@ -68,8 +69,10 @@ pub async fn watch_and_process_downloads(
             break;
         }
 
-        // TODO handle this
-        let _ = media_update_request_sender.send(()).await;
+        if did_media_library_change {
+            // TODO handle this
+            let _ = media_update_request_sender.send(()).await;
+        }
     }
 
     unreachable!("Torrent channel was dropped")
