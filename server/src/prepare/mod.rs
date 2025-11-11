@@ -4,6 +4,7 @@ use std::{
 };
 
 use domain::MediaMetaData;
+use log::info;
 
 mod convert;
 mod moving;
@@ -51,7 +52,11 @@ pub async fn prepare_movie(
         );
 
         if convert::should_convert(&moved_file) {
-            // TODO add log
+            info!(
+                "Media file with path {} is going to be converted.",
+                moved_file.display()
+            );
+
             convert::convert_file_to_mp4(&moved_file, &moved_file.with_extension("mp4")).await?;
 
             // 3a. Delete old file

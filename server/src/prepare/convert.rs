@@ -1,5 +1,7 @@
 use std::{path::Path, process::Stdio};
 
+use log::info;
+
 pub async fn convert_file_to_mp4(input_path: &Path, output_path: &Path) -> super::Result<()> {
     // 1. Check for input file
     {
@@ -78,7 +80,10 @@ pub fn should_convert(media_file: &Path) -> bool {
             "mp4" => false,
             "mkv" | "mov" => true,
             _ => {
-                // TODO: add logging here
+                info!(
+                    "Found a file with a potentially unsupported format at {} while trying to convert it. Trying to convert it anyway.",
+                    media_file.display()
+                );
                 true
             }
         },
