@@ -49,6 +49,10 @@ extension NavigationContainer: NavigationObserver {
         navPath.append(screen)
     }
 
+    func pop() {
+        navPath.removeLast()
+    }
+
     func replaceRoot(screen: Screen) {
         rootView = screen
     }

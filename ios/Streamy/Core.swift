@@ -86,6 +86,7 @@ class Core: ObservableObject {
                 var request = URLRequest(url: url)
                 request.httpMethod = "POST"
                 request.httpBody = Data(body.utf8)
+                request.addValue("application/json", forHTTPHeaderField: "Content-Type")
                 let task = URLSession.shared.dataTask(with: request) { [weak self] data, response, _ in
                     DispatchQueue.main.async {
                         guard let response = response as? HTTPURLResponse else {
@@ -117,6 +118,7 @@ class Core: ObservableObject {
 }
 
 protocol NavigationObserver {
+    func pop()
     func push(screen: Screen)
     func replaceRoot(screen: Screen)
     func reset(screen: Screen?)

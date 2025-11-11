@@ -47,7 +47,7 @@ pub fn handle_screen_change(model: &mut Model, screen: Screen) -> Command<Effect
     model.current_screen = screen.clone();
 
     let command = match screen {
-        Screen::List => Command::event(Event::UpdateData(DataRequest::Media)),
+        Screen::List => Command::event(Event::UpdateData(DataRequest::GetMedia)),
         Screen::Detail(Media { id, .. }) => Command::new(|ctx| async move {
             let (initial_seconds, episode) = PlayEvent::FromSavedPosition { id: id.clone() }
                 .get_position(ctx.clone())

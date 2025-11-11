@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crux_core::Command;
-use domain::{Download, Media};
+use domain::{Download, DownloadForm, Media};
 
 use crate::{
     Effect, Event, Model, PartialModel,
@@ -15,15 +15,16 @@ use super::utils::update_model;
 
 #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Debug)]
 pub enum DataRequest {
-    Media,
-    Downloads,
+    GetMedia,
+    GetDownloads,
+    AddDownload(DownloadForm),
 }
 
 pub fn update_data(model: &mut Model, request: DataRequest) -> Command<Effect, Event> {
     let base_url = model.base_url.clone();
 
     match request {
-        DataRequest::Media => Command::new(|ctx| async move {
+        DataRequest::GetMedia => Command::new(|ctx| async move {
             let url = {
                 let mut url = if let Some(url) = base_url {
                     url
@@ -64,7 +65,7 @@ pub fn update_data(model: &mut Model, request: DataRequest) -> Command<Effect, E
                 }
             }
         }),
-        DataRequest::Downloads => {
+        DataRequest::GetDownloads => {
             Command::new(async move |ctx| {
                 let url = {
                     let mut url = if let Some(url) = base_url {
@@ -99,5 +100,24 @@ pub fn update_data(model: &mut Model, request: DataRequest) -> Command<Effect, E
                 }
             })
         }
+        DataRequest::AddDownload(download_form) => Command::new(async move |ctx| {
+            let url = {
+                let mut url = if let Some(url) = base_url {
+                    url
+                } else {
+                    return navigation::push(Screen::ServerAddressEntry)
+                        .into_future(ctx)
+                        .await;
+                };
+
+                url.set_path("download/add");
+                url
+            };
+
+            // TODO: remove unwrap
+            http::post(url, serde_json::to_string(&download_form).unwrap())
+                .into_future(ctx.clone())
+                .await;
+        }),
     }
 }

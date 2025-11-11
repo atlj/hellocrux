@@ -6,6 +6,8 @@ struct NewDownloadScreen: View {
     @State var thumbnail = ""
     @State var title = ""
 
+    @State var showLoading = false
+
     var disabled: Bool {
         hash.isEmpty || thumbnail.isEmpty || title.isEmpty
     }
@@ -15,12 +17,30 @@ struct NewDownloadScreen: View {
             TextField("Magnet / Torrent File URL", text: $hash)
             TextField("Title", text: $title)
             TextField("Thumbnail Image URL", text: $thumbnail)
-            Button {} label: {
+            Button {
+                Task {
+                    core.update(.updateData(.addDownload(.init(hash: hash, metadata: .init(thumbnail: thumbnail, title: title)))))
+                    showLoading = true
+                    // TODO: remove me
+                    try? await Task.sleep(for: .seconds(5))
+                    showLoading = false
+                    core.navigationObserver?.pop()
+                }
+            } label: {
                 Label("Add New Download", systemImage: "plus")
             }
             .disabled(disabled)
         }
         .navigationTitle("Add New Download")
+        .overlay {
+            if showLoading {
+                VStack {
+                    ProgressView()
+                }
+                .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+                .background(.ultraThinMaterial.opacity(0.8), ignoresSafeAreaEdges: .all)
+            }
+        }
     }
 }
 

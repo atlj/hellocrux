@@ -30,10 +30,14 @@ struct DownloadScreen: View {
             }
         }
         .navigationTitle("Downloads")
-        .task {
+        .task(priority: .background) {
             while true {
-                core.update(.updateData(.downloads))
-                try? await Task.sleep(for: .seconds(5))
+                core.update(.updateData(.getDownloads))
+                do {
+                    try await Task.sleep(for: .seconds(5))
+                } catch {
+                    return
+                }
             }
         }
     }

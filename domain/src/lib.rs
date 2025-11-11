@@ -29,7 +29,7 @@ pub struct Download {
     pub is_paused: bool,
 }
 
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(serde::Deserialize, serde::Serialize, Clone, PartialEq, Eq, Debug)]
 pub struct DownloadForm {
     pub hash: Box<str>,
     pub metadata: MediaMetaData,
