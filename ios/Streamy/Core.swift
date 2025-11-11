@@ -64,7 +64,28 @@ class Core: ObservableObject {
             case let .get(urlString):
                 let requestId = request.id
                 let url = URL(string: urlString)!
-                let request = URLRequest(url: url)
+                var request = URLRequest(url: url)
+                request.httpMethod = "GET"
+                let task = URLSession.shared.dataTask(with: request) { [weak self] data, response, _ in
+                    DispatchQueue.main.async {
+                        guard let response = response as? HTTPURLResponse else {
+                            self?.respond(requestId, response: try! HttpOutput.error.bincodeSerialize())
+                            return
+                        }
+                        let coreResponse = HttpOutput.success(
+                            data: data == nil ? nil : String(data: data!, encoding: .utf8),
+                            status_code: Int32(response.statusCode)
+                        )
+                        self?.respond(requestId, response: try! coreResponse.bincodeSerialize())
+                    }
+                }
+                task.resume()
+            case let .post(url: urlString, body: body):
+                let requestId = request.id
+                let url = URL(string: urlString)!
+                var request = URLRequest(url: url)
+                request.httpMethod = "POST"
+                request.httpBody = Data(body.utf8)
                 let task = URLSession.shared.dataTask(with: request) { [weak self] data, response, _ in
                     DispatchQueue.main.async {
                         guard let response = response as? HTTPURLResponse else {
