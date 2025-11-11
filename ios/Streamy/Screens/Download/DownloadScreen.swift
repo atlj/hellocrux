@@ -18,7 +18,7 @@ struct DownloadScreen: View {
             NavigationLink(value: Screen.addDownload) {
                 Label("Add New Torrent", systemImage: "doc.fill.badge.plus")
             }
-            Section("Downloads") {
+            Section {
                 if downloads.isEmpty {
                     Text("No Downloads Yet")
                         .foregroundStyle(.gray)
