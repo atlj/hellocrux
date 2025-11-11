@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use axum::{
     Json, Router, extract,
     routing::{get, post},
@@ -8,7 +6,7 @@ use clap::Parser;
 use domain::Media;
 use download_handlers::watch_and_process_downloads;
 use log::info;
-use server::{AppState, Args, State, download_handlers, media::get_media_items};
+use server::{AppState, Args, State, download_handlers, media::watch_media_items};
 use tokio::net::TcpListener;
 use tower_http::services::ServeDir;
 
@@ -17,29 +15,22 @@ async fn main() {
     env_logger::init();
     let args = Args::parse();
 
-    tokio::fs::create_dir_all(&args.media_dir)
-        .await
-        .expect("Couldn't create media dir");
-
-    info!("Crawling media items");
-
-    let entries: Arc<[Media]> = get_media_items(args.media_dir.clone()).await.into();
-
-    info!("Found {:#?} media items", entries.len());
-
     let download_path = {
         let mut download_path = args.media_dir.clone();
         download_path.push("qbittorrent");
         download_path
     };
 
-    let (sender, value_receiver, join_handle) =
+    let (media_update_request_sender, media_list_receiver, media_watcher_join_handler) =
+        watch_media_items(args.media_dir.clone()).await;
+
+    let (download_sender, value_receiver, bittorrent_client_join_handle) =
         download_handlers::spawn_download_event_loop(download_path).await;
 
     let torrent_watcher_handle = {
         let media_dir_clone = args.media_dir.clone();
         let receiver_clone = value_receiver.clone();
-        let sender_clone = sender.clone();
+        let sender_clone = download_sender.clone();
         tokio::spawn(watch_and_process_downloads(
             media_dir_clone,
             receiver_clone,
@@ -48,8 +39,8 @@ async fn main() {
     };
 
     let shared_state = AppState {
-        entries,
-        download_channels: (sender, value_receiver),
+        media_channels: (media_update_request_sender, media_list_receiver),
+        download_channels: (download_sender, value_receiver),
     };
 
     let app = Router::new()
@@ -70,11 +61,12 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 
     torrent_watcher_handle.abort();
-    join_handle.abort();
+    bittorrent_client_join_handle.abort();
+    media_watcher_join_handler.abort();
 }
 
 async fn movie_list_handler(extract::State(state): State) -> Json<Box<[Media]>> {
-    Json(state.entries.as_ref().into())
+    Json(state.media_channels.1.borrow().as_ref().into())
 }
 
 async fn health_handler() -> String {

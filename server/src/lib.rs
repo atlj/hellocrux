@@ -1,7 +1,7 @@
 pub mod download_handlers;
 pub mod media;
 pub mod prepare;
-use std::{path::PathBuf, sync::Arc};
+use std::path::PathBuf;
 
 use clap::Parser;
 use domain::Media;
@@ -17,7 +17,10 @@ pub struct Args {
 
 #[derive(Clone)]
 pub struct AppState {
-    pub entries: Arc<[Media]>,
+    pub media_channels: (
+        tokio::sync::mpsc::Sender<()>,
+        tokio::sync::watch::Receiver<Box<[Media]>>,
+    ),
     pub download_channels: (
         tokio::sync::mpsc::Sender<QBittorrentClientMessage>,
         tokio::sync::watch::Receiver<Box<[TorrentInfo]>>,

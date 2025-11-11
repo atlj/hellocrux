@@ -2,31 +2,65 @@ use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::fs::{self, DirEntry, OpenOptions};
 use std::io::Read;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use domain::{Media, MediaContent, MediaMetaData};
-use log::{error, warn};
+use log::{error, info, warn};
 
 const MOVIE_EXTENSIONS: [&str; 2] = ["mov", "mp4"];
 
 type Season = HashMap<u32, String>;
 type Series = HashMap<u32, Season>;
 
-pub async fn get_media_items(media_dir: PathBuf) -> Vec<Media> {
-    let media_dir_contents = if let Ok(dir_contents) = fs::read_dir(media_dir.clone()) {
+pub async fn watch_media_items(
+    media_dir: PathBuf,
+) -> (
+    tokio::sync::mpsc::Sender<()>,
+    tokio::sync::watch::Receiver<Box<[Media]>>,
+    tokio::task::JoinHandle<()>,
+) {
+    let (update_request_sender, mut update_request_receiver) = tokio::sync::mpsc::channel(10);
+    let (media_list_sender, media_list_receiver) =
+        tokio::sync::watch::channel::<Box<[Media]>>(Box::new([]));
+
+    let join_handle = tokio::spawn(async move {
+        while update_request_receiver.recv().await.is_some() {
+            tokio::fs::create_dir_all(&media_dir)
+                .await
+                .expect("Couldn't create media dir");
+
+            info!("Crawling media items");
+
+            let entries: Box<[Media]> = get_media_items(&media_dir).await;
+
+            info!("Found {:#?} media items", entries.len());
+
+            // TODO log failure here
+            let _ = media_list_sender.send(entries);
+        }
+    });
+
+    // TODO handle this
+    let _ = update_request_sender.send(()).await;
+
+    (update_request_sender, media_list_receiver, join_handle)
+}
+
+pub async fn get_media_items(media_dir: &Path) -> Box<[Media]> {
+    let media_dir_contents = if let Ok(dir_contents) = fs::read_dir(media_dir) {
         dir_contents
     } else {
         error!("{:?} doesn't point to a valid media directory.", media_dir);
-        return Vec::with_capacity(0);
+        return Box::new([]);
     };
 
     media_dir_contents
         .flatten()
-        .flat_map(|entry| get_media_item(entry, &media_dir))
+        .flat_map(|entry| get_media_item(entry, media_dir))
         .collect()
 }
 
-fn get_media_item(dir_entry: DirEntry, root_path: &PathBuf) -> Option<Media> {
+fn get_media_item(dir_entry: DirEntry, root_path: &Path) -> Option<Media> {
     let entry_metadata = dir_entry.metadata().ok()?;
 
     if entry_metadata.is_file() {
@@ -117,7 +151,7 @@ fn get_media_item(dir_entry: DirEntry, root_path: &PathBuf) -> Option<Media> {
     None
 }
 
-fn get_season(root_path: &PathBuf, path: &PathBuf) -> Option<(u32, Season)> {
+fn get_season(root_path: &Path, path: &Path) -> Option<(u32, Season)> {
     let season_title_string = path.file_name()?;
     let season_number = get_numeric_content(season_title_string.to_str()?)?;
     let mut season: Season = HashMap::with_capacity(5);
