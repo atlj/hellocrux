@@ -1,9 +1,9 @@
 use crux_core::typegen::TypeGen;
-use domain::{Media, MediaContent, MediaMetaData};
 use shared::{
     CounterApp,
     capabilities::{http::ServerConnectionState, navigation::Screen},
     features::{
+        data::DataRequest,
         playback::{PlayEvent, PlaybackPosition},
         server_communication::ServerCommunicationEvent,
     },
@@ -19,12 +19,14 @@ fn main() -> anyhow::Result<()> {
     typegen.register_type::<ServerConnectionState>()?;
     typegen.register_type::<PlayEvent>()?;
     typegen.register_type::<ServerCommunicationEvent>()?;
+    typegen.register_type::<DataRequest>()?;
     typegen.register_type::<PlaybackPosition>()?;
 
     // Domain
-    typegen.register_type::<Media>()?;
-    typegen.register_type::<MediaMetaData>()?;
-    typegen.register_type::<MediaContent>()?;
+    typegen.register_type::<domain::Media>()?;
+    typegen.register_type::<domain::MediaMetaData>()?;
+    typegen.register_type::<domain::MediaContent>()?;
+    typegen.register_type::<domain::Download>()?;
 
     let output_root = PathBuf::from("./generated");
     typegen.swift("SharedTypes", output_root.join("swift"))?;

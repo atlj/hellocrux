@@ -9,7 +9,7 @@ use crate::features::{
 };
 use crux_core::command::CommandContext;
 use crux_core::{App, Command, macros::effect, render::RenderOperation};
-use domain::Media;
+use domain::{Download, Media};
 use partially::Partial;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -52,6 +52,7 @@ pub struct Model {
     pub current_screen: Screen,
     pub connection_state: Option<ServerConnectionState>,
     pub media_items: Option<HashMap<String, Media>>,
+    pub downloads: Vec<Download>,
     pub playback: PlaybackModel,
 }
 
@@ -59,6 +60,7 @@ pub struct Model {
 pub struct ViewModel {
     connection_state: Option<ServerConnectionState>,
     media_items: Option<HashMap<String, Media>>,
+    downloads: Vec<Download>,
     playback_detail: PlaybackModel,
 }
 
@@ -116,6 +118,7 @@ impl App for CounterApp {
             connection_state: model.connection_state.clone(),
             media_items: model.media_items.clone(),
             playback_detail: model.playback.clone(),
+            downloads: model.downloads.clone(),
         }
     }
 }

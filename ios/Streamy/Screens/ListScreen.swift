@@ -80,6 +80,11 @@ struct ListScreen: View {
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink(value: Screen.serverDownloads) {
+                    Label("Downloads", systemImage: "square.and.arrow.down")
+                }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
                 NavigationLink(value: Screen.settings) {
                     Label("Settings", systemImage: "gearshape")
                 }
