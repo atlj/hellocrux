@@ -2,15 +2,11 @@
 name = "torrent"
 edition = "2024"
 
-[features]
-default = ["into_domain"]
-into_domain = ["dep:domain"]
-
 [dependencies]
 reqwest = "0.12.24"
 serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true }
-domain = { path = "../domain", optional = true }
+domain = { path = "../domain" }
 base64 = { workspace = true }
 log = { workspace = true }

@@ -41,6 +41,12 @@ pub struct TorrentInfo {
     pub upspeed: usize,
 }
 
+impl AsRef<TorrentInfo> for TorrentInfo {
+    fn as_ref(&self) -> &Self {
+        self
+    }
+}
+
 #[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum TorrentState {
     /// Some error occurred, applies to paused torrents
@@ -194,10 +200,65 @@ mod comma_separated_list_parser {
     }
 }
 
-#[cfg(feature = "into_domain")]
 pub mod into_domain {
+    use base64::{Engine as _, engine::general_purpose::URL_SAFE};
+    use std::fmt::Display;
+
     use crate::TorrentInfo;
-    use domain::Download;
+    use domain::{Download, MediaMetaData};
+
+    #[derive(Debug)]
+    pub enum Error {
+        CantDecodeUsingBase64(Box<str>),
+        CantConvertBase64BytesToString(Box<str>),
+        CantDeserializeStringToMediaMetadata(Box<str>),
+    }
+
+    impl Display for Error {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            f.write_str(match self {
+                Error::CantDecodeUsingBase64(msg) => msg,
+                Error::CantConvertBase64BytesToString(msg) => msg,
+                Error::CantDeserializeStringToMediaMetadata(msg) => msg,
+            })
+        }
+    }
+
+    impl TryFrom<&TorrentInfo> for MediaMetaData {
+        type Error = Error;
+
+        fn try_from(value: &TorrentInfo) -> Result<Self, Self::Error> {
+            let metadata_str_bytes = URL_SAFE.decode(value.category.as_bytes()).map_err(|err| {
+                Error::CantDecodeUsingBase64(
+                format!(
+                    "Couldn't decode torrent named {}'s category ({}) using base64. Reason: {err}",
+                    value.name, value.category
+                ).into()
+                )
+            })?;
+
+            let metadata_string = str::from_utf8(&metadata_str_bytes).map_err(|err| {
+                Error::CantConvertBase64BytesToString(
+
+                        format!(
+                            "Couldn't convert b64 decoded bytes from torrent with name {}'s category ({}) to a string. Reason: {err}",
+                            value.name,
+                            value.category
+                        ).into()
+                )
+                    })?;
+
+            serde_json::from_str(metadata_string).map_err(|err| {
+                Error::CantDeserializeStringToMediaMetadata(
+                    format!(
+                        "Couldn't deserialize torrent named {}'s category ({}). Reason: {err}",
+                        value.name, value.category
+                    )
+                    .into(),
+                )
+            })
+        }
+    }
 
     impl From<TorrentInfo> for Download {
         fn from(val: TorrentInfo) -> Self {

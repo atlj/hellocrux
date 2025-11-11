@@ -1778,7 +1778,6 @@ name = "server"
 version = "0.0.0"
 dependencies = [
  "axum",
- "base64",
  "clap",
  "domain",
  "env_logger",
