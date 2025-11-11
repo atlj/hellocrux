@@ -14,6 +14,12 @@ pub enum TorrentExtra {
 }
 
 impl TorrentExtra {
+    pub fn needs_file_mapping(&self) -> bool {
+        match self {
+            TorrentExtra::Movie { .. } => false,
+            TorrentExtra::Series { files_mapping, .. } => files_mapping.is_none(),
+        }
+    }
     pub fn metadata(self) -> MediaMetaData {
         match self {
             TorrentExtra::Movie { metadata } => metadata,
@@ -293,17 +299,24 @@ pub mod into_domain {
 
     impl From<TorrentInfo> for Download {
         fn from(val: TorrentInfo) -> Self {
-            let title = {
-                let download_form: Option<TorrentExtra> = val.as_ref().try_into().ok();
-                download_form.map(|download_form| download_form.metadata().title.into_boxed_str())
-            }
-            .unwrap_or(val.name);
+            let extra: Option<TorrentExtra> = val.as_ref().try_into().ok();
+
+            let title = extra
+                .as_ref()
+                .map(|download_form| download_form.metadata_ref().title.clone().into_boxed_str())
+                .unwrap_or(val.name);
+
+            let needs_file_mapping = extra
+                .as_ref()
+                .map(TorrentExtra::needs_file_mapping)
+                .unwrap_or(false);
 
             Download {
                 id: val.hash,
                 title,
                 progress: val.progress,
                 is_paused: val.state.is_paused(),
+                needs_file_mapping,
             }
         }
     }

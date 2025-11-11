@@ -26,6 +26,7 @@ pub struct Download {
     pub id: Box<str>,
     pub title: Box<str>,
     pub progress: f32,
+    pub needs_file_mapping: bool,
     pub is_paused: bool,
 }
 
