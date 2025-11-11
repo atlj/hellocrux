@@ -13,6 +13,7 @@ pub async fn watch_and_process_downloads(
     media_dir: PathBuf,
     mut receiver: tokio::sync::watch::Receiver<Box<[TorrentInfo]>>,
     sender: tokio::sync::mpsc::Sender<QBittorrentClientMessage>,
+    media_update_request_sender: tokio::sync::mpsc::Sender<()>,
 ) {
     let mut processed_hashes: HashSet<Box<str>> = HashSet::new();
 
@@ -66,6 +67,9 @@ pub async fn watch_and_process_downloads(
         if receiver.changed().await.is_err() {
             break;
         }
+
+        // TODO handle this
+        let _ = media_update_request_sender.send(()).await;
     }
 
     unreachable!("Torrent channel was dropped")

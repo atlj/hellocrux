@@ -31,10 +31,12 @@ async fn main() {
         let media_dir_clone = args.media_dir.clone();
         let receiver_clone = value_receiver.clone();
         let sender_clone = download_sender.clone();
+        let media_update_request_sender_clone = media_update_request_sender.clone();
         tokio::spawn(watch_and_process_downloads(
             media_dir_clone,
             receiver_clone,
             sender_clone,
+            media_update_request_sender_clone,
         ))
     };
 
