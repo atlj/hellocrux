@@ -3,7 +3,6 @@ use std::fmt::Display;
 use std::path::PathBuf;
 use std::process::Stdio;
 
-use domain::MediaMetaData;
 use log::{debug, info};
 use tokio::fs::OpenOptions;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
@@ -13,7 +12,7 @@ use tokio::task::JoinHandle;
 use crate::TorrentExtra;
 use crate::api_types::TorrentInfo;
 use crate::qbittorrent_web_api::{
-    QBittorrentWebApiResult, add_torrent, get_torrent_list, remove_torrent,
+    QBittorrentWebApiResult, add_torrent, get_torrent_list, remove_torrent, set_torrent_category,
 };
 
 #[derive(Debug)]
@@ -62,8 +61,23 @@ impl QBittorrentClient {
             };
 
             match message {
-                QBittorrentClientMessage::SetExtra { id, extra } => {
-                    todo!()
+                QBittorrentClientMessage::SetExtra {
+                    id,
+                    extra,
+                    result_sender,
+                } => {
+                    let process_client = if let Some(client) = &process_client {
+                        client
+                    } else {
+                        debug!("Spawning QBittorrent to set a category");
+                        process_client = Some(self.spawn_qbittorrent_web().await?);
+                        process_client.as_ref().unwrap()
+                    };
+
+                    let result =
+                        set_torrent_category(&http_client, process_client.port, &id, &extra).await;
+                    // TODO: add logging here
+                    let _ = result_sender.send(result);
                 }
                 QBittorrentClientMessage::AddTorrent {
                     hash,
@@ -292,6 +306,7 @@ pub enum QBittorrentClientMessage {
     SetExtra {
         id: Box<str>,
         extra: Box<TorrentExtra>,
+        result_sender: tokio::sync::oneshot::Sender<QBittorrentWebApiResult<()>>,
     },
     UpdateTorrentList {
         result_sender: tokio::sync::oneshot::Sender<QBittorrentWebApiResult<()>>,

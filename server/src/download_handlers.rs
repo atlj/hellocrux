@@ -1,6 +1,6 @@
 use super::State;
 use axum::{Json, extract, http::StatusCode};
-use domain::{Download, DownloadForm, SeriesFileMapping};
+use domain::{Download, DownloadForm, EditFileMappingForm};
 use log::{debug, error, info};
 use std::{collections::HashSet, path::PathBuf};
 use tokio::task::JoinHandle;
@@ -213,8 +213,48 @@ pub async fn remove_download(
 
 pub async fn update_file_mapping(
     extract::State(state): State,
-    Json(file_mapping): extract::Json<SeriesFileMapping>,
-) {
+    Json(file_mapping_form): extract::Json<EditFileMappingForm>,
+) -> axum::response::Result<()> {
+    let torrent_list = state.download_channels.1.borrow();
+    let torrent = torrent_list
+        .iter()
+        .find(|torrent| torrent.hash == file_mapping_form.id)
+        .ok_or(StatusCode::NOT_FOUND)?;
+
+    let current_extra: TorrentExtra = torrent.try_into().map_err(|_| {
+        error!(
+            "Detected faulty category string on torrent with name {}",
+            torrent.name
+        );
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let new_extra = match current_extra {
+        TorrentExtra::Movie { .. } => return Err(StatusCode::BAD_REQUEST.into()),
+        TorrentExtra::Series { metadata, .. } => TorrentExtra::Series {
+            metadata,
+            files_mapping: Some(file_mapping_form.file_mapping),
+        },
+    };
+
+    let (result_sender, result_receiver) = tokio::sync::oneshot::channel();
+    state
+        .download_channels
+        .0
+        .send(QBittorrentClientMessage::SetExtra {
+            id: file_mapping_form.id,
+            extra: Box::new(new_extra),
+            result_sender,
+        })
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    result_receiver
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(())
 }
 
 pub async fn pause_download() -> axum::response::Result<()> {

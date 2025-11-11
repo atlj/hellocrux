@@ -37,5 +37,10 @@ pub struct DownloadForm {
     pub is_series: bool,
 }
 
+pub struct EditFileMappingForm {
+    pub id: Box<str>,
+    pub file_mapping: SeriesFileMapping,
+}
+
 /// "S3/SomeTVShow_S3_E1_BluRay.mov" -> "3/1"
 pub type SeriesFileMapping = HashMap<String, String>;

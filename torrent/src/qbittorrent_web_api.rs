@@ -21,21 +21,11 @@ pub(crate) async fn add_torrent(
         url
     };
 
-    let category_string = {
-        let json_string = serde_json::to_string(extra).map_err(|err| {
-            QBittorrentWebApiError::CantAddTorrent(
-                format!("Can't serialize metadata {:?}. Reason: {err}", &extra).into(),
-            )
-        })?;
-
-        URL_SAFE.encode(json_string)
-    };
-
     let result = client
         .post(url)
         .form(&AddTorrentForm {
             urls: hash,
-            category: &category_string,
+            category: encode_extra(extra)?.as_ref(),
             root_folder: true,
         })
         .send()
@@ -87,8 +77,9 @@ pub(crate) async fn set_torrent_category(
     client: &Client,
     port: usize,
     id: &str,
-    category: &str,
+    extra: &TorrentExtra,
 ) -> QBittorrentWebApiResult<()> {
+    let category = &encode_extra(extra)?;
     add_torrent_category(client, port, category).await?;
 
     let url: Url = {
@@ -146,6 +137,16 @@ async fn add_torrent_category(
         .map_err(|err| QBittorrentWebApiError::CantGetTextContent(err.to_string().into()))?;
 
     Ok(())
+}
+
+fn encode_extra(extra: &TorrentExtra) -> QBittorrentWebApiResult<String> {
+    let json_string = serde_json::to_string(extra).map_err(|err| {
+        QBittorrentWebApiError::CantAddTorrent(
+            format!("Can't serialize metadata {:?}. Reason: {err}", &extra).into(),
+        )
+    })?;
+
+    Ok(URL_SAFE.encode(json_string))
 }
 
 #[derive(serde::Serialize)]
@@ -223,7 +224,7 @@ impl Display for QBittorrentWebApiError {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
+    use std::{collections::HashMap, time::Duration};
 
     use domain::MediaMetaData;
 
@@ -279,7 +280,7 @@ mod tests {
             title: "My Movie".to_string(),
             thumbnail: "https://image.com".to_string(),
         };
-        add_torrent(&http_client, client_process.port, "https://cdimage.debian.org/debian-cd/current/arm64/bt-cd/debian-13.1.0-arm64-netinst.iso.torrent", &TorrentExtra::new(metadata, false)).await.unwrap();
+        add_torrent(&http_client, client_process.port, "https://cdimage.debian.org/debian-cd/current/arm64/bt-cd/debian-13.1.0-arm64-netinst.iso.torrent", &TorrentExtra::new(metadata.clone(), false)).await.unwrap();
 
         tokio::time::sleep(Duration::from_secs(5)).await;
 
@@ -293,9 +294,17 @@ mod tests {
 
         let first_id = &torrent_list[0].hash;
 
-        set_torrent_category(&http_client, client_process.port, first_id, "Hello World")
-            .await
-            .unwrap();
+        set_torrent_category(
+            &http_client,
+            client_process.port,
+            first_id,
+            &TorrentExtra::Series {
+                metadata,
+                files_mapping: Some(HashMap::new()),
+            },
+        )
+        .await
+        .unwrap();
 
         tokio::time::sleep(Duration::from_secs(5)).await;
 
