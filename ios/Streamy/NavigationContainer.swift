@@ -38,6 +38,8 @@ struct NavigationContainer: View {
             PlayerScreen()
         case .serverDownloads:
             DownloadScreen()
+        case .addDownload:
+            Spacer()
         }
     }
 }

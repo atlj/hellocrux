@@ -15,7 +15,7 @@ struct DownloadScreen: View {
 
     var body: some View {
         List {
-            Button {} label: {
+            NavigationLink(value: Screen.addDownload) {
                 Label("Add New Torrent", systemImage: "doc.fill.badge.plus")
             }
             Section("Downloads") {
