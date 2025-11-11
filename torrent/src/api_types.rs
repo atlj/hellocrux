@@ -14,6 +14,15 @@ pub enum TorrentExtra {
 }
 
 impl TorrentExtra {
+    pub fn new(metadata: MediaMetaData, is_series: bool) -> Self {
+        match is_series {
+            true => Self::Series {
+                metadata,
+                files_mapping: None,
+            },
+            false => Self::Movie { metadata },
+        }
+    }
     pub fn needs_file_mapping(&self) -> bool {
         match self {
             TorrentExtra::Movie { .. } => false,

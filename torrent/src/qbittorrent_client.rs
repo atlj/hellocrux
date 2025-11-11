@@ -10,6 +10,7 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
 use tokio::task::JoinHandle;
 
+use crate::TorrentExtra;
 use crate::api_types::TorrentInfo;
 use crate::qbittorrent_web_api::{
     QBittorrentWebApiResult, add_torrent, get_torrent_list, remove_torrent,
@@ -61,10 +62,13 @@ impl QBittorrentClient {
             };
 
             match message {
+                QBittorrentClientMessage::SetExtra { id, extra } => {
+                    todo!()
+                }
                 QBittorrentClientMessage::AddTorrent {
                     hash,
                     result_sender,
-                    metadata,
+                    extra,
                 } => {
                     let process_client = if let Some(client) = &process_client {
                         client
@@ -75,7 +79,7 @@ impl QBittorrentClient {
                     };
 
                     let result =
-                        add_torrent(&http_client, process_client.port, &hash, &metadata).await;
+                        add_torrent(&http_client, process_client.port, &hash, &extra).await;
                     // TODO: add logging here
                     let _ = result_sender.send(result);
                 }
@@ -278,12 +282,16 @@ impl QBittorrentClient {
 pub enum QBittorrentClientMessage {
     AddTorrent {
         hash: Box<str>,
-        metadata: Box<MediaMetaData>,
+        extra: Box<TorrentExtra>,
         result_sender: tokio::sync::oneshot::Sender<QBittorrentWebApiResult<()>>,
     },
     RemoveTorrent {
         id: Box<str>,
         result_sender: tokio::sync::oneshot::Sender<QBittorrentWebApiResult<()>>,
+    },
+    SetExtra {
+        id: Box<str>,
+        extra: Box<TorrentExtra>,
     },
     UpdateTorrentList {
         result_sender: tokio::sync::oneshot::Sender<QBittorrentWebApiResult<()>>,

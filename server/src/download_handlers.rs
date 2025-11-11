@@ -1,6 +1,6 @@
 use super::State;
 use axum::{Json, extract, http::StatusCode};
-use domain::{Download, DownloadForm};
+use domain::{Download, DownloadForm, SeriesFileMapping};
 use log::{debug, error, info};
 use std::{collections::HashSet, path::PathBuf};
 use tokio::task::JoinHandle;
@@ -172,7 +172,7 @@ pub async fn add_download(
         .send(QBittorrentClientMessage::AddTorrent {
             hash: form.hash,
             result_sender,
-            metadata: Box::new(form.metadata),
+            extra: Box::new(TorrentExtra::new(form.metadata, form.is_series)),
         })
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -209,6 +209,12 @@ pub async fn remove_download(
     result.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Ok(())
+}
+
+pub async fn update_file_mapping(
+    extract::State(state): State,
+    Json(file_mapping): extract::Json<SeriesFileMapping>,
+) {
 }
 
 pub async fn pause_download() -> axum::response::Result<()> {

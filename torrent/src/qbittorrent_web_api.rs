@@ -1,10 +1,9 @@
 use std::fmt::Display;
 
 use base64::{Engine as _, engine::general_purpose::URL_SAFE};
-use domain::MediaMetaData;
 use reqwest::{Client, Url};
 
-use crate::api_types::TorrentInfo;
+use crate::{TorrentExtra, api_types::TorrentInfo};
 
 const BASE_URL: &str = "http://127.0.0.1";
 
@@ -12,7 +11,7 @@ pub(crate) async fn add_torrent(
     client: &Client,
     port: usize,
     hash: &str,
-    metadata: &MediaMetaData,
+    extra: &TorrentExtra,
 ) -> QBittorrentWebApiResult<()> {
     let url: Url = {
         let mut url: Url = BASE_URL.parse().unwrap();
@@ -23,9 +22,9 @@ pub(crate) async fn add_torrent(
     };
 
     let category_string = {
-        let json_string = serde_json::to_string(metadata).map_err(|err| {
+        let json_string = serde_json::to_string(extra).map_err(|err| {
             QBittorrentWebApiError::CantAddTorrent(
-                format!("Can't serialize metadata {:?}. Reason: {err}", &metadata).into(),
+                format!("Can't serialize metadata {:?}. Reason: {err}", &extra).into(),
             )
         })?;
 
@@ -84,6 +83,71 @@ pub(crate) async fn remove_torrent(
     Ok(())
 }
 
+pub(crate) async fn set_torrent_category(
+    client: &Client,
+    port: usize,
+    id: &str,
+    category: &str,
+) -> QBittorrentWebApiResult<()> {
+    add_torrent_category(client, port, category).await?;
+
+    let url: Url = {
+        let mut url: Url = BASE_URL.parse().unwrap();
+        url.set_port(Some(port as u16))
+            .expect("Invalid port was passed");
+        url.set_path("api/v2/torrents/setCategory");
+        url
+    };
+
+    client
+        .post(url)
+        .form(&SetCategoryForm {
+            category,
+            hashes: id,
+        })
+        .send()
+        .await
+        .map_err(|err| QBittorrentWebApiError::CouldntCallApi(err.to_string().into()))?
+        .text()
+        .await
+        .map_err(|err| QBittorrentWebApiError::CantGetTextContent(err.to_string().into()))?;
+
+    // TODO API returns "" as text if operation is successful. Return non-Ok val if it's
+    // something else
+    Ok(())
+}
+
+async fn add_torrent_category(
+    client: &Client,
+    port: usize,
+    new_category: &str,
+) -> QBittorrentWebApiResult<()> {
+    let url: Url = {
+        let mut url: Url = BASE_URL.parse().unwrap();
+        url.set_port(Some(port as u16))
+            .expect("Invalid port was passed");
+        url.set_path("api/v2/torrents/createCategory");
+        url
+    };
+
+    client
+        .post(url)
+        .form(&CreateCategoryForm {
+            category: new_category,
+        })
+        .send()
+        .await
+        .map_err(|err| QBittorrentWebApiError::CouldntCallApi(err.to_string().into()))?
+        .text()
+        .await
+        .inspect(|text| {
+            dbg!(text);
+        })
+        .map_err(|err| QBittorrentWebApiError::CantGetTextContent(err.to_string().into()))?;
+
+    Ok(())
+}
+
 #[derive(serde::Serialize)]
 struct AddTorrentForm<'a> {
     urls: &'a str,
@@ -96,6 +160,17 @@ struct RemoveTorrentForm<'a> {
     hashes: &'a str,
     #[serde(rename = "deleteFiles")]
     delete_files: bool,
+}
+
+#[derive(serde::Serialize)]
+struct CreateCategoryForm<'a> {
+    category: &'a str,
+}
+
+#[derive(serde::Serialize)]
+struct SetCategoryForm<'a> {
+    hashes: &'a str,
+    category: &'a str,
 }
 
 pub(crate) async fn get_torrent_list(
@@ -153,9 +228,11 @@ mod tests {
     use domain::MediaMetaData;
 
     use crate::{
+        TorrentExtra,
         qbittorrent_client::QBittorrentClient,
         qbittorrent_web_api::{
             QBittorrentWebApiError, add_torrent, get_torrent_list, remove_torrent,
+            set_torrent_category,
         },
     };
 
@@ -172,7 +249,7 @@ mod tests {
             title: "My Movie".to_string(),
             thumbnail: "https://image.com".to_string(),
         };
-        add_torrent(&http_client, client_process.port, "https://cdimage.debian.org/debian-cd/current/arm64/bt-cd/debian-13.1.0-arm64-netinst.iso.torrent", &metadata).await.unwrap();
+        add_torrent(&http_client, client_process.port, "https://cdimage.debian.org/debian-cd/current/arm64/bt-cd/debian-13.1.0-arm64-netinst.iso.torrent", &TorrentExtra::new(metadata, false)).await.unwrap();
 
         tokio::time::sleep(Duration::from_secs(5)).await;
 
@@ -183,6 +260,52 @@ mod tests {
         assert!(!torrent_list.is_empty());
 
         dbg!(&torrent_list);
+    }
+
+    #[tokio::test]
+    async fn test_set_torrent_category() {
+        let client = QBittorrentClient::try_new(None).unwrap();
+        let client_process = client.spawn_qbittorrent_web().await.unwrap();
+
+        dbg!(&client_process);
+
+        let http_client = reqwest::Client::new();
+
+        remove_torrent(&http_client, client_process.port, "all")
+            .await
+            .unwrap();
+
+        let metadata = MediaMetaData {
+            title: "My Movie".to_string(),
+            thumbnail: "https://image.com".to_string(),
+        };
+        add_torrent(&http_client, client_process.port, "https://cdimage.debian.org/debian-cd/current/arm64/bt-cd/debian-13.1.0-arm64-netinst.iso.torrent", &TorrentExtra::new(metadata, false)).await.unwrap();
+
+        tokio::time::sleep(Duration::from_secs(5)).await;
+
+        let torrent_list = get_torrent_list(&http_client, client_process.port)
+            .await
+            .unwrap();
+
+        assert!(torrent_list.len() == 1);
+
+        dbg!(&torrent_list);
+
+        let first_id = &torrent_list[0].hash;
+
+        set_torrent_category(&http_client, client_process.port, first_id, "Hello World")
+            .await
+            .unwrap();
+
+        tokio::time::sleep(Duration::from_secs(5)).await;
+
+        let torrent_list = get_torrent_list(&http_client, client_process.port)
+            .await
+            .unwrap();
+
+        assert!(torrent_list.len() == 1);
+
+        assert_eq!(torrent_list[0].category, "Hello World".into());
     }
 
     #[tokio::test]
@@ -203,7 +326,7 @@ mod tests {
                 &http_client,
                 client_process.port,
                 "non_existent_link_for_torrent",
-                &metadata
+                &TorrentExtra::new(metadata, false)
             )
             .await,
             Err(QBittorrentWebApiError::CantAddTorrent(_))
@@ -223,7 +346,7 @@ mod tests {
             title: "My Movie".to_string(),
             thumbnail: "https://image.com".to_string(),
         };
-        add_torrent(&http_client, client_process.port, "https://cdimage.debian.org/debian-cd/current/arm64/bt-cd/debian-13.1.0-arm64-netinst.iso.torrent", &metadata).await.unwrap();
+        add_torrent(&http_client, client_process.port, "https://cdimage.debian.org/debian-cd/current/arm64/bt-cd/debian-13.1.0-arm64-netinst.iso.torrent", &TorrentExtra::new(metadata, false)).await.unwrap();
 
         tokio::time::sleep(Duration::from_secs(5)).await;
 

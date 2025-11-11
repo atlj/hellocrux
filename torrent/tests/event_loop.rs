@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use domain::MediaMetaData;
 use torrent::{
-    TorrentInfo,
+    TorrentExtra, TorrentInfo,
     qbittorrent_client::{QBittorrentClient, QBittorrentClientMessage},
 };
 
@@ -43,7 +43,7 @@ async fn test_event_loop() {
             .send(QBittorrentClientMessage::AddTorrent {
                 hash: "faulty-hash".into(),
                 result_sender: add_torrent_result_sender,
-                metadata: Box::new(metadata.clone()),
+                extra: Box::new(TorrentExtra::new(metadata.clone(), false)),
             })
             .await
             .unwrap();
@@ -60,7 +60,7 @@ async fn test_event_loop() {
             QBittorrentClientMessage::AddTorrent {
                 hash: "https://cdimage.debian.org/debian-cd/current/arm64/bt-cd/debian-13.1.0-arm64-netinst.iso.torrent".into(),
                 result_sender: add_torrent_result_sender,
-                metadata: Box::new(metadata)
+                extra: Box::new(TorrentExtra::new(metadata.clone(), false)),
             }
          ).await.unwrap();
 
