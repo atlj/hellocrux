@@ -12,7 +12,7 @@ torrent = { path = "../torrent" }
 clap = { version = "4.5.40", features = ["derive"] }
 futures = { workspace = true }
 env_logger = "0.11.8"
-log = { version = "0.4.27", features = ["kv_serde"] }
+log = { workspace = true }
 tower-http = { version = "0.6.6", features = ["fs"] }
 base64 = { workspace = true }
 tower = "0.5.2"

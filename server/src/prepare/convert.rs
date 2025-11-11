@@ -55,8 +55,6 @@ pub async fn convert_file_to_mp4(input_path: &Path, output_path: &Path) -> super
                 super::Error::ConvertError(format!("Couldn't spawn ffmpeg. Reason: {err}").into())
             })?;
 
-        dbg!(&result.stdout, &result.stderr, &result.status);
-
         if !result.status.success() {
             return Err(super::Error::ConvertError(
                 format!(

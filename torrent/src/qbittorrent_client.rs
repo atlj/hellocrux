@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use std::process::Stdio;
 
 use domain::MediaMetaData;
+use log::{debug, info};
 use tokio::fs::OpenOptions;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
@@ -59,8 +60,6 @@ impl QBittorrentClient {
                 break;
             };
 
-            dbg!(&message);
-
             match message {
                 QBittorrentClientMessage::AddTorrent {
                     hash,
@@ -70,8 +69,8 @@ impl QBittorrentClient {
                     let process_client = if let Some(client) = &process_client {
                         client
                     } else {
+                        debug!("Spawning QBittorrent to add a new torrent");
                         process_client = Some(self.spawn_qbittorrent_web().await?);
-                        dbg!("Spawned process again");
                         process_client.as_ref().unwrap()
                     };
 
@@ -84,8 +83,8 @@ impl QBittorrentClient {
                     let process_client = if let Some(client) = &process_client {
                         client
                     } else {
+                        debug!("Spawning QBittorrent to remove a torrent");
                         process_client = Some(self.spawn_qbittorrent_web().await?);
-                        dbg!("Spawned process again");
                         process_client.as_ref().unwrap()
                     };
 
@@ -97,7 +96,7 @@ impl QBittorrentClient {
                     let process_client_ref = if let Some(process_client) = &process_client {
                         process_client
                     } else {
-                        dbg!("Process client was killed, not asking for torrents");
+                        debug!("QBittorrent client is down. Not going to update the torrent list.");
                         let _ = result_sender.send(Ok(()));
                         continue;
                     };
@@ -108,7 +107,9 @@ impl QBittorrentClient {
                             if torrent_list.is_empty()
                                 || torrent_list.iter().all(|item| item.state.should_stop())
                             {
-                                dbg!("All torrents are done, killing the process");
+                                debug!(
+                                    "No torrents are being downloaded. Killing the QBittorrent process"
+                                );
                                 process_client = None;
                             }
 
@@ -175,7 +176,7 @@ impl QBittorrentClient {
                     )
                 })?;
 
-                dbg!(port);
+                info!("Spawned QBitorrent web API at http://localhost:{port}");
 
                 return Ok(QBittorrentClientProcess {
                     process_handle,

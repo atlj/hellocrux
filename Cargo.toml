@@ -17,3 +17,4 @@ tokio = { version = "1.45.1", features = [
   "process",
   "io-util",
 ] }
+log = { version = "0.4.27", features = ["kv_serde"] }
