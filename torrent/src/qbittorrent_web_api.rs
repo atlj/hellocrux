@@ -1,3 +1,4 @@
+use base64::{Engine as _, engine::general_purpose::URL_SAFE};
 use domain::MediaMetaData;
 use reqwest::{Client, Url};
 
@@ -19,11 +20,15 @@ pub(crate) async fn add_torrent(
         url
     };
 
-    let category_string = serde_json::to_string(metadata).map_err(|err| {
-        QBittorrentWebApiError::CantAddTorrent(
-            format!("Can't serialize metadata {:?}. Reason: {err}", &metadata).into(),
-        )
-    })?;
+    let category_string = {
+        let json_string = serde_json::to_string(metadata).map_err(|err| {
+            QBittorrentWebApiError::CantAddTorrent(
+                format!("Can't serialize metadata {:?}. Reason: {err}", &metadata).into(),
+            )
+        })?;
+
+        URL_SAFE.encode(json_string)
+    };
 
     let result = client
         .post(url)

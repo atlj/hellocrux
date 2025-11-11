@@ -14,4 +14,5 @@ futures = { workspace = true }
 env_logger = "0.11.8"
 log = { version = "0.4.27", features = ["kv_serde"] }
 tower-http = { version = "0.6.6", features = ["fs"] }
+base64 = { workspace = true }
 tower = "0.5.2"

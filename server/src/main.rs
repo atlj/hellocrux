@@ -94,6 +94,7 @@ async fn health_handler() -> String {
 }
 
 mod download_handlers {
+    use base64::{Engine as _, engine::general_purpose::URL_SAFE};
     use std::{collections::HashSet, path::PathBuf};
 
     use axum::{Json, extract, http::StatusCode};
@@ -123,8 +124,14 @@ mod download_handlers {
                     .filter(|torrent| !processed_hashes.contains(&torrent.hash))
                     .map(async |torrent| {
                         // TODO: Don't use unwrap. Log an error instead.
+                        let metadata_str_bytes =
+                            URL_SAFE.decode(torrent.category.as_bytes()).unwrap();
+                        // TODO: Don't use unwrap. Log an error instead.
+                        let metadata_string = str::from_utf8(&metadata_str_bytes).unwrap();
+                        // TODO: Don't use unwrap. Log an error instead.
                         let metadata: MediaMetaData =
-                            serde_json::from_str(&torrent.category).unwrap();
+                            serde_json::from_str(metadata_string).unwrap();
+
                         dbg!("preparing movie", &torrent.name);
 
                         // TODO: remove unwrap and add logging instead
