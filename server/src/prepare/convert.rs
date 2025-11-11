@@ -75,7 +75,7 @@ pub async fn convert_file_to_mp4(input_path: &Path, output_path: &Path) -> super
 pub fn should_convert(media_file: &Path) -> bool {
     match media_file.extension() {
         Some(extension) => match extension.to_string_lossy().as_ref() {
-            "mp4" => false,
+            "mp4" | "hevc" => false,
             "mkv" | "mov" => true,
             _ => {
                 info!(
