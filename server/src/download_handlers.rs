@@ -5,7 +5,7 @@ use log::{debug, error, info};
 use std::{collections::HashSet, path::PathBuf};
 use tokio::task::JoinHandle;
 use torrent::{
-    TorrentInfo,
+    TorrentExtra, TorrentInfo,
     qbittorrent_client::{QBittorrentClient, QBittorrentClientMessage},
 };
 
@@ -26,7 +26,7 @@ pub async fn watch_and_process_downloads(
                 .filter(|torrent| torrent.state.is_done())
                 .filter(|torrent| !processed_hashes.contains(&torrent.hash))
                 .map(async |torrent| -> Option<Box<str>> {
-                    let download_form: DownloadForm = torrent
+                    let extra: TorrentExtra = torrent
                         .as_ref()
                         .try_into()
                         .inspect_err(|err| {
@@ -37,14 +37,14 @@ pub async fn watch_and_process_downloads(
 
                     crate::prepare::prepare_movie(
                         &media_dir,
-                        &download_form.metadata,
+                        extra.metadata_ref(),
                         &torrent.content_path,
                     )
                     .await
                     .inspect_err(|err| {
                         error!(
                             "Couldn't prepare movie with title {}. Reason: {err}.",
-                            &download_form.metadata.title
+                            extra.metadata_ref().title
                         )
                     })
                     .ok()?;

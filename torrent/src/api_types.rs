@@ -1,5 +1,34 @@
 use std::path::PathBuf;
 
+use domain::{MediaMetaData, SeriesFileMapping};
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub enum TorrentExtra {
+    Movie {
+        metadata: MediaMetaData,
+    },
+    Series {
+        metadata: MediaMetaData,
+        files_mapping: Option<SeriesFileMapping>,
+    },
+}
+
+impl TorrentExtra {
+    pub fn metadata(self) -> MediaMetaData {
+        match self {
+            TorrentExtra::Movie { metadata } => metadata,
+            TorrentExtra::Series { metadata, .. } => metadata,
+        }
+    }
+
+    pub fn metadata_ref(&self) -> &MediaMetaData {
+        match self {
+            TorrentExtra::Movie { metadata } => metadata,
+            TorrentExtra::Series { metadata, .. } => metadata,
+        }
+    }
+}
+
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct TorrentInfo {
     pub added_on: usize,
@@ -7,7 +36,7 @@ pub struct TorrentInfo {
     /// in bytes
     pub amount_left: usize,
     /// Category of the torrent.
-    /// We use this internally to store `MediaMetaData` as a b64 encoded JSON string.
+    /// We use this internally to store `TorrentExtra` as a b64 encoded JSON string.
     pub category: Box<str>,
     /// in bytes
     pub completed: usize,
@@ -205,13 +234,15 @@ pub mod into_domain {
     use std::fmt::Display;
 
     use crate::TorrentInfo;
-    use domain::{Download, DownloadForm};
+    use domain::Download;
+
+    use super::TorrentExtra;
 
     #[derive(Debug)]
     pub enum Error {
         CantDecodeUsingBase64(Box<str>),
         CantConvertBase64BytesToString(Box<str>),
-        CantDeserializeStringToDownloadForm(Box<str>),
+        CantDeserializeStringToTorrentExtra(Box<str>),
     }
 
     impl Display for Error {
@@ -219,16 +250,16 @@ pub mod into_domain {
             f.write_str(match self {
                 Error::CantDecodeUsingBase64(msg) => msg,
                 Error::CantConvertBase64BytesToString(msg) => msg,
-                Error::CantDeserializeStringToDownloadForm(msg) => msg,
+                Error::CantDeserializeStringToTorrentExtra(msg) => msg,
             })
         }
     }
 
-    impl TryFrom<&TorrentInfo> for DownloadForm {
+    impl TryFrom<&TorrentInfo> for TorrentExtra {
         type Error = Error;
 
         fn try_from(value: &TorrentInfo) -> Result<Self, Self::Error> {
-            let metadata_str_bytes = URL_SAFE.decode(value.category.as_bytes()).map_err(|err| {
+            let extra_str_bytes = URL_SAFE.decode(value.category.as_bytes()).map_err(|err| {
                 Error::CantDecodeUsingBase64(
                 format!(
                     "Couldn't decode torrent named {}'s category ({}) using base64. Reason: {err}",
@@ -237,7 +268,7 @@ pub mod into_domain {
                 )
             })?;
 
-            let metadata_string = str::from_utf8(&metadata_str_bytes).map_err(|err| {
+            let extra_string = str::from_utf8(&extra_str_bytes).map_err(|err| {
                 Error::CantConvertBase64BytesToString(
 
                         format!(
@@ -248,8 +279,8 @@ pub mod into_domain {
                 )
                     })?;
 
-            serde_json::from_str(metadata_string).map_err(|err| {
-                Error::CantDeserializeStringToDownloadForm(
+            serde_json::from_str(extra_string).map_err(|err| {
+                Error::CantDeserializeStringToTorrentExtra(
                     format!(
                         "Couldn't deserialize torrent named {}'s category ({}). Reason: {err}",
                         value.name, value.category
@@ -263,8 +294,8 @@ pub mod into_domain {
     impl From<TorrentInfo> for Download {
         fn from(val: TorrentInfo) -> Self {
             let title = {
-                let download_form: Option<DownloadForm> = val.as_ref().try_into().ok();
-                download_form.map(|download_form| download_form.metadata.title.into_boxed_str())
+                let download_form: Option<TorrentExtra> = val.as_ref().try_into().ok();
+                download_form.map(|download_form| download_form.metadata().title.into_boxed_str())
             }
             .unwrap_or(val.name);
 

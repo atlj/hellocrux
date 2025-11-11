@@ -35,3 +35,6 @@ pub struct DownloadForm {
     pub metadata: MediaMetaData,
     pub is_series: bool,
 }
+
+/// "S3/SomeTVShow_S3_E1_BluRay.mov" -> "3/1"
+pub type SeriesFileMapping = HashMap<String, String>;
