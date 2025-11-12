@@ -5,7 +5,7 @@ use log::{debug, error, info};
 use std::{collections::HashSet, path::PathBuf};
 use tokio::task::JoinHandle;
 use torrent::{
-    TorrentContents, TorrentExtra, TorrentInfo,
+    TorrentExtra, TorrentInfo,
     qbittorrent_client::{QBittorrentClient, QBittorrentClientMessage},
 };
 
@@ -148,7 +148,7 @@ pub struct TorrentContentsQuery {
 pub async fn get_torrent_contents(
     extract::State(state): State,
     extract::Query(query): extract::Query<TorrentContentsQuery>,
-) -> axum::response::Result<Json<Box<[TorrentContents]>>> {
+) -> axum::response::Result<Json<Box<[Box<str>]>>> {
     let (result_sender, result_receiver) = tokio::sync::oneshot::channel();
 
     // TODO: make this a periodic call.
@@ -172,7 +172,9 @@ pub async fn get_torrent_contents(
         &query.id, &contents
     );
 
-    Ok(Json(contents))
+    Ok(Json(
+        contents.into_iter().map(|contents| contents.name).collect(),
+    ))
 }
 
 pub async fn get_downloads(extract::State(state): State) -> Json<Box<[Download]>> {

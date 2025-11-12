@@ -19,6 +19,7 @@ pub enum Screen {
     Settings,
     Player,
     ServerDownloads,
+    ServerFileMapping(String),
     AddDownload,
 }
 

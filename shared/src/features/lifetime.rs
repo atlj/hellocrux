@@ -80,6 +80,10 @@ pub fn handle_screen_change(model: &mut Model, screen: Screen) -> Command<Effect
         Screen::AddDownload => Command::done(),
         Screen::Startup => Command::done(),
         Screen::ServerAddressEntry => Command::done(),
+        Screen::ServerFileMapping(id) => match model.torrent_contents {
+            Some((ref existing_id, _)) if *existing_id == id => Command::done(),
+            _ => Command::event(Event::UpdateData(DataRequest::GetContents(id))),
+        },
         Screen::Settings => Command::done(),
         Screen::Player => Command::done(),
     };

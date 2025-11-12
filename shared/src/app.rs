@@ -53,6 +53,7 @@ pub struct Model {
     pub connection_state: Option<ServerConnectionState>,
     pub media_items: Option<HashMap<String, Media>>,
     pub downloads: Vec<Download>,
+    pub torrent_contents: Option<(String, Vec<String>)>,
     pub playback: PlaybackModel,
 }
 
@@ -62,6 +63,7 @@ pub struct ViewModel {
     media_items: Option<HashMap<String, Media>>,
     downloads: Vec<Download>,
     playback_detail: PlaybackModel,
+    torrent_contents: Option<(String, Vec<String>)>,
 }
 
 #[derive(Default)]
@@ -119,6 +121,7 @@ impl App for CounterApp {
             media_items: model.media_items.clone(),
             playback_detail: model.playback.clone(),
             downloads: model.downloads.clone(),
+            torrent_contents: model.torrent_contents.clone(),
         }
     }
 }

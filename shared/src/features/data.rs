@@ -18,12 +18,48 @@ pub enum DataRequest {
     GetMedia,
     GetDownloads,
     AddDownload(DownloadForm),
+    GetContents(String),
 }
 
 pub fn update_data(model: &mut Model, request: DataRequest) -> Command<Effect, Event> {
     let base_url = model.base_url.clone();
 
     match request {
+        DataRequest::GetContents(id) => Command::new(|ctx| async move {
+            // TODO make this url common between enum vals
+            let url = {
+                let mut url = if let Some(url) = base_url {
+                    url
+                } else {
+                    return navigation::push(Screen::ServerAddressEntry)
+                        .into_future(ctx)
+                        .await;
+                };
+
+                url.set_path("download/torrent-contents");
+                url.set_query(Some(format!("id={id}").as_ref()));
+                url
+            };
+
+            match http::get(url).into_future(ctx.clone()).await {
+                http::HttpOutput::Success { data, .. } => {
+                    let files = data
+                        .and_then(|data| serde_json::from_str::<Vec<String>>(&data).ok())
+                        .map(|files| (id, files));
+
+                    update_model(
+                        &ctx,
+                        PartialModel {
+                            torrent_contents: Some(files),
+                            ..Default::default()
+                        },
+                    );
+                }
+                http::HttpOutput::Error => {
+                    // TODO: add logging
+                }
+            }
+        }),
         DataRequest::GetMedia => Command::new(|ctx| async move {
             let url = {
                 let mut url = if let Some(url) = base_url {
