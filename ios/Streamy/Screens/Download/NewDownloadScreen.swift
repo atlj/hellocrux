@@ -5,6 +5,7 @@ struct NewDownloadScreen: View {
     @State var hash = ""
     @State var thumbnail = ""
     @State var title = ""
+    @State var isSeries = false
 
     @State var showLoading = false
 
@@ -17,9 +18,12 @@ struct NewDownloadScreen: View {
             TextField("Magnet / Torrent File URL", text: $hash)
             TextField("Title", text: $title)
             TextField("Thumbnail Image URL", text: $thumbnail)
+            Toggle(isOn: $isSeries) {
+                Text("Series")
+            }
             Button {
                 Task {
-                    core.update(.updateData(.addDownload(.init(hash: hash, metadata: .init(thumbnail: thumbnail, title: title)))))
+                    core.update(.updateData(.addDownload(.init(hash: hash, metadata: .init(thumbnail: thumbnail, title: title), is_series: isSeries))))
                     showLoading = true
                     // TODO: remove me
                     try? await Task.sleep(for: .seconds(5))

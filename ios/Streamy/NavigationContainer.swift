@@ -40,6 +40,8 @@ struct NavigationContainer: View {
             DownloadScreen()
         case .addDownload:
             NewDownloadScreen()
+        case let .serverFileMapping(id):
+            FileMappingScreen(id: id)
         }
     }
 }
