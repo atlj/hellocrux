@@ -10,9 +10,10 @@ use tokio::process::Command;
 use tokio::task::JoinHandle;
 
 use crate::TorrentExtra;
-use crate::api_types::TorrentInfo;
+use crate::api_types::{TorrentContents, TorrentInfo};
 use crate::qbittorrent_web_api::{
-    QBittorrentWebApiResult, add_torrent, get_torrent_list, remove_torrent, set_torrent_category,
+    QBittorrentWebApiResult, add_torrent, get_torrent_contents, get_torrent_list, remove_torrent,
+    set_torrent_category,
 };
 
 #[derive(Debug)]
@@ -61,6 +62,19 @@ impl QBittorrentClient {
             };
 
             match message {
+                QBittorrentClientMessage::GetTorrentContents { id, result_sender } => {
+                    let process_client = if let Some(client) = &process_client {
+                        client
+                    } else {
+                        debug!("Spawning QBittorrent to get file contents");
+                        process_client = Some(self.spawn_qbittorrent_web().await?);
+                        process_client.as_ref().unwrap()
+                    };
+
+                    let result = get_torrent_contents(&http_client, process_client.port, &id).await;
+                    // TODO: add logging here
+                    let _ = result_sender.send(result);
+                }
                 QBittorrentClientMessage::SetExtra {
                     id,
                     extra,
@@ -310,6 +324,11 @@ pub enum QBittorrentClientMessage {
     },
     UpdateTorrentList {
         result_sender: tokio::sync::oneshot::Sender<QBittorrentWebApiResult<()>>,
+    },
+    GetTorrentContents {
+        id: Box<str>,
+        result_sender:
+            tokio::sync::oneshot::Sender<QBittorrentWebApiResult<Box<[TorrentContents]>>>,
     },
 }
 

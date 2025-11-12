@@ -2,4 +2,4 @@ mod api_types;
 pub mod qbittorrent_client;
 mod qbittorrent_web_api;
 
-pub use api_types::{TorrentExtra, TorrentInfo, TorrentState};
+pub use api_types::{TorrentContents, TorrentExtra, TorrentInfo, TorrentState};

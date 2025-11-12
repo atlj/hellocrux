@@ -5,7 +5,7 @@ use log::{debug, error, info};
 use std::{collections::HashSet, path::PathBuf};
 use tokio::task::JoinHandle;
 use torrent::{
-    TorrentExtra, TorrentInfo,
+    TorrentContents, TorrentExtra, TorrentInfo,
     qbittorrent_client::{QBittorrentClient, QBittorrentClientMessage},
 };
 
@@ -138,6 +138,32 @@ pub async fn spawn_download_event_loop(
     result_receiver.await.unwrap().unwrap();
 
     (sender, list_receiver, handle)
+}
+
+pub async fn get_torrent_contents(
+    extract::State(state): State,
+    id: String,
+) -> axum::response::Result<Json<Box<[TorrentContents]>>> {
+    let (result_sender, result_receiver) = tokio::sync::oneshot::channel();
+
+    // TODO: make this a periodic call.
+    state
+        .download_channels
+        .0
+        .send(QBittorrentClientMessage::GetTorrentContents {
+            id: id.clone().into_boxed_str(),
+            result_sender,
+        })
+        .await
+        .unwrap();
+
+    let contents = result_receiver.await.unwrap().unwrap();
+    debug!(
+        "Requested contents list of torrent with id {id} {:?}",
+        &contents
+    );
+
+    Ok(Json(contents))
 }
 
 pub async fn get_downloads(extract::State(state): State) -> Json<Box<[Download]>> {
