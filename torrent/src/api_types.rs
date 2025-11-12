@@ -244,6 +244,18 @@ mod comma_separated_list_parser {
     }
 }
 
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
+pub struct TorrentContents {
+    pub index: usize,
+    pub is_seed: bool,
+    pub name: Box<str>,
+    pub piece_range: Box<[isize]>,
+    pub priority: isize,
+    pub progress: f32,
+    pub size: usize,
+    pub availability: f32,
+}
+
 pub mod into_domain {
     use base64::{Engine as _, engine::general_purpose::URL_SAFE};
     use std::fmt::Display;
