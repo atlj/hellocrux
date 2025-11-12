@@ -140,9 +140,14 @@ pub async fn spawn_download_event_loop(
     (sender, list_receiver, handle)
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct TorrentContentsQuery {
+    id: Box<str>,
+}
+
 pub async fn get_torrent_contents(
     extract::State(state): State,
-    id: String,
+    extract::Query(query): extract::Query<TorrentContentsQuery>,
 ) -> axum::response::Result<Json<Box<[TorrentContents]>>> {
     let (result_sender, result_receiver) = tokio::sync::oneshot::channel();
 
@@ -151,16 +156,20 @@ pub async fn get_torrent_contents(
         .download_channels
         .0
         .send(QBittorrentClientMessage::GetTorrentContents {
-            id: id.clone().into_boxed_str(),
+            id: query.id.clone(),
             result_sender,
         })
         .await
         .unwrap();
 
-    let contents = result_receiver.await.unwrap().unwrap();
+    let contents = result_receiver.await.unwrap().map_err(|err| match err {
+        // TODO we're not returning 404.
+        torrent::QBittorrentWebApiError::NonOkStatus(status_code, ..) => status_code,
+        _ => StatusCode::INTERNAL_SERVER_ERROR,
+    })?;
     debug!(
-        "Requested contents list of torrent with id {id} {:?}",
-        &contents
+        "Requested contents list of torrent with id {} {:?}",
+        &query.id, &contents
     );
 
     Ok(Json(contents))

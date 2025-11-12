@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use base64::{Engine as _, engine::general_purpose::URL_SAFE};
-use reqwest::{Client, Url};
+use reqwest::{Client, StatusCode, Url};
 
 use crate::{
     TorrentExtra,
@@ -94,8 +94,10 @@ pub(crate) async fn get_torrent_contents(
         .query(&[("hash", id)])
         .send()
         .await
-        // TODO, check status 404 and log it.
-        .map_err(|err| QBittorrentWebApiError::CouldntCallApi(err.to_string().into()))?
+        .map_err(|err| match err.status() {
+            Some(status_code) => QBittorrentWebApiError::NonOkStatus(status_code, format!("Non 200 status code returned from QBittorrent while trying to fetch torrent contents for id {id}").into()),
+            _ => QBittorrentWebApiError::CouldntCallApi(err.to_string().into()),
+        })?
         .text()
         .await
         .map_err(|err| QBittorrentWebApiError::CantGetTextContent(err.to_string().into()))?;
@@ -234,6 +236,7 @@ pub type QBittorrentWebApiResult<T> = Result<T, QBittorrentWebApiError>;
 
 #[derive(Debug)]
 pub enum QBittorrentWebApiError {
+    NonOkStatus(StatusCode, Box<str>),
     CouldntCallApi(Box<str>),
     CantGetTextContent(Box<str>),
     CantDeserialize(Box<str>),
@@ -244,6 +247,7 @@ pub enum QBittorrentWebApiError {
 impl Display for QBittorrentWebApiError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
+            QBittorrentWebApiError::NonOkStatus(_, msg) => msg,
             QBittorrentWebApiError::CouldntCallApi(msg) => msg,
             QBittorrentWebApiError::CantGetTextContent(msg) => msg,
             QBittorrentWebApiError::CantDeserialize(msg) => msg,

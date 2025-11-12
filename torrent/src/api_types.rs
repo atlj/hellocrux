@@ -247,7 +247,7 @@ mod comma_separated_list_parser {
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct TorrentContents {
     pub index: usize,
-    pub is_seed: bool,
+    pub is_seed: Option<bool>,
     pub name: Box<str>,
     pub piece_range: Box<[isize]>,
     pub priority: isize,

@@ -53,7 +53,7 @@ async fn main() {
         .route("/download/remove", post(download_handlers::remove_download))
         .route(
             "/download/torrent-contents",
-            post(download_handlers::get_torrent_contents),
+            get(download_handlers::get_torrent_contents),
         )
         .route(
             "/download/file-mapping",
