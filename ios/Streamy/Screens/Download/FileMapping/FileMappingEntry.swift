@@ -1,20 +1,15 @@
+import SharedTypes
 import SwiftUI
 
 struct FileMappingEntry: View {
-    var fileName: String
-    @Binding var season: UInt
-    @Binding var episode: UInt
-    @Binding var isNonMediaItem: Bool
-
-    @State var str = ""
+    @Binding var fileMapping: FileMapping
 
     var body: some View {
-        Text(fileName).monospaced()
-            .monospaced()
-        Toggle("Non Media Item", isOn: $isNonMediaItem)
-        if !isNonMediaItem {
+        Text(fileMapping.fileName).monospaced()
+        Toggle("Non Media Item", isOn: $fileMapping.isNonMedia)
+        if !fileMapping.isNonMedia {
             HStack {
-                Selector(title: "Se", value: $episode) {
+                Selector(title: "Se", value: $fileMapping.seasonNo) {
                     HStack {
                         Text("Season")
                         Spacer()
@@ -23,7 +18,7 @@ struct FileMappingEntry: View {
             }
             .transition(.scale(scale: 0, anchor: .top))
             HStack {
-                Selector(title: "Ep", value: $season) {
+                Selector(title: "Ep", value: $fileMapping.seasonNo) {
                     HStack {
                         Text("Episode")
                         Spacer()
@@ -53,18 +48,31 @@ struct Selector<T, L>: View where T: BinaryInteger, L: View {
     }
 }
 
+struct FileMapping {
+    var fileName: String
+    var seasonNo: UInt
+    var episodeNo: UInt
+    var isNonMedia = false
+
+    init(fileName: String, seasonNo: UInt, episodeNo: UInt, isNonMedia: Bool = false) {
+        self.fileName = fileName
+        self.seasonNo = seasonNo
+        self.episodeNo = episodeNo
+        self.isNonMedia = isNonMedia
+    }
+
+    init(fileName: String, episodeIdentifier: EpisodeIdentifier) {
+        self.fileName = fileName
+        seasonNo = UInt(episodeIdentifier.season_no)
+        episodeNo = UInt(episodeIdentifier.episode_no)
+    }
+}
+
 @available(iOS 17.0, *)
 #Preview {
-    @Previewable @State var episode = UInt(9)
-    @Previewable @State var season = UInt(10)
-    @Previewable @State var nonMediaItem = false
+    @Previewable @State var mapping = FileMapping(fileName: "Season1/hello-world-S1E1.mov", seasonNo: 0, episodeNo: 0)
 
     Form {
-        Section {
-            FileMappingEntry(fileName: "season1/the-summer-S1E0.mov", season: $season, episode: $episode, isNonMediaItem: $nonMediaItem)
-        }
-        Section {
-            FileMappingEntry(fileName: "season1/the-summer-S1E0.mov", season: $season, episode: $episode, isNonMediaItem: $nonMediaItem)
-        }
+        FileMappingEntry(fileMapping: $mapping)
     }
 }

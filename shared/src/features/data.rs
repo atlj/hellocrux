@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crux_core::Command;
-use domain::{Download, DownloadForm, Media};
+use domain::{Download, DownloadForm, Media, series::EpisodeIdentifier};
 
 use crate::{
     Effect, Event, Model, PartialModel,
@@ -45,7 +45,24 @@ pub fn update_data(model: &mut Model, request: DataRequest) -> Command<Effect, E
                 http::HttpOutput::Success { data, .. } => {
                     let files = data
                         .and_then(|data| serde_json::from_str::<Vec<String>>(&data).ok())
-                        .map(|files| (id, files));
+                        .map(|files| {
+                            let len = files.len();
+                            let map = files.into_iter().fold(
+                                HashMap::with_capacity(len),
+                                |mut map, file| {
+                                    map.insert(
+                                        file,
+                                        // TODO implement auto detection
+                                        EpisodeIdentifier {
+                                            season_no: 0,
+                                            episode_no: 0,
+                                        },
+                                    );
+                                    map
+                                },
+                            );
+                            (id, map)
+                        });
 
                     update_model(
                         &ctx,

@@ -6,7 +6,7 @@ struct FileMappingScreen: View {
     var id: String
     var overrideLoading: Bool?
 
-    @State var files: [(String, UInt, UInt, Bool)] = []
+    @State var files: [FileMapping] = []
 
     var loading: Bool {
         if let overrideLoading {
@@ -26,10 +26,10 @@ struct FileMappingScreen: View {
                 // TODO: center me
                 ProgressView("Fetching file list from server.")
             } else {
-                ForEach($files, id: \.0) { $file in
+                ForEach($files, id: \.fileName) { $fileMapping in
                     Section {
                         // TODO: make animations work
-                        FileMappingEntry(fileName: file.0, season: $file.1, episode: $file.2, isNonMediaItem: $file.3.animation(.spring))
+                        FileMappingEntry(fileMapping: $fileMapping)
                     }
                 }
             }
@@ -57,15 +57,15 @@ struct FileMappingScreen: View {
 
     private func setFilesToViewModelState() {
         // TODO: remove !
-        files = core.view.torrent_contents!.field1.map { ($0, 0, 0, false) }
+        files = core.view.torrent_contents!.field1.map { FileMapping(fileName: $0, episodeIdentifier: $1) }
     }
 }
 
 #Preview {
-    FileMappingScreen(id: "", overrideLoading: false, files: [("Season1/power-raising-S1E9.mp4", UInt(0), UInt(0), false),
-                                                              ("Season1/power-raising-S1E10.mp4", UInt(0), UInt(0), false),
-                                                              ("Season1/suuuuuper-long-title-that-isreaaaallllllyyyyylongS1E20.mp4", UInt(0), UInt(0), false),
+    FileMappingScreen(id: "", overrideLoading: false, files: [
+        FileMapping(fileName: "Season1/power-raising-S1E10.mp4", seasonNo: 0, episodeNo: 0),
+        FileMapping(fileName: "Season1/suuuuuper-long-title-that-isreaaaallllllyyyyylongS1E20.mp4", seasonNo: 0, episodeNo: 0),
 
-        ])
-        .environmentObject(Core())
+    ])
+    .environmentObject(Core())
 }

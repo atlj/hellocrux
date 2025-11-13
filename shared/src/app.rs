@@ -9,7 +9,7 @@ use crate::features::{
 };
 use crux_core::command::CommandContext;
 use crux_core::{App, Command, macros::effect, render::RenderOperation};
-use domain::{Download, Media};
+use domain::{Download, Media, SeriesFileMapping};
 use partially::Partial;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -53,7 +53,7 @@ pub struct Model {
     pub connection_state: Option<ServerConnectionState>,
     pub media_items: Option<HashMap<String, Media>>,
     pub downloads: Vec<Download>,
-    pub torrent_contents: Option<(String, Vec<String>)>,
+    pub torrent_contents: Option<(String, SeriesFileMapping)>,
     pub playback: PlaybackModel,
 }
 
@@ -63,7 +63,7 @@ pub struct ViewModel {
     media_items: Option<HashMap<String, Media>>,
     downloads: Vec<Download>,
     playback_detail: PlaybackModel,
-    torrent_contents: Option<(String, Vec<String>)>,
+    torrent_contents: Option<(String, SeriesFileMapping)>,
 }
 
 #[derive(Default)]
