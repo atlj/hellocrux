@@ -27,6 +27,7 @@ fn main() -> anyhow::Result<()> {
     typegen.register_type::<domain::MediaMetaData>()?;
     typegen.register_type::<domain::MediaContent>()?;
     typegen.register_type::<domain::Download>()?;
+    typegen.register_type::<domain::series::EpisodeIdentifier>()?;
 
     let output_root = PathBuf::from("./generated");
     typegen.swift("SharedTypes", output_root.join("swift"))?;
