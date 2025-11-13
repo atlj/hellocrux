@@ -9,7 +9,8 @@ use crate::features::{
 };
 use crux_core::command::CommandContext;
 use crux_core::{App, Command, macros::effect, render::RenderOperation};
-use domain::{Download, Media, SeriesFileMapping};
+use domain::series::SeriesFileMapping;
+use domain::{Download, Media};
 use partially::Partial;
 use serde::{Deserialize, Serialize};
 use url::Url;

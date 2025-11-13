@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use domain::{MediaMetaData, SeriesFileMapping};
+use domain::{MediaMetaData, series::SeriesFileMapping};
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum TorrentExtra {

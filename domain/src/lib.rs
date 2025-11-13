@@ -1,7 +1,7 @@
 pub mod series;
 
 use serde::{Deserialize, Serialize};
-use series::EpisodeIdentifier;
+use series::SeriesFileMapping;
 use std::collections::HashMap;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -40,10 +40,7 @@ pub struct DownloadForm {
 }
 
 #[derive(serde::Deserialize, serde::Serialize, Clone, PartialEq, Eq, Debug)]
-pub struct EditFileMappingForm {
+pub struct EditSeriesFileMappingForm {
     pub id: Box<str>,
     pub file_mapping: SeriesFileMapping,
 }
-
-/// "S3/SomeTVShow_S3_E1_BluRay.mov" -> "3/1"
-pub type SeriesFileMapping = HashMap<String, EpisodeIdentifier>;

@@ -60,3 +60,6 @@ impl EpisodeIdentifier {
         })
     }
 }
+
+/// "S3/SomeTVShow_S3_E1_BluRay.mov" -> "3/1"
+pub type SeriesFileMapping = HashMap<String, EpisodeIdentifier>;

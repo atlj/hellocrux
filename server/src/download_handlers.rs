@@ -1,6 +1,6 @@
 use super::State;
 use axum::{Json, extract, http::StatusCode};
-use domain::{Download, DownloadForm, EditFileMappingForm};
+use domain::{Download, DownloadForm, EditSeriesFileMappingForm};
 use log::{debug, error, info};
 use std::{collections::HashSet, path::PathBuf};
 use tokio::task::JoinHandle;
@@ -255,7 +255,7 @@ pub async fn remove_download(
 
 pub async fn update_file_mapping(
     extract::State(state): State,
-    Json(file_mapping_form): Json<EditFileMappingForm>,
+    Json(file_mapping_form): Json<EditSeriesFileMappingForm>,
 ) -> axum::response::Result<()> {
     let current_extra: TorrentExtra = {
         let torrent_list = state.download_channels.1.borrow();
