@@ -66,6 +66,14 @@ struct FileMapping {
         seasonNo = UInt(episodeIdentifier.season_no)
         episodeNo = UInt(episodeIdentifier.episode_no)
     }
+
+    func toMapping() -> (String, EpisodeIdentifier)? {
+        if isNonMedia {
+            return nil
+        }
+
+        return (fileName, EpisodeIdentifier(season_no: UInt32(seasonNo), episode_no: UInt32(episodeNo)))
+    }
 }
 
 @available(iOS 17.0, *)

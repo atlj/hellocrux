@@ -36,7 +36,10 @@ struct FileMappingScreen: View {
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Save") {}
+                Button("Save") {
+                    core.update(.updateData(.setSeriesFileMapping(fileMappingForm())))
+                    core.navigationObserver?.pop()
+                }
             }
         }
         .navigationTitle("File Mapping")
@@ -58,6 +61,24 @@ struct FileMappingScreen: View {
     private func setFilesToViewModelState() {
         // TODO: remove !
         files = core.view.torrent_contents!.field1.map { FileMapping(fileName: $0, episodeIdentifier: $1) }
+    }
+
+    private func fileMappingForm() -> EditSeriesFileMappingForm {
+        let mappings = [String: EpisodeIdentifier].fromTupleArray(tuples: files.compactMap { $0.isNonMedia ? nil : $0.toMapping() })
+
+        return EditSeriesFileMappingForm(id: id, file_mapping: mappings)
+    }
+}
+
+extension Dictionary {
+    static func fromTupleArray<K, V>(tuples: [(K, V)]) -> [K: V]
+        where K: Hashable
+    {
+        tuples.reduce([:]) {
+            var dict: [K: V] = $0
+            dict[$1.0] = $1.1
+            return dict
+        }
     }
 }
 

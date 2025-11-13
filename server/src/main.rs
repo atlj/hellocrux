@@ -56,7 +56,7 @@ async fn main() {
             get(download_handlers::get_torrent_contents),
         )
         .route(
-            "/download/file-mapping",
+            "/download/set-file-mapping",
             post(download_handlers::update_file_mapping),
         )
         .route("/download/get", get(download_handlers::get_downloads))

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crux_core::Command;
-use domain::{Download, DownloadForm, Media, series::EpisodeIdentifier};
+use domain::{Download, DownloadForm, EditSeriesFileMappingForm, Media, series::EpisodeIdentifier};
 
 use crate::{
     Effect, Event, Model, PartialModel,
@@ -19,12 +19,33 @@ pub enum DataRequest {
     GetDownloads,
     AddDownload(DownloadForm),
     GetContents(String),
+    SetSeriesFileMapping(EditSeriesFileMappingForm),
 }
 
 pub fn update_data(model: &mut Model, request: DataRequest) -> Command<Effect, Event> {
     let base_url = model.base_url.clone();
 
     match request {
+        DataRequest::SetSeriesFileMapping(form) => Command::new(|ctx| async move {
+            // TODO add validation
+            let url = {
+                let mut url = if let Some(url) = base_url {
+                    url
+                } else {
+                    return navigation::push(Screen::ServerAddressEntry)
+                        .into_future(ctx)
+                        .await;
+                };
+
+                url.set_path("download/set-file-mapping");
+                url
+            };
+
+            // TODO: remove unwrap
+            http::post(url, serde_json::to_string(&form).unwrap())
+                .into_future(ctx.clone())
+                .await;
+        }),
         DataRequest::GetContents(id) => Command::new(|ctx| async move {
             // TODO make this url common between enum vals
             let url = {
