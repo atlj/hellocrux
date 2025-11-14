@@ -1,7 +1,10 @@
 use std::collections::HashMap;
 
 use crux_core::Command;
-use domain::{Download, DownloadForm, EditSeriesFileMappingForm, Media, series::EpisodeIdentifier};
+use domain::{
+    Download, DownloadForm, Media,
+    series::{EditSeriesFileMappingForm, EpisodeIdentifier, file_mapping_form_state},
+};
 
 use crate::{
     Effect, Event, Model, PartialModel,
@@ -19,7 +22,7 @@ pub enum DataRequest {
     GetDownloads,
     AddDownload(DownloadForm),
     GetContents(String),
-    SetSeriesFileMapping(EditSeriesFileMappingForm),
+    SetSeriesFileMapping(EditSeriesFileMappingForm<file_mapping_form_state::NeedsValidation>),
 }
 
 pub fn update_data(model: &mut Model, request: DataRequest) -> Command<Effect, Event> {

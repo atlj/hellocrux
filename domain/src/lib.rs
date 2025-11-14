@@ -1,7 +1,6 @@
 pub mod series;
 
 use serde::{Deserialize, Serialize};
-use series::SeriesFileMapping;
 use std::collections::HashMap;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -37,10 +36,4 @@ pub struct DownloadForm {
     pub hash: Box<str>,
     pub metadata: MediaMetaData,
     pub is_series: bool,
-}
-
-#[derive(serde::Deserialize, serde::Serialize, Clone, PartialEq, Eq, Debug)]
-pub struct EditSeriesFileMappingForm {
-    pub id: Box<str>,
-    pub file_mapping: SeriesFileMapping,
 }
