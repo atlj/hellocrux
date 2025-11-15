@@ -232,7 +232,7 @@ mod tests {
             }
         };
 
-        generate_series_media(
+        let resulting_paths = generate_series_media(
             &test_data_path.join("tmp/series_media"),
             &test_data_path.join("tmp/prepare_series"),
             mapping,
@@ -243,6 +243,17 @@ mod tests {
         )
         .await
         .unwrap();
+
+        dbg!(&resulting_paths);
+
+        assert!(resulting_paths.into_iter().any(|path| {
+            path.to_str().unwrap().contains(
+                test_data_path
+                    .join("tmp/series_media/My Series/1/1-the-looks-S1E1.mov")
+                    .to_str()
+                    .unwrap(),
+            )
+        }));
 
         assert!(
             tokio::fs::try_exists(
