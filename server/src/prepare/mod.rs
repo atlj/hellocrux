@@ -3,7 +3,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use domain::MediaMetaData;
+use domain::{
+    MediaMetaData,
+    series::{EditSeriesFileMappingForm, file_mapping_form_state},
+};
 use log::info;
 
 mod convert;
@@ -76,6 +79,71 @@ pub async fn prepare_movie(
     Ok(())
 }
 
+// TODO reorder the params so they are unified
+pub async fn prepare_series(
+    media_dir: &Path,
+    metadata: &MediaMetaData,
+    source_dir: &Path,
+    mapping: EditSeriesFileMappingForm<file_mapping_form_state::Valid>,
+) -> Result<()> {
+    // 1. Move movie media and generate metadata
+    let resulting_paths =
+        moving::generate_series_media(media_dir, source_dir, mapping, metadata).await?;
+
+    // 2. Convert if needed
+    {
+        let conversion_futures = resulting_paths
+            .into_iter()
+            .map(|resulting_path| async move {
+                if !convert::should_convert(&resulting_path) {
+                    let result: Result<()> = Ok(());
+                    return result
+                };
+
+                info!(
+                    "Series file with path {} is going to be converted.",
+                    resulting_path.display()
+                );
+
+                convert::convert_file_to_mp4(
+                    &resulting_path,
+                    &resulting_path.with_extension("mp4"),
+                )
+                    .await?;
+
+                tokio::fs::remove_file(&resulting_path).await.map_err(|err| {
+                    Error::PrepareError(
+                        format!(
+                            "Converted a movie file but couldn't delete the source file at {}. Reason: {err}",
+                            resulting_path.display()
+                        )
+                        .into(),
+                    )
+                })?;
+
+                Ok(())
+            });
+
+        let conversion_errors: Box<_> = futures::future::join_all(conversion_futures)
+            .await
+            .into_iter()
+            .flat_map(|result| result.err())
+            .collect();
+
+        if !conversion_errors.is_empty() {
+            return Err(Error::PrepareError(
+                format!(
+                    "Couldn't convert all files from series. Reasons: {:#?}",
+                    conversion_errors
+                )
+                .into(),
+            ));
+        }
+    }
+
+    Ok(())
+}
+
 async fn find_movie_file(source_dir: &Path) -> Result<Option<PathBuf>> {
     let mut read_dir = tokio::fs::read_dir(source_dir).await.map_err(|err| {
         Error::PrepareError(
@@ -117,14 +185,19 @@ fn check_if_video_file(path: &Path) -> bool {
 #[cfg(test)]
 mod tests {
     use std::{
+        collections::HashMap,
         fs::{self, OpenOptions},
         io::{self, Read},
+        marker::PhantomData,
         path::{Path, PathBuf},
     };
 
-    use domain::MediaMetaData;
+    use domain::{
+        MediaMetaData,
+        series::{EditSeriesFileMappingForm, EpisodeIdentifier},
+    };
 
-    use crate::prepare::{find_movie_file, prepare_movie};
+    use crate::prepare::{find_movie_file, prepare_movie, prepare_series};
 
     #[tokio::test]
     async fn test_prepare_movie() {
@@ -166,6 +239,88 @@ mod tests {
         let saved_metadata: MediaMetaData = serde_json::from_str(&meta_file_contents).unwrap();
 
         assert_eq!(metadata, saved_metadata);
+    }
+
+    #[tokio::test]
+    async fn test_prepare_series() {
+        let test_data_path: PathBuf = concat!(env!("CARGO_MANIFEST_DIR"), "/test-data").into();
+
+        let _ = tokio::fs::remove_dir_all(test_data_path.join("tmp/prepare_series_2")).await;
+        let _ = tokio::fs::remove_dir_all(test_data_path.join("tmp/prepared_series")).await;
+
+        copy_dir_all(
+            test_data_path.join("prepare_series"),
+            test_data_path.join("tmp/prepare_series_2"),
+        )
+        .unwrap();
+
+        let metadata = MediaMetaData {
+            title: "Amazing Series".to_string(),
+            thumbnail: "https://some-link".to_string(),
+        };
+
+        let mapping = {
+            let mut file_mapping = HashMap::new();
+            file_mapping.insert(
+                "season1/the-looks-S1E1.mkv".to_string(),
+                EpisodeIdentifier {
+                    season_no: 1,
+                    episode_no: 1,
+                },
+            );
+            file_mapping.insert(
+                "season1/the-looks-S1E2.mkv".to_string(),
+                EpisodeIdentifier {
+                    season_no: 1,
+                    episode_no: 2,
+                },
+            );
+            file_mapping.insert(
+                "season2/the-looks-S2E1.mkv".to_string(),
+                EpisodeIdentifier {
+                    season_no: 2,
+                    episode_no: 1,
+                },
+            );
+
+            EditSeriesFileMappingForm {
+                id: "hey".into(),
+                file_mapping,
+                phantom: PhantomData,
+            }
+        };
+
+        // TODO tidy up the names for test folders
+        prepare_series(
+            &test_data_path.join("tmp/prepared_series"),
+            &metadata,
+            &test_data_path.join("tmp/prepare_series_2"),
+            mapping,
+        )
+        .await
+        .unwrap();
+
+        let meta_file_contents = {
+            let mut meta_file = OpenOptions::new()
+                .read(true)
+                .open(test_data_path.join("tmp/prepared_series/Amazing Series/meta.json"))
+                .unwrap();
+            let mut string = String::new();
+            meta_file.read_to_string(&mut string).unwrap();
+            string
+        };
+
+        let saved_metadata: MediaMetaData = serde_json::from_str(&meta_file_contents).unwrap();
+
+        assert_eq!(metadata, saved_metadata);
+
+        assert!(
+            tokio::fs::try_exists(
+                test_data_path.join("tmp/prepared_series/Amazing Series/1/1-the-looks-S1E1.mp4")
+            )
+            .await
+            .unwrap()
+        );
     }
 
     #[tokio::test]

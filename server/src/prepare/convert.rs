@@ -59,8 +59,16 @@ pub async fn convert_file_to_mp4(input_path: &Path, output_path: &Path) -> super
             return Err(super::Error::ConvertError(
                 format!(
                     "ffmpeg exited with non-zero status. stdout: {:?}, stderr: {:?}",
-                    result.stdout.as_slice(),
-                    result.stderr.as_slice()
+                    result
+                        .stdout
+                        .into_iter()
+                        .map(|byte| byte as char)
+                        .collect::<String>(),
+                    result
+                        .stderr
+                        .into_iter()
+                        .map(|byte| byte as char)
+                        .collect::<String>()
                 )
                 .into(),
             ));
@@ -75,8 +83,8 @@ pub async fn convert_file_to_mp4(input_path: &Path, output_path: &Path) -> super
 pub fn should_convert(media_file: &Path) -> bool {
     match media_file.extension() {
         Some(extension) => match extension.to_string_lossy().as_ref() {
-            "mp4" | "hevc" => false,
-            "mkv" | "mov" => true,
+            "mp4" | "hevc" | "mov" => false,
+            "mkv" => true,
             _ => {
                 info!(
                     "Found a file with a potentially unsupported format at {} while trying to convert it. Trying to convert it anyway.",
@@ -85,7 +93,7 @@ pub fn should_convert(media_file: &Path) -> bool {
                 true
             }
         },
-        None => unreachable!(""),
+        None => unreachable!(),
     }
 }
 

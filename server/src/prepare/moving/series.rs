@@ -204,21 +204,21 @@ mod tests {
         let mapping = {
             let mut file_mapping = HashMap::new();
             file_mapping.insert(
-                "season1/the-looks-S1E1.mov".to_string(),
+                "season1/the-looks-S1E1.mkv".to_string(),
                 EpisodeIdentifier {
                     season_no: 1,
                     episode_no: 1,
                 },
             );
             file_mapping.insert(
-                "season1/the-looks-S1E2.mov".to_string(),
+                "season1/the-looks-S1E2.mkv".to_string(),
                 EpisodeIdentifier {
                     season_no: 1,
                     episode_no: 2,
                 },
             );
             file_mapping.insert(
-                "season2/the-looks-S2E1.mov".to_string(),
+                "season2/the-looks-S2E1.mkv".to_string(),
                 EpisodeIdentifier {
                     season_no: 2,
                     episode_no: 1,
@@ -249,7 +249,7 @@ mod tests {
         assert!(resulting_paths.into_iter().any(|path| {
             path.to_str().unwrap().contains(
                 test_data_path
-                    .join("tmp/series_media/My Series/1/1-the-looks-S1E1.mov")
+                    .join("tmp/series_media/My Series/1/1-the-looks-S1E1.mkv")
                     .to_str()
                     .unwrap(),
             )
@@ -257,7 +257,7 @@ mod tests {
 
         assert!(
             tokio::fs::try_exists(
-                test_data_path.join("tmp/series_media/My Series/1/1-the-looks-S1E1.mov")
+                test_data_path.join("tmp/series_media/My Series/1/1-the-looks-S1E1.mkv")
             )
             .await
             .unwrap()
@@ -265,7 +265,7 @@ mod tests {
 
         assert!(
             tokio::fs::try_exists(
-                test_data_path.join("tmp/series_media/My Series/1/2-the-looks-S1E2.mov")
+                test_data_path.join("tmp/series_media/My Series/1/2-the-looks-S1E2.mkv")
             )
             .await
             .unwrap()
@@ -273,7 +273,7 @@ mod tests {
 
         assert!(
             tokio::fs::try_exists(
-                test_data_path.join("tmp/series_media/My Series/2/1-the-looks-S2E1.mov")
+                test_data_path.join("tmp/series_media/My Series/2/1-the-looks-S2E1.mkv")
             )
             .await
             .unwrap()
