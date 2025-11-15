@@ -74,7 +74,7 @@ pub struct EditSeriesFileMappingForm<T> {
 }
 
 impl EditSeriesFileMappingForm<file_mapping_form_state::NeedsValidation> {
-    fn validate(
+    pub fn validate(
         self,
         allowed_files: &[String],
     ) -> Option<EditSeriesFileMappingForm<file_mapping_form_state::Valid>> {
