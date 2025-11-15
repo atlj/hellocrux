@@ -2,7 +2,7 @@ use super::State;
 use axum::{Json, extract, http::StatusCode};
 use domain::{Download, DownloadForm, series::EditSeriesFileMappingForm};
 use log::{debug, error, info};
-use std::{collections::HashSet, marker::PhantomData, path::PathBuf};
+use std::{collections::HashSet, path::PathBuf};
 use tokio::task::JoinHandle;
 use torrent::{
     TorrentExtra, TorrentInfo,
@@ -33,6 +33,7 @@ pub async fn watch_and_process_downloads(
                             error!("Couldn't extract extra from torrent's category. {err}")
                         })
                         .ok()?;
+                    let title = extra.metadata_ref().title.clone();
 
                     if extra.needs_file_mapping() {
                         return None;
@@ -58,29 +59,20 @@ pub async fn watch_and_process_downloads(
                         }
                         TorrentExtra::Series {
                             ref metadata,
-                            ref files_mapping,
+                            files_mapping_form,
                         } => {
-                            let form = EditSeriesFileMappingForm {
-                                id: torrent.hash.clone(),
-                                file_mapping: files_mapping
-                                    .clone()
-                                    // TODO think about the expect here.
-                                    .expect("Tried to prepare even though files mapping is none"),
-                                phantom: PhantomData,
-                            };
-
                             crate::prepare::prepare_series(
                                 &media_dir,
                                 metadata,
                                 &torrent.content_path,
-                                form,
+                                files_mapping_form.expect("files mapping form was None."),
                             )
                             .await
                             .inspect_err(|err| {
                                 // TODO delete the files if this happens
                                 error!(
                                     "Couldn't prepare series with title {}. Reason: {err}.",
-                                    extra.metadata_ref().title
+                                    title
                                 )
                             })
                             .ok()?;
@@ -292,11 +284,39 @@ pub async fn update_file_mapping(
         EditSeriesFileMappingForm<domain::series::file_mapping_form_state::NeedsValidation>,
     >,
 ) -> axum::response::Result<()> {
+    let contents = {
+        let (contents_result_sender, contents_result_receiver) = tokio::sync::oneshot::channel();
+
+        state
+            .download_channels
+            .0
+            .send(QBittorrentClientMessage::GetTorrentContents {
+                id: file_mapping_form.id.clone(),
+                result_sender: contents_result_sender,
+            })
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        contents_result_receiver
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .map_err(|_| StatusCode::NOT_FOUND)?
+    };
+
+    let allowed_files: Box<_> = contents
+        .into_iter()
+        .map(|content| content.name.to_string())
+        .collect();
+
+    let valid_form = file_mapping_form
+        .validate(&allowed_files)
+        .ok_or(StatusCode::BAD_REQUEST)?;
+
     let current_extra: TorrentExtra = {
         let torrent_list = state.download_channels.1.borrow();
         let torrent = torrent_list
             .iter()
-            .find(|torrent| torrent.hash == file_mapping_form.id)
+            .find(|torrent| torrent.hash == valid_form.id)
             .ok_or(StatusCode::NOT_FOUND)?;
 
         torrent.try_into().map_err(|_| {
@@ -308,11 +328,13 @@ pub async fn update_file_mapping(
         })?
     };
 
+    let id = valid_form.id.clone();
+
     let new_extra = match current_extra {
         TorrentExtra::Movie { .. } => return Err(StatusCode::BAD_REQUEST.into()),
         TorrentExtra::Series { metadata, .. } => TorrentExtra::Series {
             metadata,
-            files_mapping: Some(file_mapping_form.file_mapping),
+            files_mapping_form: Some(valid_form),
         },
     };
 
@@ -321,7 +343,7 @@ pub async fn update_file_mapping(
         .download_channels
         .0
         .send(QBittorrentClientMessage::SetExtra {
-            id: file_mapping_form.id.clone(),
+            id,
             extra: Box::new(new_extra),
             result_sender,
         })

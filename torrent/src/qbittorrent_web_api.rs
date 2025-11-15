@@ -259,9 +259,9 @@ impl Display for QBittorrentWebApiError {
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, time::Duration};
+    use std::{collections::HashMap, marker::PhantomData, time::Duration};
 
-    use domain::MediaMetaData;
+    use domain::{MediaMetaData, series::EditSeriesFileMappingForm};
 
     use crate::{
         TorrentExtra,
@@ -335,7 +335,11 @@ mod tests {
             first_id,
             &TorrentExtra::Series {
                 metadata,
-                files_mapping: Some(HashMap::new()),
+                files_mapping_form: Some(EditSeriesFileMappingForm {
+                    id: "hey".into(),
+                    phantom: PhantomData,
+                    file_mapping: HashMap::new(),
+                }),
             },
         )
         .await

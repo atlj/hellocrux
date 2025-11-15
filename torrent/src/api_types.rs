@@ -1,6 +1,9 @@
 use std::path::PathBuf;
 
-use domain::{MediaMetaData, series::SeriesFileMapping};
+use domain::{
+    MediaMetaData,
+    series::{EditSeriesFileMappingForm, file_mapping_form_state},
+};
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum TorrentExtra {
@@ -9,7 +12,7 @@ pub enum TorrentExtra {
     },
     Series {
         metadata: MediaMetaData,
-        files_mapping: Option<SeriesFileMapping>,
+        files_mapping_form: Option<EditSeriesFileMappingForm<file_mapping_form_state::Valid>>,
     },
 }
 
@@ -18,7 +21,7 @@ impl TorrentExtra {
         match is_series {
             true => Self::Series {
                 metadata,
-                files_mapping: None,
+                files_mapping_form: None,
             },
             false => Self::Movie { metadata },
         }
@@ -26,7 +29,9 @@ impl TorrentExtra {
     pub fn needs_file_mapping(&self) -> bool {
         match self {
             TorrentExtra::Movie { .. } => false,
-            TorrentExtra::Series { files_mapping, .. } => files_mapping.is_none(),
+            TorrentExtra::Series {
+                files_mapping_form, ..
+            } => files_mapping_form.is_none(),
         }
     }
     pub fn metadata(self) -> MediaMetaData {
