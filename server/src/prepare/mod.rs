@@ -33,6 +33,7 @@ pub async fn prepare_movie(
     metadata: &MediaMetaData,
     source_dir: &Path,
 ) -> Result<()> {
+    // TODO consider using mappings for movies.
     // 1. Find movie file
     let movie_file = find_movie_file(source_dir)
         .await?

@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 
+use crate::prepare::{Error, Result};
 use domain::MediaMetaData;
 use tokio::io::AsyncWriteExt;
 
@@ -7,7 +8,7 @@ pub async fn generate_movie_media(
     media_dir: &Path,
     movie_file: &Path,
     metadata: &MediaMetaData,
-) -> super::Result<PathBuf> {
+) -> Result<PathBuf> {
     let target_dir = media_dir.join(&metadata.title);
 
     // 1. Create destination dir
@@ -15,7 +16,7 @@ pub async fn generate_movie_media(
         tokio::fs::create_dir_all(&target_dir)
             .await
             .map_err(|err| {
-                super::Error::MoveError(
+                Error::MoveError(
                     format!(
                         "Couldn't generate media dir at {}. Reason: {err}",
                         media_dir.display()
@@ -28,15 +29,13 @@ pub async fn generate_movie_media(
     // 2. Move movie file to destination
     {
         let file_name = movie_file.file_name().ok_or_else(|| {
-            super::Error::MoveError(
-                format!("Can't read movie file name {}", movie_file.display()).into(),
-            )
+            Error::MoveError(format!("Can't read movie file name {}", movie_file.display()).into())
         })?;
 
         tokio::fs::rename(movie_file, target_dir.join(file_name))
             .await
             .map_err(|err| {
-                super::Error::MoveError(
+                Error::MoveError(
                     format!(
                         "Couldn't move movie file from {} to {}. Reason: {err}",
                         movie_file.display(),
@@ -56,20 +55,18 @@ pub async fn generate_movie_media(
             .open(target_dir.join("meta.json"))
             .await
             .map_err(|err| {
-                super::Error::MoveError(format!("Can't open meta.json. Reason: {err}",).into())
+                Error::MoveError(format!("Can't open meta.json. Reason: {err}",).into())
             })?;
 
         let metadata_string = serde_json::to_string_pretty(metadata).map_err(|err| {
-            super::Error::MoveError(
-                format!("Can't serialize metadata into json. Reason: {err}").into(),
-            )
+            Error::MoveError(format!("Can't serialize metadata into json. Reason: {err}").into())
         })?;
 
         metadata_file
             .write(metadata_string.as_bytes())
             .await
             .map_err(|err| {
-                super::Error::MoveError(format!("Couldn't save metadata. Reason: {err}").into())
+                Error::MoveError(format!("Couldn't save metadata. Reason: {err}").into())
             })?;
     }
 
