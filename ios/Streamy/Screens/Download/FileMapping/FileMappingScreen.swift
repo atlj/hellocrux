@@ -8,6 +8,10 @@ struct FileMappingScreen: View {
 
     @State var files: [FileMapping] = []
 
+    var saveDisabled: Bool {
+        !validate(files: files)
+    }
+
     var loading: Bool {
         if let overrideLoading {
             return overrideLoading
@@ -40,6 +44,7 @@ struct FileMappingScreen: View {
                     core.update(.updateData(.setSeriesFileMapping(fileMappingForm())))
                     core.navigationObserver?.pop()
                 }
+                .disabled(saveDisabled)
             }
         }
         .navigationTitle("File Mapping")
@@ -60,11 +65,24 @@ struct FileMappingScreen: View {
 
     private func setFilesToViewModelState() {
         // TODO: remove !
-        files = core.view.torrent_contents!.field1.map { FileMapping(fileName: $0, episodeIdentifier: $1) }
+        files = core.view.torrent_contents!.field1.map {
+            FileMapping(fileName: $0, episodeIdentifier: $1)
+        }
+    }
+
+    private func validate(files: [FileMapping]) -> Bool {
+        let mediaFiles = files.filter {
+            !$0.isNonMedia
+        }
+
+        let set = Set(mediaFiles)
+
+        return mediaFiles.count == set.count
     }
 
     private func fileMappingForm() -> EditSeriesFileMappingForm {
-        let mappings = [String: EpisodeIdentifier].fromTupleArray(tuples: files.compactMap { $0.isNonMedia ? nil : $0.toMapping() })
+        let mappings = [String: EpisodeIdentifier].fromTupleArray(
+            tuples: files.compactMap { $0.isNonMedia ? nil : $0.toMapping() })
 
         return EditSeriesFileMappingForm(id: id, file_mapping: mappings)
     }
@@ -83,10 +101,15 @@ extension Dictionary {
 }
 
 #Preview {
-    FileMappingScreen(id: "", overrideLoading: false, files: [
-        FileMapping(fileName: "Season1/power-raising-S1E10.mp4", seasonNo: 0, episodeNo: 0),
-        FileMapping(fileName: "Season1/suuuuuper-long-title-that-isreaaaallllllyyyyylongS1E20.mp4", seasonNo: 0, episodeNo: 0),
-
-    ])
+    FileMappingScreen(
+        id: "", overrideLoading: false,
+        files: [
+            FileMapping(fileName: "Season1/power-raising-S1E10.mp4", seasonNo: 0, episodeNo: 0),
+            FileMapping(
+                fileName: "Season1/suuuuuper-long-title-that-isreaaaallllllyyyyylongS1E20.mp4",
+                seasonNo: 0, episodeNo: 0
+            ),
+        ]
+    )
     .environmentObject(Core())
 }

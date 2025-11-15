@@ -7,6 +7,7 @@ struct FileMappingEntry: View {
     var body: some View {
         Text(fileMapping.fileName).monospaced()
         Toggle("Non Media Item", isOn: $fileMapping.isNonMedia)
+
         if !fileMapping.isNonMedia {
             HStack {
                 Selector(title: "Se", value: $fileMapping.seasonNo) {
@@ -16,16 +17,14 @@ struct FileMappingEntry: View {
                     }
                 }
             }
-            .transition(.scale(scale: 0, anchor: .top))
             HStack {
-                Selector(title: "Ep", value: $fileMapping.seasonNo) {
+                Selector(title: "Ep", value: $fileMapping.episodeNo) {
                     HStack {
                         Text("Episode")
                         Spacer()
                     }
                 }
             }
-            .transition(.scale(scale: 0, anchor: .top))
         }
     }
 }
@@ -73,6 +72,18 @@ struct FileMapping {
         }
 
         return (fileName, EpisodeIdentifier(season_no: UInt32(seasonNo), episode_no: UInt32(episodeNo)))
+    }
+}
+
+extension FileMapping: Hashable {
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.seasonNo == rhs.seasonNo && lhs.episodeNo == rhs.episodeNo && lhs.isNonMedia == rhs.isNonMedia
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(seasonNo)
+        hasher.combine(episodeNo)
+        hasher.combine(isNonMedia)
     }
 }
 
