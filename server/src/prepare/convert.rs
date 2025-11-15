@@ -2,7 +2,7 @@ use std::{path::Path, process::Stdio};
 
 use log::info;
 
-pub async fn convert_file_to_mp4(input_path: &Path, output_path: &Path) -> super::Result<()> {
+pub async fn convert_media(input_path: &Path, output_path: &Path) -> super::Result<()> {
     // 1. Check for input file
     {
         let does_input_file_exist = tokio::fs::try_exists(input_path).await.map_err(|err| {
@@ -39,11 +39,8 @@ pub async fn convert_file_to_mp4(input_path: &Path, output_path: &Path) -> super
             .args([
                 "-i",
                 &input_path.as_os_str().to_string_lossy(),
-                // Copy video
-                "-c:v",
-                "copy",
-                // Copy audio
-                "-c:a",
+                // Copy everything
+                "-c",
                 "copy",
                 &output_path.as_os_str().to_string_lossy(),
             ])
@@ -84,7 +81,7 @@ pub fn should_convert(media_file: &Path) -> bool {
     match media_file.extension() {
         Some(extension) => match extension.to_string_lossy().as_ref() {
             "mp4" | "hevc" | "mov" => false,
-            "mkv" => true,
+            "mkv" | "avi" => true,
             _ => {
                 info!(
                     "Found a file with a potentially unsupported format at {} while trying to convert it. Trying to convert it anyway.",
@@ -101,23 +98,23 @@ pub fn should_convert(media_file: &Path) -> bool {
 mod tests {
     use std::path::PathBuf;
 
-    use crate::prepare::convert::convert_file_to_mp4;
+    use crate::prepare::convert::convert_media;
 
     #[tokio::test]
-    async fn test_convert_file_to_mp4() {
+    async fn test_convert_file_to_mov() {
         let test_data_path: PathBuf = concat!(env!("CARGO_MANIFEST_DIR"), "/test-data").into();
 
-        let _ = tokio::fs::remove_dir_all(test_data_path.join("tmp/test.mp4")).await;
+        let _ = tokio::fs::remove_dir_all(test_data_path.join("tmp/test.mov")).await;
 
-        convert_file_to_mp4(
+        convert_media(
             &test_data_path.join("test.mkv"),
-            &test_data_path.join("tmp/test.mp4"),
+            &test_data_path.join("tmp/test.mov"),
         )
         .await
         .unwrap();
 
         assert!(
-            tokio::fs::try_exists(test_data_path.join("tmp/test.mp4"))
+            tokio::fs::try_exists(test_data_path.join("tmp/test.mov"))
                 .await
                 .unwrap()
         );

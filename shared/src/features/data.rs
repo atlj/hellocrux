@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, path::Path};
 
 use crux_core::Command;
 use domain::{
@@ -80,24 +80,32 @@ pub fn update_data(model: &mut Model, request: DataRequest) -> Command<Effect, E
 
             match http::get(url).into_future(ctx.clone()).await {
                 http::HttpOutput::Success { data, .. } => {
-                    let files =
-                        data.and_then(|data| serde_json::from_str::<Vec<String>>(&data).ok())
-                            .map(|files| {
-                                let len = files.len();
-                                let map = files.into_iter().fold(
-                                    HashMap::with_capacity(len),
-                                    |mut map, file| {
-                                        let identifier = detect_episode_identifier(&file)
-                                            .unwrap_or(EpisodeIdentifier {
-                                                season_no: 1,
-                                                episode_no: 1,
-                                            });
-                                        map.insert(file, identifier);
-                                        map
-                                    },
-                                );
-                                (id, map)
-                            });
+                    let files = data
+                        .and_then(|data| serde_json::from_str::<Vec<String>>(&data).ok())
+                        .map(|files| {
+                            let len = files.len();
+                            let map = files.into_iter().fold(
+                                HashMap::with_capacity(len),
+                                |mut map, file| {
+                                    if let Some(extension) = (file.as_ref() as &Path).extension() {
+                                        // TODO make this a generic check
+                                        if extension == "srt" {
+                                            return map;
+                                        }
+                                    }
+
+                                    let identifier = detect_episode_identifier(&file).unwrap_or(
+                                        EpisodeIdentifier {
+                                            season_no: 1,
+                                            episode_no: 1,
+                                        },
+                                    );
+                                    map.insert(file, identifier);
+                                    map
+                                },
+                            );
+                            (id, map)
+                        });
 
                     update_model(
                         &ctx,

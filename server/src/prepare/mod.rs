@@ -61,7 +61,7 @@ pub async fn prepare_movie(
                 moved_file.display()
             );
 
-            convert::convert_file_to_mp4(&moved_file, &moved_file.with_extension("mp4")).await?;
+            convert::convert_media(&moved_file, &moved_file.with_extension("mov")).await?;
 
             // 3a. Delete old file
             tokio::fs::remove_file(&moved_file).await.map_err(|err| {
@@ -105,9 +105,9 @@ pub async fn prepare_series(
                     resulting_path.display()
                 );
 
-                convert::convert_file_to_mp4(
+                convert::convert_media(
                     &resulting_path,
-                    &resulting_path.with_extension("mp4"),
+                    &resulting_path.with_extension("mov"),
                 )
                     .await?;
 
@@ -172,12 +172,13 @@ async fn find_movie_file(source_dir: &Path) -> Result<Option<PathBuf>> {
     Ok(None)
 }
 
+// TODO extract this to domain
 fn check_if_video_file(path: &Path) -> bool {
     match path.extension() {
         None => false,
         Some(extension) => matches!(
             extension.to_string_lossy().as_ref(),
-            "mp4" | "mov" | "mkv" | "ts",
+            "mp4" | "mov" | "mkv" | "ts" | "avi",
         ),
     }
 }
@@ -222,7 +223,7 @@ mod tests {
         .await
         .unwrap();
 
-        tokio::fs::try_exists(&test_data_path.join("tmp/prepare/Jellyfish/movie.mp4"))
+        tokio::fs::try_exists(&test_data_path.join("tmp/prepare/Jellyfish/movie.mov"))
             .await
             .unwrap();
 
@@ -316,7 +317,7 @@ mod tests {
 
         assert!(
             tokio::fs::try_exists(
-                test_data_path.join("tmp/prepared_series/Amazing Series/1/1-the-looks-S1E1.mp4")
+                test_data_path.join("tmp/prepared_series/Amazing Series/1/1-the-looks-S1E1.mov")
             )
             .await
             .unwrap()
