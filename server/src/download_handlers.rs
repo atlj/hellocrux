@@ -64,7 +64,7 @@ pub async fn watch_and_process_downloads(
                             crate::prepare::prepare_series(
                                 &media_dir,
                                 metadata,
-                                &torrent.content_path,
+                                &torrent.save_path,
                                 files_mapping_form.expect("files mapping form was None."),
                             )
                             .await
