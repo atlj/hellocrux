@@ -2,7 +2,7 @@ use super::State;
 use axum::{Json, extract, http::StatusCode};
 use domain::{Download, DownloadForm, series::EditSeriesFileMappingForm};
 use log::{debug, error, info};
-use std::{collections::HashSet, path::PathBuf};
+use std::{collections::HashSet, marker::PhantomData, path::PathBuf};
 use tokio::task::JoinHandle;
 use torrent::{
     TorrentExtra, TorrentInfo,
@@ -40,19 +40,52 @@ pub async fn watch_and_process_downloads(
 
                     info!("Preparing torrent named {}.", &torrent.name);
 
-                    crate::prepare::prepare_movie(
-                        &media_dir,
-                        extra.metadata_ref(),
-                        &torrent.content_path,
-                    )
-                    .await
-                    .inspect_err(|err| {
-                        error!(
-                            "Couldn't prepare movie with title {}. Reason: {err}.",
-                            extra.metadata_ref().title
-                        )
-                    })
-                    .ok()?;
+                    match extra {
+                        TorrentExtra::Movie { ref metadata } => {
+                            crate::prepare::prepare_movie(
+                                &media_dir,
+                                metadata,
+                                &torrent.content_path,
+                            )
+                            .await
+                            .inspect_err(|err| {
+                                error!(
+                                    "Couldn't prepare movie with title {}. Reason: {err}.",
+                                    extra.metadata_ref().title
+                                )
+                            })
+                            .ok()?;
+                        }
+                        TorrentExtra::Series {
+                            ref metadata,
+                            ref files_mapping,
+                        } => {
+                            let form = EditSeriesFileMappingForm {
+                                id: torrent.hash.clone(),
+                                file_mapping: files_mapping
+                                    .clone()
+                                    // TODO think about the expect here.
+                                    .expect("Tried to prepare even though files mapping is none"),
+                                phantom: PhantomData,
+                            };
+
+                            crate::prepare::prepare_series(
+                                &media_dir,
+                                metadata,
+                                &torrent.content_path,
+                                form,
+                            )
+                            .await
+                            .inspect_err(|err| {
+                                // TODO delete the files if this happens
+                                error!(
+                                    "Couldn't prepare series with title {}. Reason: {err}.",
+                                    extra.metadata_ref().title
+                                )
+                            })
+                            .ok()?;
+                        }
+                    }
 
                     Some(torrent.hash.clone())
                 });
