@@ -28,22 +28,27 @@ pub async fn generate_movie_media(
 
     // 2. Move movie file to destination
     {
-        let file_name = movie_file.file_name().ok_or_else(|| {
-            Error::MoveError(format!("Can't read movie file name {}", movie_file.display()).into())
+        let extension = movie_file.extension().ok_or_else(|| {
+            Error::MoveError(
+                format!("Can't read movie file extension {}", movie_file.display()).into(),
+            )
         })?;
 
-        tokio::fs::rename(movie_file, target_dir.join(file_name))
-            .await
-            .map_err(|err| {
-                Error::MoveError(
-                    format!(
-                        "Couldn't move movie file from {} to {}. Reason: {err}",
-                        movie_file.display(),
-                        target_dir.display()
-                    )
-                    .into(),
+        tokio::fs::rename(
+            movie_file,
+            target_dir.join(format!("movie.{}", extension.to_string_lossy())),
+        )
+        .await
+        .map_err(|err| {
+            Error::MoveError(
+                format!(
+                    "Couldn't move movie file from {} to {}. Reason: {err}",
+                    movie_file.display(),
+                    target_dir.display()
                 )
-            })?;
+                .into(),
+            )
+        })?;
     }
 
     // 3. Save metadata

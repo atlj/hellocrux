@@ -164,8 +164,8 @@ pub async fn get_codec(media_file: &Path, stream_type: &MediaStream) -> super::R
 pub fn should_convert(media_file: &Path) -> bool {
     match media_file.extension() {
         Some(extension) => match extension.to_string_lossy().as_ref() {
-            "mp4" | "hevc" | "mov" | "avi" | "ts" => false,
-            "mkv" => true,
+            // Always convert for now
+            "mp4" | "hevc" | "mov" | "avi" | "ts" | "mkv" => true,
             _ => {
                 info!(
                     "Found a file with a potentially unsupported format at {} while trying to convert it. Trying to convert it anyway.",

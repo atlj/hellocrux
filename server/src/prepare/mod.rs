@@ -49,11 +49,13 @@ pub async fn prepare_movie(
 
     // 3. Convert if needed
     {
-        let moved_file = target_dir.join(
+        let moved_file = target_dir.join(format!(
+            "movie.{}",
             movie_file
-                .file_name()
-                .expect("File with no filename detected"),
-        );
+                .extension()
+                .expect("File with no extension detected")
+                .to_string_lossy()
+        ));
 
         if convert::should_convert(&moved_file) {
             info!(
