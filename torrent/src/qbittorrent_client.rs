@@ -27,7 +27,7 @@ pub(crate) struct QBittorrentClientProcess {
     pub port: usize,
 }
 
-const QBITTORRENT_INI_FILE_CONTENTS: &str = r#"[LegalNotice]
+const QBITTORRENT_CONFIG_FILE_CONTENTS: &str = r#"[LegalNotice]
 Accepted=true
 
 [Preferences]
@@ -242,54 +242,57 @@ impl QBittorrentClient {
                 )
             })?;
 
-        let ini_file_path = {
-            let mut ini_file_path = config_dir.clone();
-            ini_file_path.push("qBittorrent.ini");
-            ini_file_path
+        let config_file_path = {
+            let mut config_file_path = config_dir.clone();
+            config_file_path.push("qBittorrent.conf");
+            config_file_path
         };
 
-        if tokio::fs::try_exists(&ini_file_path).await.map_err(|err| {
-            Error::CantGenerateProfile(
-                format!(
-                    "Couldn't access the qBittorrent ini file path at {}. reason: {err}",
-                    ini_file_path.to_str().unwrap()
+        if tokio::fs::try_exists(&config_file_path)
+            .await
+            .map_err(|err| {
+                Error::CantGenerateProfile(
+                    format!(
+                        "Couldn't access the qBittorrent config file path at {}. reason: {err}",
+                        config_file_path.to_str().unwrap()
+                    )
+                    .into(),
                 )
-                .into(),
-            )
-        })? && tokio::fs::remove_file(&ini_file_path).await.is_err()
+            })?
+            && tokio::fs::remove_file(&config_file_path).await.is_err()
         {
             return Err(Error::CantSpawnQBittorrent(
                 format!(
-                    "Couldn't remove previous qBittorrent.ini file at {}",
-                    ini_file_path.to_str().unwrap()
+                    "Couldn't remove previous qBittorrent.conf file at {}",
+                    config_file_path.to_str().unwrap()
                 )
                 .into(),
             ));
         }
 
-        let mut ini_file = OpenOptions::new()
+        let mut config_file = OpenOptions::new()
             .create_new(true)
             .write(true)
-            .open(&ini_file_path)
+            .open(&config_file_path)
             .await
             .map_err(|err| {
                 Error::CantGenerateProfile(
                     format!(
-                        "Couldn't create and open qBittorrent.ini file at {}. reason: {err}",
-                        ini_file_path.to_str().unwrap()
+                        "Couldn't create and open qBittorrent.conf file at {}. reason: {err}",
+                        config_file_path.to_str().unwrap()
                     )
                     .into(),
                 )
             })?;
 
-        ini_file
-            .write_all(QBITTORRENT_INI_FILE_CONTENTS.as_bytes())
+        config_file
+            .write_all(QBITTORRENT_CONFIG_FILE_CONTENTS.as_bytes())
             .await
             .map_err(|err| {
                 Error::CantGenerateProfile(
                     format!(
-                        "Couldn't write to qBittorrent.ini file at {}. reason: {err}",
-                        ini_file_path.to_str().unwrap()
+                        "Couldn't write to qBittorrent.conf file at {}. reason: {err}",
+                        config_file_path.to_str().unwrap()
                     )
                     .into(),
                 )
