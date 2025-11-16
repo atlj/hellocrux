@@ -61,7 +61,7 @@ pub async fn prepare_movie(
                 moved_file.display()
             );
 
-            convert::convert_media(&moved_file, &moved_file.with_extension("mov")).await?;
+            convert::convert_media(&moved_file, &moved_file.with_extension("mp4")).await?;
 
             // 3a. Delete old file
             tokio::fs::remove_file(&moved_file).await.map_err(|err| {
@@ -107,7 +107,7 @@ pub async fn prepare_series(
 
                 convert::convert_media(
                     &resulting_path,
-                    &resulting_path.with_extension("mov"),
+                    &resulting_path.with_extension("mp4"),
                 )
                     .await?;
 

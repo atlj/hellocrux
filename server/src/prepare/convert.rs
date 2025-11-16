@@ -33,17 +33,41 @@ pub async fn convert_media(input_path: &Path, output_path: &Path) -> super::Resu
         }
     }
 
+    let override_tag: Option<String> = {
+        let codec = get_video_codec(input_path).await?;
+        match codec.as_ref() {
+            // Override the tag for hevc because Apple expects it like that.
+            // https://stackoverflow.com/questions/49128084/playing-h-265-video-file-using-avplayer
+            "hevc" => Some("hvc1".to_string()),
+            _ => None,
+        }
+    };
+
     // 3. Run ffmpeg until it ends
     {
-        let result = tokio::process::Command::new("ffmpeg")
-            .args([
+        let input_path_string = input_path.as_os_str().to_string_lossy();
+        let output_path_string = output_path.as_os_str().to_string_lossy();
+        let args = {
+            let mut args = vec![
                 "-i",
-                &input_path.as_os_str().to_string_lossy(),
+                &input_path_string,
                 // Copy everything
                 "-c",
                 "copy",
-                &output_path.as_os_str().to_string_lossy(),
-            ])
+            ];
+
+            // Override the tag for hevc
+            if let Some(ref tag) = override_tag {
+                args.push("-tag:v");
+                args.push(tag);
+            }
+
+            args.push(&output_path_string);
+            args
+        };
+
+        let result = tokio::process::Command::new("ffmpeg")
+            .args(&args)
             .stdout(Stdio::piped())
             .kill_on_drop(true)
             .output()
@@ -75,13 +99,67 @@ pub async fn convert_media(input_path: &Path, output_path: &Path) -> super::Resu
     Ok(())
 }
 
+pub async fn get_video_codec(media_file: &Path) -> super::Result<String> {
+    let result = tokio::process::Command::new("ffprobe")
+        .args([
+            // Error on empty
+            "-v",
+            "error",
+            // Select the first video stream
+            "-select_streams",
+            "v:0",
+            // Show the codec name
+            "-show_entries",
+            "stream=codec_name",
+            // Don't print anything unuseful
+            "-of",
+            "default=noprint_wrappers=1:nokey=1",
+            &media_file.as_os_str().to_string_lossy(),
+        ])
+        .stdout(Stdio::piped())
+        .kill_on_drop(true)
+        .output()
+        .await
+        .map_err(|err| {
+            super::Error::ConvertError(format!("Couldn't spawn ffmpeg. Reason: {err}").into())
+        })?;
+
+    if !result.status.success() {
+        return Err(super::Error::ConvertError(
+            format!(
+                "ffprobe exited with non-zero status. stdout: {:?}, stderr: {:?}",
+                result
+                    .stdout
+                    .into_iter()
+                    .map(|byte| byte as char)
+                    .collect::<String>(),
+                result
+                    .stderr
+                    .into_iter()
+                    .map(|byte| byte as char)
+                    .collect::<String>()
+            )
+            .into(),
+        ));
+    }
+
+    Ok(result
+        .stdout
+        .into_iter()
+        .flat_map(|byte| match byte as char {
+            '\n' => None,
+            _ => Some(byte as char),
+        })
+        .collect())
+}
+
 /// ## Panics
 /// Panics when `media_file` has no extension or it's not a file
 pub fn should_convert(media_file: &Path) -> bool {
     match media_file.extension() {
         Some(extension) => match extension.to_string_lossy().as_ref() {
-            "mp4" | "hevc" | "mov" => false,
-            "mkv" | "avi" => true,
+            "mp4" | "hevc" | "mov" | "avi" | "ts" => false,
+            "mkv" => true,
             _ => {
                 info!(
                     "Found a file with a potentially unsupported format at {} while trying to convert it. Trying to convert it anyway.",
@@ -98,7 +176,7 @@ pub fn should_convert(media_file: &Path) -> bool {
 mod tests {
     use std::path::PathBuf;
 
-    use crate::prepare::convert::convert_media;
+    use crate::prepare::convert::{convert_media, get_video_codec};
 
     #[tokio::test]
     async fn test_convert_file_to_mov() {
@@ -117,6 +195,28 @@ mod tests {
             tokio::fs::try_exists(test_data_path.join("tmp/test.mov"))
                 .await
                 .unwrap()
+        );
+    }
+
+    #[tokio::test]
+    async fn test_get_video_codec() {
+        let test_data_path: PathBuf = concat!(env!("CARGO_MANIFEST_DIR"), "/test-data").into();
+        assert_eq!(
+            get_video_codec(&test_data_path.join("test.mkv"))
+                .await
+                .unwrap(),
+            "h264".to_string()
+        );
+        assert_eq!(
+            get_video_codec(&test_data_path.join("test.h265.mkv"))
+                .await
+                .unwrap(),
+            "hevc".to_string()
+        );
+        assert!(
+            get_video_codec(&test_data_path.join("broken.mkv"))
+                .await
+                .is_err()
         );
     }
 }
