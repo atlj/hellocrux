@@ -42,14 +42,14 @@ pub async fn generate_series_media(
             HashMap::with_capacity(mapping.file_mapping.len()),
             |mut map, (source_path, episode_identifier)| {
                 // TODO remove unwrap
-                let file_name = source_path.file_name().unwrap();
+                let extension = source_path.extension().unwrap();
 
                 // TODO extract this logic
                 let destination = target_dir.join(format!(
-                    "{}/{}-{}",
+                    "{}/{}.{}",
                     episode_identifier.season_no,
                     episode_identifier.episode_no,
-                    file_name.to_string_lossy()
+                    extension.to_string_lossy()
                 ));
 
                 map.insert(source_path.clone(), destination);
@@ -249,34 +249,28 @@ mod tests {
         assert!(resulting_paths.into_iter().any(|path| {
             path.to_str().unwrap().contains(
                 test_data_path
-                    .join("tmp/series_media/My Series/1/1-the-looks-S1E1.mkv")
+                    .join("tmp/series_media/My Series/1/1.mkv")
                     .to_str()
                     .unwrap(),
             )
         }));
 
         assert!(
-            tokio::fs::try_exists(
-                test_data_path.join("tmp/series_media/My Series/1/1-the-looks-S1E1.mkv")
-            )
-            .await
-            .unwrap()
+            tokio::fs::try_exists(test_data_path.join("tmp/series_media/My Series/1/1.mkv"))
+                .await
+                .unwrap()
         );
 
         assert!(
-            tokio::fs::try_exists(
-                test_data_path.join("tmp/series_media/My Series/1/2-the-looks-S1E2.mkv")
-            )
-            .await
-            .unwrap()
+            tokio::fs::try_exists(test_data_path.join("tmp/series_media/My Series/1/2.mkv"))
+                .await
+                .unwrap()
         );
 
         assert!(
-            tokio::fs::try_exists(
-                test_data_path.join("tmp/series_media/My Series/2/1-the-looks-S2E1.mkv")
-            )
-            .await
-            .unwrap()
+            tokio::fs::try_exists(test_data_path.join("tmp/series_media/My Series/2/1.mkv"))
+                .await
+                .unwrap()
         );
 
         assert!(

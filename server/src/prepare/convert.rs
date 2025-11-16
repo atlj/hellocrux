@@ -44,14 +44,6 @@ pub async fn convert_media(input_path: &Path, output_path: &Path) -> super::Resu
         }
     };
 
-    let audio_codec: &str = {
-        let audio_codec = get_codec(input_path, &domain::MediaStream::Audio).await?;
-        match audio_codec.as_ref() {
-            "aac" => "copy",
-            _ => "aac",
-        }
-    };
-
     // 3. Run ffmpeg until it ends
     {
         let input_path_string = input_path.as_os_str().to_string_lossy();
@@ -61,10 +53,8 @@ pub async fn convert_media(input_path: &Path, output_path: &Path) -> super::Resu
                 "-i",
                 &input_path_string,
                 // Copy everything
-                "-c:v",
+                "-c",
                 "copy",
-                "-c:a",
-                audio_codec,
             ];
 
             // Override the tag for hevc
