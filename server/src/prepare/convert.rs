@@ -1,5 +1,6 @@
 use std::{path::Path, process::Stdio};
 
+use domain::MediaStream;
 use log::info;
 
 pub async fn convert_media(input_path: &Path, output_path: &Path) -> super::Result<()> {
@@ -33,13 +34,21 @@ pub async fn convert_media(input_path: &Path, output_path: &Path) -> super::Resu
         }
     }
 
-    let override_tag: Option<String> = {
-        let codec = get_video_codec(input_path).await?;
-        match codec.as_ref() {
+    let override_tag: Option<&str> = {
+        let video_codec = get_codec(input_path, &domain::MediaStream::Video).await?;
+        match video_codec.as_ref() {
             // Override the tag for hevc because Apple expects it like that.
             // https://stackoverflow.com/questions/49128084/playing-h-265-video-file-using-avplayer
-            "hevc" => Some("hvc1".to_string()),
+            "hevc" => Some("hvc1"),
             _ => None,
+        }
+    };
+
+    let audio_codec: &str = {
+        let audio_codec = get_codec(input_path, &domain::MediaStream::Audio).await?;
+        match audio_codec.as_ref() {
+            "aac" => "copy",
+            _ => "aac",
         }
     };
 
@@ -52,12 +61,14 @@ pub async fn convert_media(input_path: &Path, output_path: &Path) -> super::Resu
                 "-i",
                 &input_path_string,
                 // Copy everything
-                "-c",
+                "-c:v",
                 "copy",
+                "-c:a",
+                audio_codec,
             ];
 
             // Override the tag for hevc
-            if let Some(ref tag) = override_tag {
+            if let Some(tag) = override_tag {
                 args.push("-tag:v");
                 args.push(tag);
             }
@@ -99,7 +110,12 @@ pub async fn convert_media(input_path: &Path, output_path: &Path) -> super::Resu
     Ok(())
 }
 
-pub async fn get_video_codec(media_file: &Path) -> super::Result<String> {
+pub async fn get_codec(media_file: &Path, stream_type: &MediaStream) -> super::Result<String> {
+    let stream_identifier = match stream_type {
+        MediaStream::Video => 'v',
+        MediaStream::Audio => 'a',
+    };
+
     let result = tokio::process::Command::new("ffprobe")
         .args([
             // Error on empty
@@ -107,7 +123,7 @@ pub async fn get_video_codec(media_file: &Path) -> super::Result<String> {
             "error",
             // Select the first video stream
             "-select_streams",
-            "v:0",
+            &format!("{stream_identifier}:0"),
             // Show the codec name
             "-show_entries",
             "stream=codec_name",
@@ -176,7 +192,7 @@ pub fn should_convert(media_file: &Path) -> bool {
 mod tests {
     use std::path::PathBuf;
 
-    use crate::prepare::convert::{convert_media, get_video_codec};
+    use crate::prepare::convert::{convert_media, get_codec};
 
     #[tokio::test]
     async fn test_convert_file_to_mov() {
@@ -199,24 +215,44 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_video_codec() {
+    async fn test_get_codec() {
         let test_data_path: PathBuf = concat!(env!("CARGO_MANIFEST_DIR"), "/test-data").into();
         assert_eq!(
-            get_video_codec(&test_data_path.join("test.mkv"))
-                .await
-                .unwrap(),
+            get_codec(
+                &test_data_path.join("test.mkv"),
+                &domain::MediaStream::Video
+            )
+            .await
+            .unwrap(),
             "h264".to_string()
         );
         assert_eq!(
-            get_video_codec(&test_data_path.join("test.h265.mkv"))
-                .await
-                .unwrap(),
+            get_codec(
+                &test_data_path.join("moonlight_sonata.ogg"),
+                &domain::MediaStream::Audio
+            )
+            .await
+            .unwrap(),
+            "vorbis".to_string()
+        );
+
+        assert_eq!(
+            get_codec(
+                &test_data_path.join("test.h265.mkv"),
+                &domain::MediaStream::Video
+            )
+            .await
+            .unwrap(),
             "hevc".to_string()
         );
+
         assert!(
-            get_video_codec(&test_data_path.join("broken.mkv"))
-                .await
-                .is_err()
+            get_codec(
+                &test_data_path.join("broken.mkv"),
+                &domain::MediaStream::Video
+            )
+            .await
+            .is_err()
         );
     }
 }

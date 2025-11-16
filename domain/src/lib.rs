@@ -10,6 +10,11 @@ pub struct Media {
     pub content: MediaContent,
 }
 
+pub enum MediaStream {
+    Video,
+    Audio,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum MediaContent {
     Movie(String),
