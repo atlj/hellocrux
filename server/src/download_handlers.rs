@@ -26,6 +26,16 @@ pub async fn watch_and_process_downloads(
                 let torrents_to_process: Box<_> = torrents
                     .into_iter()
                     .filter(|torrent| torrent.state.is_done())
+                    .filter(
+                        |torrent| match torrent.try_into().ok() as Option<TorrentExtra> {
+                            Some(extra) => !extra.needs_file_mapping(),
+                            None => {
+                                // TODO do proper error handling here
+                                error!("Couldn't extract extra from torrent category");
+                                false
+                            }
+                        },
+                    )
                     .filter(|torrent| !processed_torrents.contains(&torrent.hash))
                     .collect();
 
@@ -60,10 +70,6 @@ pub async fn watch_and_process_downloads(
                             })
                             .ok()?;
                         let title = extra.metadata_ref().title.clone();
-
-                        if extra.needs_file_mapping() {
-                            return None;
-                        }
 
                         info!("Preparing torrent named {}.", &torrent.name);
 
