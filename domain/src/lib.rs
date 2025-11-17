@@ -33,7 +33,16 @@ pub struct Download {
     pub title: Box<str>,
     pub progress: f32,
     pub needs_file_mapping: bool,
-    pub is_paused: bool,
+    pub state: DownloadState,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub enum DownloadState {
+    Paused,
+    Failed,
+    InProgress,
+    Processing,
+    Complete,
 }
 
 #[derive(serde::Deserialize, serde::Serialize, Clone, PartialEq, Eq, Debug)]

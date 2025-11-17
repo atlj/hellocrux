@@ -177,12 +177,7 @@ impl TorrentState {
     pub fn is_done(&self) -> bool {
         matches!(self, Self::Uploading | Self::StalledUP)
     }
-
-    pub fn is_paused(&self) -> bool {
-        matches!(self, Self::PausedDL | Self::PausedUP | Self::StoppedDL)
-    }
 }
-
 mod comma_separated_list_parser {
     use serde::{Deserializer, Serializer, de::Visitor};
 
@@ -266,9 +261,9 @@ pub mod into_domain {
     use std::fmt::Display;
 
     use crate::TorrentInfo;
-    use domain::Download;
+    use domain::{Download, DownloadState};
 
-    use super::TorrentExtra;
+    use super::{TorrentExtra, TorrentState};
 
     #[derive(Debug)]
     pub enum Error {
@@ -323,6 +318,36 @@ pub mod into_domain {
         }
     }
 
+    impl From<TorrentState> for DownloadState {
+        fn from(val: TorrentState) -> Self {
+            use crate::TorrentState as State;
+
+            match val {
+                State::QueuedDL
+                | State::Downloading
+                | State::Allocating
+                | State::ForcedDL
+                | State::CheckingDL
+                | State::CheckingResumeData
+                | State::Moving
+                | State::MetaDL => DownloadState::InProgress,
+
+                State::PausedDL | State::StoppedDL => DownloadState::Paused,
+
+                State::Uploading
+                | State::PausedUP
+                | State::QueuedUP
+                | State::StalledUP
+                | State::CheckingUP
+                | State::ForcedUP => DownloadState::Complete,
+
+                State::Error | State::MissingFiles | State::StalledDL | State::Unknown => {
+                    DownloadState::Failed
+                }
+            }
+        }
+    }
+
     impl From<TorrentInfo> for Download {
         fn from(val: TorrentInfo) -> Self {
             let extra: Option<TorrentExtra> = val.as_ref().try_into().ok();
@@ -341,7 +366,7 @@ pub mod into_domain {
                 id: val.hash,
                 title,
                 progress: val.progress,
-                is_paused: val.state.is_paused(),
+                state: val.state.into(),
                 needs_file_mapping,
             }
         }
