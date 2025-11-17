@@ -46,7 +46,7 @@ pub async fn generate_series_media(
 
                 // TODO extract this logic
                 let destination = target_dir.join(format!(
-                    "{}/{}.{}",
+                    "{}/{}-tbd.{}",
                     episode_identifier.season_no,
                     episode_identifier.episode_no,
                     extension.to_string_lossy()

@@ -36,7 +36,7 @@ pub async fn generate_movie_media(
 
         tokio::fs::rename(
             movie_file,
-            target_dir.join(format!("movie.{}", extension.to_string_lossy())),
+            target_dir.join(format!("movie-tbd.{}", extension.to_string_lossy())),
         )
         .await
         .map_err(|err| {

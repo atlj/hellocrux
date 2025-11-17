@@ -50,7 +50,7 @@ pub async fn prepare_movie(
     // 3. Convert if needed
     {
         let moved_file = target_dir.join(format!(
-            "movie.{}",
+            "movie-tbd.{}",
             movie_file
                 .extension()
                 .expect("File with no extension detected")
@@ -59,11 +59,11 @@ pub async fn prepare_movie(
 
         if convert::should_convert(&moved_file) {
             info!(
-                "Media file with path {} is going to be converted.",
+                "Movie file with path {} is going to be converted.",
                 moved_file.display()
             );
 
-            convert::convert_media(&moved_file, &moved_file.with_extension("mp4")).await?;
+            convert::convert_media(&moved_file, &moved_file.with_file_name("movie.mp4")).await?;
 
             // 3a. Delete old file
             tokio::fs::remove_file(&moved_file).await.map_err(|err| {
@@ -109,7 +109,8 @@ pub async fn prepare_series(
 
                 convert::convert_media(
                     &resulting_path,
-                    &resulting_path.with_extension("mp4"),
+                    // TODO REMOVE UNWRAP
+                    &resulting_path.with_file_name(resulting_path.file_name().unwrap().to_str().unwrap().replace("-tbd", "")).with_extension("mp4")
                 )
                     .await?;
 
