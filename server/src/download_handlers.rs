@@ -17,25 +17,28 @@ pub async fn watch_and_process_downloads(
     processing_list_sender: tokio::sync::watch::Sender<Box<[Box<str>]>>,
     processing_list_receiver: tokio::sync::watch::Receiver<Box<[Box<str>]>>,
 ) {
+    // TODO REFACTOR THIS AS A WHOLE
     loop {
         let hashes: Box<[_]> = {
-            let torrents_to_process = {
+            let (torrents_to_process, torrents_with_missing_files) = {
                 let torrents = receiver.borrow_and_update().clone();
                 let processed_torrents = processing_list_receiver.borrow();
 
+                // TODO REMOVE ME
                 let torrents_to_process: Box<_> = torrents
+                    .clone()
                     .into_iter()
                     .filter(|torrent| torrent.state.is_done())
-                    .filter(
-                        |torrent| match torrent.try_into().ok() as Option<TorrentExtra> {
+                    .filter(|torrent| {
+                        match torrent.try_into().ok() as Option<TorrentExtra> {
                             Some(extra) => !extra.needs_file_mapping(),
                             None => {
                                 // TODO do proper error handling here
                                 error!("Couldn't extract extra from torrent category");
                                 false
                             }
-                        },
-                    )
+                        }
+                    })
                     .filter(|torrent| !processed_torrents.contains(&torrent.hash))
                     .collect();
 
@@ -52,10 +55,23 @@ pub async fn watch_and_process_downloads(
                     vec
                 };
 
+                // TODO LOG THESE FILES
+                let torrents_with_missing_files: Box<[Box<str>]> = torrents
+                    .into_iter()
+                    .filter_map(|torrent| {
+                        if matches!(torrent.state, torrent::TorrentState::MissingFiles) {
+                            Some(torrent.hash.clone())
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+
                 drop(processed_torrents);
                 // TODO remove let _
                 let _ = processing_list_sender.send(updated_processed_torrents.into());
-                torrents_to_process
+
+                (torrents_to_process, torrents_with_missing_files)
             };
 
             let futures =
@@ -118,6 +134,7 @@ pub async fn watch_and_process_downloads(
                 .await
                 .into_iter()
                 .flatten()
+                .chain(torrents_with_missing_files.into_iter())
                 .collect()
         };
 
@@ -148,7 +165,6 @@ pub async fn watch_and_process_downloads(
         futures::future::join_all(removal_futures).await;
 
         let did_media_library_change = !hashes.is_empty();
-        // TODO delete missing torrents
 
         if receiver.changed().await.is_err() {
             break;
