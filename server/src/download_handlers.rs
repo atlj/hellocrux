@@ -1,8 +1,8 @@
 use super::State;
 use axum::{Json, extract, http::StatusCode};
-use domain::{Download, DownloadForm, series::EditSeriesFileMappingForm};
+use domain::{Download, DownloadForm, DownloadState, series::EditSeriesFileMappingForm};
 use log::{debug, error, info};
-use std::{collections::HashSet, path::PathBuf};
+use std::path::PathBuf;
 use tokio::task::JoinHandle;
 use torrent::{
     TorrentExtra, TorrentInfo,
@@ -14,73 +14,99 @@ pub async fn watch_and_process_downloads(
     mut receiver: tokio::sync::watch::Receiver<Box<[TorrentInfo]>>,
     sender: tokio::sync::mpsc::Sender<QBittorrentClientMessage>,
     media_update_request_sender: tokio::sync::mpsc::Sender<()>,
+    processing_list_sender: tokio::sync::watch::Sender<Box<[Box<str>]>>,
+    processing_list_receiver: tokio::sync::watch::Receiver<Box<[Box<str>]>>,
 ) {
-    let mut processed_hashes: HashSet<Box<str>> = HashSet::new();
-
     loop {
         let hashes: Box<[_]> = {
-            let torrents = receiver.borrow_and_update().clone();
+            let torrents_to_process = {
+                let torrents = receiver.borrow_and_update().clone();
+                let processed_torrents = processing_list_receiver.borrow();
 
-            let futures = torrents
-                .into_iter()
-                .filter(|torrent| torrent.state.is_done())
-                .filter(|torrent| !processed_hashes.contains(&torrent.hash))
-                .map(async |torrent| -> Option<Box<str>> {
-                    let extra: TorrentExtra = torrent
-                        .as_ref()
-                        .try_into()
-                        .inspect_err(|err| {
-                            error!("Couldn't extract extra from torrent's category. {err}")
-                        })
-                        .ok()?;
-                    let title = extra.metadata_ref().title.clone();
+                let torrents_to_process: Box<_> = torrents
+                    .into_iter()
+                    .filter(|torrent| torrent.state.is_done())
+                    .filter(|torrent| !processed_torrents.contains(&torrent.hash))
+                    .collect();
 
-                    if extra.needs_file_mapping() {
-                        return None;
-                    }
+                let updated_processed_torrents: Vec<Box<str>> = {
+                    let mut vec =
+                        Vec::with_capacity(processed_torrents.len() + torrents_to_process.len());
+                    vec.extend_from_slice(&processed_torrents);
+                    vec.extend(
+                        torrents_to_process
+                            .iter()
+                            .map(|torrent| torrent.hash.clone()),
+                    );
 
-                    info!("Preparing torrent named {}.", &torrent.name);
+                    vec
+                };
 
-                    match extra {
-                        TorrentExtra::Movie { ref metadata } => {
-                            crate::prepare::prepare_movie(
-                                &media_dir,
-                                metadata,
-                                &torrent.content_path,
-                            )
-                            .await
+                drop(processed_torrents);
+                // TODO remove let _
+                let _ = processing_list_sender.send(updated_processed_torrents.into());
+                torrents_to_process
+            };
+
+            let futures =
+                torrents_to_process
+                    .into_iter()
+                    .map(async |torrent| -> Option<Box<str>> {
+                        let extra: TorrentExtra = torrent
+                            .as_ref()
+                            .try_into()
                             .inspect_err(|err| {
-                                error!(
-                                    "Couldn't prepare movie with title {}. Reason: {err}.",
-                                    extra.metadata_ref().title
-                                )
+                                error!("Couldn't extract extra from torrent's category. {err}")
                             })
                             .ok()?;
-                        }
-                        TorrentExtra::Series {
-                            ref metadata,
-                            files_mapping_form,
-                        } => {
-                            crate::prepare::prepare_series(
-                                &media_dir,
-                                metadata,
-                                &torrent.save_path,
-                                files_mapping_form.expect("files mapping form was None."),
-                            )
-                            .await
-                            .inspect_err(|err| {
-                                // TODO delete the files if this happens
-                                error!(
-                                    "Couldn't prepare series with title {}. Reason: {err}.",
-                                    title
-                                )
-                            })
-                            .ok()?;
-                        }
-                    }
+                        let title = extra.metadata_ref().title.clone();
 
-                    Some(torrent.hash.clone())
-                });
+                        if extra.needs_file_mapping() {
+                            return None;
+                        }
+
+                        info!("Preparing torrent named {}.", &torrent.name);
+
+                        match extra {
+                            TorrentExtra::Movie { ref metadata } => {
+                                crate::prepare::prepare_movie(
+                                    &media_dir,
+                                    metadata,
+                                    &torrent.content_path,
+                                )
+                                .await
+                                .inspect_err(|err| {
+                                    error!(
+                                        "Couldn't prepare movie with title {}. Reason: {err}.",
+                                        extra.metadata_ref().title
+                                    )
+                                })
+                                .ok()?;
+                            }
+                            TorrentExtra::Series {
+                                ref metadata,
+                                files_mapping_form,
+                            } => {
+                                crate::prepare::prepare_series(
+                                    &media_dir,
+                                    metadata,
+                                    &torrent.save_path,
+                                    files_mapping_form.expect("files mapping form was None."),
+                                )
+                                .await
+                                .inspect_err(|err| {
+                                    // TODO delete the files if this happens
+                                    error!(
+                                        "Couldn't prepare series with title {}. Reason: {err}.",
+                                        title
+                                    )
+                                })
+                                .ok()?;
+                            }
+                        }
+
+                        Some(torrent.hash.clone())
+                    });
 
             futures::future::join_all(futures)
                 .await
@@ -117,7 +143,6 @@ pub async fn watch_and_process_downloads(
 
         let did_media_library_change = !hashes.is_empty();
         // TODO delete missing torrents
-        processed_hashes.extend(hashes);
 
         if receiver.changed().await.is_err() {
             break;
@@ -215,6 +240,8 @@ pub async fn get_downloads(extract::State(state): State) -> Json<Box<[Download]>
 
     result_receiver.await.unwrap().unwrap();
 
+    let processing_list = state.processing_list_channels.1.borrow();
+
     Json(
         state
             .download_channels
@@ -223,6 +250,12 @@ pub async fn get_downloads(extract::State(state): State) -> Json<Box<[Download]>
             .iter()
             .inspect(|torrents| debug!("Requested torrents list {:?}", torrents))
             .map(|torrent| torrent.clone().into())
+            .map(|mut download: Download| {
+                if processing_list.contains(&download.id) {
+                    download.state = DownloadState::Processing;
+                }
+                download
+            })
             .collect(),
     )
 }

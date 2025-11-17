@@ -25,6 +25,10 @@ pub struct AppState {
         tokio::sync::mpsc::Sender<QBittorrentClientMessage>,
         tokio::sync::watch::Receiver<Box<[TorrentInfo]>>,
     ),
+    pub processing_list_channels: (
+        tokio::sync::watch::Sender<Box<[Box<str>]>>,
+        tokio::sync::watch::Receiver<Box<[Box<str>]>>,
+    ),
 }
 
 pub type State = axum::extract::State<AppState>;

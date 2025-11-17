@@ -27,22 +27,32 @@ async fn main() {
     let (download_sender, value_receiver, bittorrent_client_join_handle) =
         download_handlers::spawn_download_event_loop(download_path).await;
 
-    let torrent_watcher_handle = {
+    let (processing_list_sender, processing_list_receiver, torrent_watcher_handle) = {
         let media_dir_clone = args.media_dir.clone();
         let receiver_clone = value_receiver.clone();
         let sender_clone = download_sender.clone();
         let media_update_request_sender_clone = media_update_request_sender.clone();
-        tokio::spawn(watch_and_process_downloads(
-            media_dir_clone,
-            receiver_clone,
-            sender_clone,
-            media_update_request_sender_clone,
-        ))
+        let (processing_list_sender, processing_list_receiver) =
+            tokio::sync::watch::channel(Box::new([]) as Box<[Box<str>]>);
+
+        (
+            processing_list_sender.clone(),
+            processing_list_receiver.clone(),
+            tokio::spawn(watch_and_process_downloads(
+                media_dir_clone,
+                receiver_clone,
+                sender_clone,
+                media_update_request_sender_clone,
+                processing_list_sender,
+                processing_list_receiver,
+            )),
+        )
     };
 
     let shared_state = AppState {
         media_channels: (media_update_request_sender, media_list_receiver),
         download_channels: (download_sender, value_receiver),
+        processing_list_channels: (processing_list_sender, processing_list_receiver),
     };
 
     let app = Router::new()
