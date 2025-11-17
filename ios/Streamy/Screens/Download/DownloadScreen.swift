@@ -46,9 +46,9 @@ struct DownloadScreen: View {
 #Preview {
     DownloadScreen(
         overrideDownloads: [
-            Download(id: "sdlkfjvs", title: "Big Buck Bunny", progress: 0.2, needs_file_mapping: true, is_paused: false),
-            Download(id: "my movie", title: "My Movie", progress: 0.7, needs_file_mapping: true, is_paused: false),
-            Download(id: "skjvlk", title: "Skibbidy Toilet", progress: 0.0, needs_file_mapping: false, is_paused: false),
+            Download(id: "sdlkfjvs", title: "Big Buck Bunny", progress: 0.2, needs_file_mapping: true, state: .inProgress),
+            Download(id: "my movie", title: "My Movie", progress: 0.7, needs_file_mapping: true, state: .inProgress),
+            Download(id: "skjvlk", title: "Skibbidy Toilet", progress: 0.0, needs_file_mapping: false, state: .paused),
         ]
     )
 }
