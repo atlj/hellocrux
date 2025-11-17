@@ -327,6 +327,7 @@ pub mod into_domain {
                 | State::Downloading
                 | State::Allocating
                 | State::ForcedDL
+                | State::StalledDL
                 | State::CheckingDL
                 | State::CheckingResumeData
                 | State::Moving
@@ -341,9 +342,7 @@ pub mod into_domain {
                 | State::CheckingUP
                 | State::ForcedUP => DownloadState::Complete,
 
-                State::Error | State::MissingFiles | State::StalledDL | State::Unknown => {
-                    DownloadState::Failed
-                }
+                State::Error | State::MissingFiles | State::Unknown => DownloadState::Failed,
             }
         }
     }
