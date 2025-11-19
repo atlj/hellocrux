@@ -10,13 +10,15 @@ use domain::{
 };
 use tokio::io::AsyncWriteExt;
 
+use super::sanitize_name_for_url;
+
 pub async fn generate_series_media(
     media_dir: &Path,
     source_dir: &Path,
     mapping: EditSeriesFileMappingForm<file_mapping_form_state::Valid>,
     metadata: &MediaMetaData,
 ) -> Result<Box<[PathBuf]>> {
-    let target_dir = media_dir.join(&metadata.title);
+    let target_dir = media_dir.join(sanitize_name_for_url(&metadata.title));
 
     // 1. Create destination dir
     // TODO consider extracting this
@@ -249,33 +251,33 @@ mod tests {
         assert!(resulting_paths.into_iter().any(|path| {
             path.to_str().unwrap().contains(
                 test_data_path
-                    .join("tmp/series_media/My Series/1/1.mkv")
+                    .join("tmp/series_media/My_Series/1/1-tbd.mkv")
                     .to_str()
                     .unwrap(),
             )
         }));
 
         assert!(
-            tokio::fs::try_exists(test_data_path.join("tmp/series_media/My Series/1/1.mkv"))
+            tokio::fs::try_exists(test_data_path.join("tmp/series_media/My_Series/1/1-tbd.mkv"))
                 .await
                 .unwrap()
         );
 
         assert!(
-            tokio::fs::try_exists(test_data_path.join("tmp/series_media/My Series/1/2.mkv"))
+            tokio::fs::try_exists(test_data_path.join("tmp/series_media/My_Series/1/2-tbd.mkv"))
                 .await
                 .unwrap()
         );
 
         assert!(
-            tokio::fs::try_exists(test_data_path.join("tmp/series_media/My Series/2/1.mkv"))
+            tokio::fs::try_exists(test_data_path.join("tmp/series_media/My_Series/2/1-tbd.mkv"))
                 .await
                 .unwrap()
         );
 
         assert!(
             !tokio::fs::try_exists(
-                test_data_path.join("tmp/series_media/My Series/1/random-file.txt")
+                test_data_path.join("tmp/series_media/My_Series/1/random-file.txt")
             )
             .await
             .unwrap()

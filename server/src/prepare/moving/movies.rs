@@ -4,12 +4,14 @@ use crate::prepare::{Error, Result};
 use domain::MediaMetaData;
 use tokio::io::AsyncWriteExt;
 
+use super::sanitize_name_for_url;
+
 pub async fn generate_movie_media(
     media_dir: &Path,
     movie_file: &Path,
     metadata: &MediaMetaData,
 ) -> Result<PathBuf> {
-    let target_dir = media_dir.join(&metadata.title);
+    let target_dir = media_dir.join(sanitize_name_for_url(&metadata.title));
 
     // 1. Create destination dir
     {

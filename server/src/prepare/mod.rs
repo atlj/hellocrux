@@ -307,7 +307,7 @@ mod tests {
         let meta_file_contents = {
             let mut meta_file = OpenOptions::new()
                 .read(true)
-                .open(test_data_path.join("tmp/prepared_series/Amazing Series/meta.json"))
+                .open(test_data_path.join("tmp/prepared_series/Amazing_Series/meta.json"))
                 .unwrap();
             let mut string = String::new();
             meta_file.read_to_string(&mut string).unwrap();
@@ -320,7 +320,7 @@ mod tests {
 
         assert!(
             tokio::fs::try_exists(
-                test_data_path.join("tmp/prepared_series/Amazing Series/1/1.mp4")
+                test_data_path.join("tmp/prepared_series/Amazing_Series/1/1.mp4")
             )
             .await
             .unwrap()
