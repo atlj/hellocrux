@@ -14,16 +14,10 @@ type Series = HashMap<u32, Season>;
 
 pub async fn watch_media_items(
     media_dir: PathBuf,
-) -> (
-    tokio::sync::mpsc::Sender<()>,
-    tokio::sync::watch::Receiver<Box<[Media]>>,
-    tokio::task::JoinHandle<()>,
-) {
-    let (update_request_sender, mut update_request_receiver) = tokio::sync::mpsc::channel(10);
-    let (media_list_sender, media_list_receiver) =
-        tokio::sync::watch::channel::<Box<[Media]>>(Box::new([]));
-
-    let join_handle = tokio::spawn(async move {
+    media_list_sender: tokio::sync::watch::Sender<Box<[Media]>>,
+    mut update_request_receiver: tokio::sync::mpsc::Receiver<()>,
+) -> tokio::task::JoinHandle<()> {
+    tokio::spawn(async move {
         while update_request_receiver.recv().await.is_some() {
             tokio::fs::create_dir_all(&media_dir)
                 .await
@@ -39,14 +33,7 @@ pub async fn watch_media_items(
                 error!("Media list receiver was dropped. Can't update the media library")
             }
         }
-    });
-
-    update_request_sender
-        .send(())
-        .await
-        .expect("Update request listener was dropped. Is media watcher loop alive?");
-
-    (update_request_sender, media_list_receiver, join_handle)
+    })
 }
 
 pub async fn get_media_items(media_dir: &Path) -> Box<[Media]> {

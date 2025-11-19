@@ -3,26 +3,22 @@ use axum::{Json, extract, http::StatusCode};
 use domain::{Download, DownloadForm, DownloadState, series::EditSeriesFileMappingForm};
 use log::{debug, error, info};
 use std::path::PathBuf;
-use tokio::task::JoinHandle;
-use torrent::{
-    TorrentExtra, TorrentInfo,
-    qbittorrent_client::{QBittorrentClient, QBittorrentClientMessage},
-};
+use torrent::{TorrentExtra, qbittorrent_client::QBittorrentClientMessage};
 
 pub async fn watch_and_process_downloads(
     media_dir: PathBuf,
-    mut receiver: tokio::sync::watch::Receiver<Box<[TorrentInfo]>>,
-    sender: tokio::sync::mpsc::Sender<QBittorrentClientMessage>,
-    media_update_request_sender: tokio::sync::mpsc::Sender<()>,
-    processing_list_sender: tokio::sync::watch::Sender<Box<[Box<str>]>>,
-    processing_list_receiver: tokio::sync::watch::Receiver<Box<[Box<str>]>>,
+    crate::AppState {
+        media_signal_watcher,
+        mut download_signal_watcher,
+        processing_list_watcher,
+    }: crate::AppState,
 ) {
     // TODO REFACTOR THIS AS A WHOLE
     loop {
         let hashes: Box<[_]> = {
             let (torrents_to_process, torrents_with_missing_files) = {
-                let torrents = receiver.borrow_and_update().clone();
-                let processed_torrents = processing_list_receiver.borrow();
+                let torrents = download_signal_watcher.data.borrow_and_update().clone();
+                let processed_torrents = processing_list_watcher.data.borrow();
 
                 // TODO REMOVE ME
                 let torrents_to_process: Box<_> = torrents
@@ -69,7 +65,9 @@ pub async fn watch_and_process_downloads(
 
                 drop(processed_torrents);
                 // TODO remove let _
-                let _ = processing_list_sender.send(updated_processed_torrents.into());
+                let _ = processing_list_watcher
+                    .updater
+                    .send(updated_processed_torrents.into());
 
                 (torrents_to_process, torrents_with_missing_files)
             };
@@ -141,7 +139,8 @@ pub async fn watch_and_process_downloads(
         let removal_futures = hashes.iter().map(async |hash| {
             let (result_sender, result_receiver) = tokio::sync::oneshot::channel();
 
-            sender
+            download_signal_watcher
+                .signal_sender
                 .send(QBittorrentClientMessage::RemoveTorrent {
                     id: hash.clone(),
                     result_sender,
@@ -166,12 +165,13 @@ pub async fn watch_and_process_downloads(
 
         let did_media_library_change = !hashes.is_empty();
 
-        if receiver.changed().await.is_err() {
+        if download_signal_watcher.data.changed().await.is_err() {
             break;
         }
 
         if did_media_library_change {
-            let _ = media_update_request_sender
+            let _ = media_signal_watcher
+                .signal_sender
                 .send(())
                 .await
                 .inspect_err(|_| error!("Media library watcher loop was dropped."));
@@ -179,37 +179,6 @@ pub async fn watch_and_process_downloads(
     }
 
     unreachable!("Torrent channel was dropped")
-}
-
-pub async fn spawn_download_event_loop(
-    path: PathBuf,
-) -> (
-    tokio::sync::mpsc::Sender<QBittorrentClientMessage>,
-    tokio::sync::watch::Receiver<Box<[TorrentInfo]>>,
-    JoinHandle<()>,
-) {
-    let client = QBittorrentClient::try_new(Some(path)).unwrap();
-    let (sender, receiver) = tokio::sync::mpsc::channel(100);
-    let (list_sender, list_receiver) =
-        tokio::sync::watch::channel::<Box<[TorrentInfo]>>(Box::new([]));
-
-    let handle = tokio::spawn(async move {
-        client
-            .event_loop(receiver, list_sender)
-            .await
-            .expect("Event loop exited sooner than expected");
-    });
-
-    // TODO remove unwraps
-    let (result_sender, result_receiver) = tokio::sync::oneshot::channel();
-    sender
-        .send(QBittorrentClientMessage::UpdateTorrentList { result_sender })
-        .await
-        .unwrap();
-
-    result_receiver.await.unwrap().unwrap();
-
-    (sender, list_receiver, handle)
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -225,8 +194,8 @@ pub async fn get_torrent_contents(
 
     // TODO: make this a periodic call.
     state
-        .download_channels
-        .0
+        .download_signal_watcher
+        .signal_sender
         .send(QBittorrentClientMessage::GetTorrentContents {
             id: query.id.clone(),
             result_sender,
@@ -254,20 +223,20 @@ pub async fn get_downloads(extract::State(state): State) -> Json<Box<[Download]>
 
     // TODO: make this a periodic call.
     state
-        .download_channels
-        .0
+        .download_signal_watcher
+        .signal_sender
         .send(QBittorrentClientMessage::UpdateTorrentList { result_sender })
         .await
         .unwrap();
 
     result_receiver.await.unwrap().unwrap();
 
-    let processing_list = state.processing_list_channels.1.borrow();
+    let processing_list = state.processing_list_watcher.data.borrow();
 
     Json(
         state
-            .download_channels
-            .1
+            .download_signal_watcher
+            .data
             .borrow()
             .iter()
             .inspect(|torrents| debug!("Requested torrents list {:?}", torrents))
@@ -289,8 +258,8 @@ pub async fn add_download(
     let (result_sender, result_receiver) = tokio::sync::oneshot::channel();
 
     state
-        .download_channels
-        .0
+        .download_signal_watcher
+        .signal_sender
         .send(QBittorrentClientMessage::AddTorrent {
             hash: form.hash,
             result_sender,
@@ -315,8 +284,8 @@ pub async fn remove_download(
     let (result_sender, result_receiver) = tokio::sync::oneshot::channel();
 
     state
-        .download_channels
-        .0
+        .download_signal_watcher
+        .signal_sender
         .send(QBittorrentClientMessage::RemoveTorrent {
             id: body.into(),
             result_sender,
@@ -343,8 +312,8 @@ pub async fn update_file_mapping(
         let (contents_result_sender, contents_result_receiver) = tokio::sync::oneshot::channel();
 
         state
-            .download_channels
-            .0
+            .download_signal_watcher
+            .signal_sender
             .send(QBittorrentClientMessage::GetTorrentContents {
                 id: file_mapping_form.id.clone(),
                 result_sender: contents_result_sender,
@@ -368,7 +337,7 @@ pub async fn update_file_mapping(
         .ok_or(StatusCode::BAD_REQUEST)?;
 
     let current_extra: TorrentExtra = {
-        let torrent_list = state.download_channels.1.borrow();
+        let torrent_list = state.download_signal_watcher.data.borrow();
         let torrent = torrent_list
             .iter()
             .find(|torrent| torrent.hash == valid_form.id)
@@ -395,8 +364,8 @@ pub async fn update_file_mapping(
 
     let (result_sender, result_receiver) = tokio::sync::oneshot::channel();
     state
-        .download_channels
-        .0
+        .download_signal_watcher
+        .signal_sender
         .send(QBittorrentClientMessage::SetExtra {
             id,
             extra: Box::new(new_extra),

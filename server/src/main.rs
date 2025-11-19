@@ -8,6 +8,7 @@ use download_handlers::watch_and_process_downloads;
 use log::info;
 use server::{AppState, Args, State, download_handlers, media::watch_media_items};
 use tokio::net::TcpListener;
+use torrent::qbittorrent_client::{QBittorrentClient, QBittorrentClientMessage};
 use tower_http::services::ServeDir;
 
 #[tokio::main]
@@ -21,38 +22,76 @@ async fn main() {
         download_path
     };
 
-    let (media_update_request_sender, media_list_receiver, media_watcher_join_handler) =
-        watch_media_items(args.media_dir.clone()).await;
-
-    let (download_sender, value_receiver, bittorrent_client_join_handle) =
-        download_handlers::spawn_download_event_loop(download_path).await;
-
-    let (processing_list_sender, processing_list_receiver, torrent_watcher_handle) = {
-        let media_dir_clone = args.media_dir.clone();
-        let receiver_clone = value_receiver.clone();
-        let sender_clone = download_sender.clone();
-        let media_update_request_sender_clone = media_update_request_sender.clone();
-        let (processing_list_sender, processing_list_receiver) =
-            tokio::sync::watch::channel(Box::new([]) as Box<[Box<str>]>);
-
-        (
-            processing_list_sender.clone(),
-            processing_list_receiver.clone(),
-            tokio::spawn(watch_and_process_downloads(
-                media_dir_clone,
-                receiver_clone,
-                sender_clone,
-                media_update_request_sender_clone,
-                processing_list_sender,
-                processing_list_receiver,
-            )),
-        )
+    let (media_signal_watcher, media_signal_receiver): (server::MediaSignalWatcher, _) =
+        server::watch::new_watcher_receiver_pair(Box::new([]));
+    let (download_signal_watcher, download_signal_receiver): (server::DownloadSignalWatcher, _) =
+        server::watch::new_watcher_receiver_pair(Box::new([]));
+    let processing_list_watcher = server::ProcessingListWatcher::new(Box::new([]));
+    let shared_state = AppState {
+        media_signal_watcher,
+        download_signal_watcher,
+        processing_list_watcher,
     };
 
-    let shared_state = AppState {
-        media_channels: (media_update_request_sender, media_list_receiver),
-        download_channels: (download_sender, value_receiver),
-        processing_list_channels: (processing_list_sender, processing_list_receiver),
+    let services_future = {
+        let media_watcher_join_handler = {
+            let handle = watch_media_items(
+                args.media_dir.clone(),
+                media_signal_receiver.updater,
+                media_signal_receiver.signal_receiver,
+            )
+            .await;
+
+            shared_state
+                .media_signal_watcher
+                .signal_sender
+                .send(())
+                .await
+                .expect("Update request listener was dropped. Is media watcher loop alive?");
+
+            handle
+        };
+
+        let bittorrent_client_join_handle = {
+            let client = QBittorrentClient::try_new(Some(download_path)).unwrap();
+
+            let handle = tokio::spawn(async move {
+                client
+                    .event_loop(
+                        download_signal_receiver.signal_receiver,
+                        download_signal_receiver.updater,
+                    )
+                    .await
+                    .expect("Event loop exited sooner than expected");
+            });
+
+            let (result_sender, result_receiver) = tokio::sync::oneshot::channel();
+            shared_state
+                .download_signal_watcher
+                .signal_sender
+                .send(QBittorrentClientMessage::UpdateTorrentList { result_sender })
+                .await
+                .unwrap();
+
+            result_receiver.await.unwrap().unwrap();
+
+            handle
+        };
+
+        let torrent_watcher_handle = {
+            let media_dir_clone = args.media_dir.clone();
+
+            tokio::spawn(watch_and_process_downloads(
+                media_dir_clone.clone(),
+                shared_state.clone(),
+            ))
+        };
+
+        futures::future::join_all([
+            media_watcher_join_handler,
+            bittorrent_client_join_handle,
+            torrent_watcher_handle,
+        ])
     };
 
     let app = Router::new()
@@ -82,13 +121,11 @@ async fn main() {
 
     info!("Killing the server");
 
-    torrent_watcher_handle.abort();
-    bittorrent_client_join_handle.abort();
-    media_watcher_join_handler.abort();
+    services_future.await;
 }
 
 async fn movie_list_handler(extract::State(state): State) -> Json<Box<[Media]>> {
-    Json(state.media_channels.1.borrow().as_ref().into())
+    Json(state.media_signal_watcher.data.borrow().as_ref().into())
 }
 
 async fn health_handler() -> String {
