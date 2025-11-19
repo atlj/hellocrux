@@ -33,7 +33,7 @@ async fn main() {
         processing_list_watcher,
     };
 
-    let services_future = {
+    let abort_services = {
         let media_watcher_join_handler = {
             let handle = watch_media_items(
                 args.media_dir.clone(),
@@ -87,11 +87,11 @@ async fn main() {
             ))
         };
 
-        futures::future::join_all([
-            media_watcher_join_handler,
-            bittorrent_client_join_handle,
-            torrent_watcher_handle,
-        ])
+        move || {
+            media_watcher_join_handler.abort();
+            bittorrent_client_join_handle.abort();
+            torrent_watcher_handle.abort();
+        }
     };
 
     let app = Router::new()
@@ -121,7 +121,7 @@ async fn main() {
 
     info!("Killing the server");
 
-    services_future.await;
+    abort_services()
 }
 
 async fn movie_list_handler(extract::State(state): State) -> Json<Box<[Media]>> {
