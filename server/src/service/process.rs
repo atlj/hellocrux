@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use log::{error, info};
 use torrent::{TorrentExtra, qbittorrent_client::QBittorrentClientMessage};
 
-pub type ProcessingListWatcher = crate::watch::Watcher<Box<[Box<str>]>>;
+pub type ProcessingListWatcher = crate::signal::Watcher<Box<[Box<str>]>>;
 
 // 1. Get torrent list when it changes
 //

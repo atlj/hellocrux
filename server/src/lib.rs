@@ -1,7 +1,7 @@
 pub mod download_handlers;
 pub mod prepare;
 pub mod service;
-pub mod watch;
+pub mod signal;
 use std::path::PathBuf;
 
 use clap::Parser;

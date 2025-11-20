@@ -22,11 +22,11 @@ async fn main() {
     let (media_signal_watcher, media_signal_receiver): (
         server::service::media::MediaSignalWatcher,
         _,
-    ) = server::watch::new_watcher_receiver_pair(Box::new([]));
+    ) = server::signal::new_watcher_receiver_pair(Box::new([]));
     let (download_signal_watcher, download_signal_receiver): (
         server::service::download::DownloadSignalWatcher,
         _,
-    ) = server::watch::new_watcher_receiver_pair(Box::new([]));
+    ) = server::signal::new_watcher_receiver_pair(Box::new([]));
     let processing_list_watcher =
         server::service::process::ProcessingListWatcher::new(Box::new([]));
     let shared_state = AppState {

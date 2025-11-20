@@ -9,8 +9,8 @@ use log::{error, info, warn};
 
 const MOVIE_EXTENSIONS: [&str; 2] = ["mov", "mp4"];
 
-pub type MediaSignalWatcher = crate::watch::SignalWatcher<(), Box<[Media]>>;
-pub type MediaSignalReceiver = crate::watch::SignalReceiver<(), Box<[Media]>>;
+pub type MediaSignalWatcher = crate::signal::SignalWatcher<(), Box<[Media]>>;
+pub type MediaSignalReceiver = crate::signal::SignalReceiver<(), Box<[Media]>>;
 
 type Season = HashMap<u32, String>;
 type Series = HashMap<u32, Season>;

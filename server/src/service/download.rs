@@ -4,9 +4,9 @@ use torrent::{
 };
 
 pub type DownloadSignalWatcher =
-    crate::watch::SignalWatcher<QBittorrentClientMessage, Box<[TorrentInfo]>>;
+    crate::signal::SignalWatcher<QBittorrentClientMessage, Box<[TorrentInfo]>>;
 pub type DownloadSignalReceiver =
-    crate::watch::SignalReceiver<QBittorrentClientMessage, Box<[TorrentInfo]>>;
+    crate::signal::SignalReceiver<QBittorrentClientMessage, Box<[TorrentInfo]>>;
 
 /// A service that handles downloading
 pub async fn spawn(
