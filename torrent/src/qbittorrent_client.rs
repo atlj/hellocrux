@@ -349,6 +349,7 @@ pub enum QBittorrentError {
     CantSpawnQBittorrent(Box<str>),
     QBittorrentDidntPrintReady,
     CantGenerateProfile(Box<str>),
+    CantGetExtraData,
 }
 
 impl Display for QBittorrentError {
@@ -360,6 +361,7 @@ impl Display for QBittorrentError {
                 "qbittorrent-nox didn't print ready message"
             }
             QBittorrentError::CantGenerateProfile(err) => err,
+            QBittorrentError::CantGetExtraData => "cant get torrent extra",
         })
     }
 }

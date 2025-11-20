@@ -174,6 +174,10 @@ impl TorrentState {
         )
     }
 
+    pub fn is_faulty(&self) -> bool {
+        matches!(self, TorrentState::Error | TorrentState::MissingFiles)
+    }
+
     pub fn is_done(&self) -> bool {
         matches!(self, Self::Uploading | Self::StalledUP)
     }
@@ -260,7 +264,10 @@ pub mod into_domain {
     use base64::{Engine as _, engine::general_purpose::URL_SAFE};
     use std::fmt::Display;
 
-    use crate::TorrentInfo;
+    use crate::{
+        TorrentInfo,
+        qbittorrent_client::{QBittorrentError, QBittorrentResult},
+    };
     use domain::{Download, DownloadState};
 
     use super::{TorrentExtra, TorrentState};
@@ -344,6 +351,20 @@ pub mod into_domain {
 
                 State::Error | State::MissingFiles | State::Unknown => DownloadState::Failed,
             }
+        }
+    }
+
+    impl TorrentInfo {
+        pub fn should_process(&self) -> QBittorrentResult<bool> {
+            if self.state.is_done() {
+                return Ok(true);
+            }
+
+            let extra: TorrentExtra = self
+                .try_into()
+                .map_err(|_| QBittorrentError::CantGetExtraData)?;
+
+            Ok(!extra.needs_file_mapping())
         }
     }
 

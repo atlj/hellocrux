@@ -75,6 +75,8 @@ pub async fn prepare_movie(
                 .into(),
             )
         })?;
+
+            info!("Converted movie file at {}.", moved_file.display());
         }
     }
 
@@ -123,6 +125,11 @@ pub async fn prepare_series(
                         .into(),
                     )
                 })?;
+
+                info!(
+                    "Converted series file at {}.",
+                    resulting_path.display()
+                );
 
                 Ok(())
             });
