@@ -8,6 +8,7 @@ pub type DownloadSignalWatcher =
 pub type DownloadSignalReceiver =
     crate::watch::SignalReceiver<QBittorrentClientMessage, Box<[TorrentInfo]>>;
 
+/// A service that handles downloading
 pub async fn spawn(
     download_path: std::path::PathBuf,
     download_signal_receiver: DownloadSignalReceiver,

@@ -4,7 +4,6 @@ use axum::{
 };
 use clap::Parser;
 use domain::Media;
-use download_handlers::watch_and_process_downloads;
 use log::info;
 use server::{AppState, Args, State, download_handlers};
 use tokio::net::TcpListener;
@@ -25,10 +24,11 @@ async fn main() {
         _,
     ) = server::watch::new_watcher_receiver_pair(Box::new([]));
     let (download_signal_watcher, download_signal_receiver): (
-        server::service::torrent::DownloadSignalWatcher,
+        server::service::download::DownloadSignalWatcher,
         _,
     ) = server::watch::new_watcher_receiver_pair(Box::new([]));
-    let processing_list_watcher = server::ProcessingListWatcher::new(Box::new([]));
+    let processing_list_watcher =
+        server::service::process::ProcessingListWatcher::new(Box::new([]));
     let shared_state = AppState {
         media_signal_watcher,
         download_signal_watcher,
@@ -43,19 +43,15 @@ async fn main() {
         )
         .await;
 
-        let bittorrent_client_join_handle = server::service::torrent::spawn(
+        let bittorrent_client_join_handle = server::service::download::spawn(
             download_path,
             download_signal_receiver,
             shared_state.download_signal_watcher.clone(),
         )
         .await;
 
-        let torrent_watcher_handle = {
-            tokio::spawn(watch_and_process_downloads(
-                args.media_dir.clone(),
-                shared_state.clone(),
-            ))
-        };
+        let torrent_watcher_handle =
+            server::service::process::spawn(args.media_dir.clone(), shared_state.clone());
 
         move || {
             media_watcher_join_handler.abort();

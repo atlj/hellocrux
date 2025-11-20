@@ -1,2 +1,3 @@
+pub mod download;
 pub mod media;
-pub mod torrent;
+pub mod process;

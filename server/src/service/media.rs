@@ -15,6 +15,7 @@ pub type MediaSignalReceiver = crate::watch::SignalReceiver<(), Box<[Media]>>;
 type Season = HashMap<u32, String>;
 type Series = HashMap<u32, Season>;
 
+/// A service that crawls the media library
 pub async fn spawn(
     media_dir: PathBuf,
     mut media_signal_receiver: MediaSignalReceiver,
