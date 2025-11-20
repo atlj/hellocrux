@@ -91,8 +91,8 @@ pub async fn watch_and_process_downloads(
                             TorrentExtra::Movie { ref metadata } => {
                                 crate::prepare::prepare_movie(
                                     &media_dir,
-                                    metadata,
                                     &torrent.content_path,
+                                    metadata,
                                 )
                                 .await
                                 .inspect_err(|err| {
@@ -109,8 +109,8 @@ pub async fn watch_and_process_downloads(
                             } => {
                                 crate::prepare::prepare_series(
                                     &media_dir,
-                                    metadata,
                                     &torrent.save_path,
+                                    metadata,
                                     files_mapping_form.expect("files mapping form was None."),
                                 )
                                 .await

@@ -33,8 +33,8 @@ impl Display for Error {
 
 pub async fn prepare_movie(
     media_dir: &Path,
-    metadata: &MediaMetaData,
     source_dir: &Path,
+    metadata: &MediaMetaData,
 ) -> Result<()> {
     // TODO consider using mappings for movies.
     // 1. Find movie file
@@ -84,8 +84,8 @@ pub async fn prepare_movie(
 // TODO reorder the params so they are unified
 pub async fn prepare_series(
     media_dir: &Path,
-    metadata: &MediaMetaData,
     source_dir: &Path,
+    metadata: &MediaMetaData,
     mapping: EditSeriesFileMappingForm<file_mapping_form_state::Valid>,
 ) -> Result<()> {
     // 1. Move movie media and generate metadata
@@ -220,8 +220,8 @@ mod tests {
 
         prepare_movie(
             &test_data_path.join("tmp/prepare"),
-            &metadata,
             &test_data_path.join("tmp/prepare_source"),
+            &metadata,
         )
         .await
         .unwrap();
@@ -297,8 +297,8 @@ mod tests {
         // TODO tidy up the names for test folders
         prepare_series(
             &test_data_path.join("tmp/prepared_series"),
-            &metadata,
             &test_data_path.join("tmp/prepare_series_2"),
+            &metadata,
             mapping,
         )
         .await
