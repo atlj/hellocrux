@@ -9,16 +9,19 @@ use log::{error, info, warn};
 
 const MOVIE_EXTENSIONS: [&str; 2] = ["mov", "mp4"];
 
+pub type MediaSignalWatcher = crate::watch::SignalWatcher<(), Box<[Media]>>;
+pub type MediaSignalReceiver = crate::watch::SignalReceiver<(), Box<[Media]>>;
+
 type Season = HashMap<u32, String>;
 type Series = HashMap<u32, Season>;
 
-pub async fn watch_media_items(
+pub async fn spawn(
     media_dir: PathBuf,
-    media_list_sender: tokio::sync::watch::Sender<Box<[Media]>>,
-    mut update_request_receiver: tokio::sync::mpsc::Receiver<()>,
+    mut media_signal_receiver: MediaSignalReceiver,
+    media_signal_watcher: MediaSignalWatcher,
 ) -> tokio::task::JoinHandle<()> {
-    tokio::spawn(async move {
-        while update_request_receiver.recv().await.is_some() {
+    let handle = tokio::spawn(async move {
+        while media_signal_receiver.signal_receiver.recv().await.is_some() {
             tokio::fs::create_dir_all(&media_dir)
                 .await
                 .expect("Couldn't create media dir");
@@ -29,11 +32,19 @@ pub async fn watch_media_items(
 
             info!("Found {:#?} media items", entries.len());
 
-            if media_list_sender.send(entries).is_err() {
+            if media_signal_receiver.updater.send(entries).is_err() {
                 error!("Media list receiver was dropped. Can't update the media library")
             }
         }
-    })
+    });
+
+    media_signal_watcher
+        .signal_sender
+        .send(())
+        .await
+        .expect("Update request listener was dropped. Is media watcher loop alive?");
+
+    handle
 }
 
 pub async fn get_media_items(media_dir: &Path) -> Box<[Media]> {
@@ -223,7 +234,7 @@ pub fn get_numeric_content(string: &str) -> Option<u32> {
 
 #[cfg(test)]
 mod test {
-    use crate::media::get_numeric_content;
+    use super::*;
 
     #[test]
     fn can_get_numeric_content() {

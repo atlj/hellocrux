@@ -5,6 +5,22 @@ use log::{debug, error, info};
 use std::path::PathBuf;
 use torrent::{TorrentExtra, qbittorrent_client::QBittorrentClientMessage};
 
+// 1. Get torrent list when it changes
+//
+// 2. Figure out which torrents needs to be processed
+// based on is_done, its extra, and whether it is in processed list.
+//
+// 3. Add torrents that need to be processed to a list
+//
+// 4. Figure out which torrents are missing files
+//
+// 5. Update our processing list .
+//
+// 6. Process the torents that needs to be processed
+//
+// 7. Remove torrens that are done
+//
+// 8. send a signal to refresh the media library if we changed anything
 pub async fn watch_and_process_downloads(
     media_dir: PathBuf,
     crate::AppState {
@@ -17,10 +33,12 @@ pub async fn watch_and_process_downloads(
     loop {
         let hashes: Box<[_]> = {
             let (torrents_to_process, torrents_with_missing_files) = {
+                // 1. Get torrent list when it changes
                 let torrents = download_signal_watcher.data.borrow_and_update().clone();
                 let processed_torrents = processing_list_watcher.data.borrow();
 
-                // TODO REMOVE ME
+                // 2. Figure out which torrents needs to be processed
+                // based on is_done, its extra, and whether it is in processed list.
                 let torrents_to_process: Box<_> = torrents
                     .clone()
                     .into_iter()
@@ -38,6 +56,7 @@ pub async fn watch_and_process_downloads(
                     .filter(|torrent| !processed_torrents.contains(&torrent.hash))
                     .collect();
 
+                // 3. Add torrents that need to be processed to a list
                 let updated_processed_torrents: Vec<Box<str>> = {
                     let mut vec =
                         Vec::with_capacity(processed_torrents.len() + torrents_to_process.len());
@@ -51,7 +70,8 @@ pub async fn watch_and_process_downloads(
                     vec
                 };
 
-                // TODO LOG THESE FILES
+                // 4. Figure out which torrents are missing files
+                // TODO, instead of checking for missing files here, check them by the end
                 let torrents_with_missing_files: Box<[Box<str>]> = torrents
                     .into_iter()
                     .filter_map(|torrent| {
@@ -64,7 +84,8 @@ pub async fn watch_and_process_downloads(
                     .collect();
 
                 drop(processed_torrents);
-                // TODO remove let _
+                // TODO: drop let _
+                // 5. Update our processing list .
                 let _ = processing_list_watcher
                     .updater
                     .send(updated_processed_torrents.into());
@@ -72,6 +93,7 @@ pub async fn watch_and_process_downloads(
                 (torrents_to_process, torrents_with_missing_files)
             };
 
+            // 6. Process the torents that needs to be processed
             let futures =
                 torrents_to_process
                     .into_iter()
@@ -136,6 +158,7 @@ pub async fn watch_and_process_downloads(
                 .collect()
         };
 
+        // 7. Remove torrens that are done
         let removal_futures = hashes.iter().map(async |hash| {
             let (result_sender, result_receiver) = tokio::sync::oneshot::channel();
 
@@ -165,10 +188,12 @@ pub async fn watch_and_process_downloads(
 
         let did_media_library_change = !hashes.is_empty();
 
+        // TODO do we need this?
         if download_signal_watcher.data.changed().await.is_err() {
             break;
         }
 
+        // 8. send a signal to refresh the media library
         if did_media_library_change {
             let _ = media_signal_watcher
                 .signal_sender
