@@ -356,8 +356,8 @@ pub mod into_domain {
 
     impl TorrentInfo {
         pub fn should_process(&self) -> QBittorrentResult<bool> {
-            if self.state.is_done() {
-                return Ok(true);
+            if !self.state.is_done() {
+                return Ok(false);
             }
 
             let extra: TorrentExtra = self

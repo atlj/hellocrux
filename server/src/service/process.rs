@@ -170,7 +170,7 @@ async fn process(media_dir: &Path, torrent: &TorrentInfo) -> Result<(), ProcessE
 
     match extra {
         TorrentExtra::Movie { ref metadata } => {
-            crate::prepare::prepare_movie(media_dir, &torrent.content_path, metadata).await?;
+            crate::prepare::prepare_movie(media_dir, &torrent.save_path, metadata).await?;
         }
         TorrentExtra::Series {
             ref metadata,
