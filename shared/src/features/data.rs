@@ -89,7 +89,7 @@ pub fn update_data(model: &mut Model, request: DataRequest) -> Command<Effect, E
                                 |mut map, file| {
                                     if let Some(extension) = (file.as_ref() as &Path).extension() {
                                         // TODO make this a generic check
-                                        if extension == "srt" {
+                                        if extension == "srt" || extension == "nfo" {
                                             return map;
                                         }
                                     }
