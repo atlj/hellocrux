@@ -53,6 +53,9 @@ impl QBittorrentClient {
     ) -> QBittorrentResult<()> {
         let mut process_client = Some(self.spawn_qbittorrent_web().await?);
         let http_client = reqwest::Client::new();
+        // Changes in qbittorrent dont immediately get reflected to the API
+        // we use this to forcefully keep client alive
+        let mut force_keep_client_alive = false;
 
         loop {
             let message = if let Some(message) = receiver.recv().await {
@@ -106,8 +109,11 @@ impl QBittorrentClient {
                         process_client.as_ref().unwrap()
                     };
 
+                    force_keep_client_alive = true;
+
                     let result =
                         add_torrent(&http_client, process_client.port, &hash, &extra).await;
+
                     // TODO: add logging here
                     let _ = result_sender.send(result);
                 }
@@ -136,13 +142,19 @@ impl QBittorrentClient {
                     match get_torrent_list(&http_client, process_client_ref.port).await {
                         Ok(torrent_list) => {
                             // If all torrents are done, drop the client.
-                            if torrent_list.is_empty()
-                                || torrent_list.iter().all(|item| item.state.should_stop())
+                            if !force_keep_client_alive
+                                && (torrent_list.is_empty()
+                                    || torrent_list.iter().all(|item| item.state.should_stop()))
                             {
                                 debug!(
                                     "No torrents are being downloaded. Killing the QBittorrent process"
                                 );
                                 process_client = None;
+                            }
+
+                            // We recived some torrent(s). No need to keep it forcefully alive.
+                            if !torrent_list.is_empty() {
+                                force_keep_client_alive = false
                             }
 
                             // TODO: add logging here
