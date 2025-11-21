@@ -203,34 +203,11 @@ fn get_season(root_path: &Path, path: &Path) -> Option<(u32, Season)> {
 }
 
 pub fn get_numeric_content(string: &str) -> Option<u32> {
-    let mut digits = Vec::<u32>::with_capacity(4);
-    let mut peekable = string.chars().peekable();
-
-    while let Some(char) = peekable.next() {
-        if let Some(digit) = char.to_digit(10) {
-            digits.push(digit);
-
-            if let Some(next) = peekable.peek() {
-                if !next.is_ascii_digit() {
-                    break;
-                }
-            }
-        }
-    }
-
-    if digits.is_empty() {
-        return None;
-    }
-
-    Some(
-        digits
-            .into_iter()
-            .rev()
-            .enumerate()
-            .rfold(0, |curr, (power, digit)| {
-                curr + (digit * 10_u32.pow(power.try_into().unwrap()))
-            }),
-    )
+    string
+        .chars()
+        .skip_while(|char| !char.is_digit(10))
+        .map_while(|char| char.to_digit(10))
+        .fold(None, |acc, digit| Some(acc.unwrap_or(0) * 10 + digit))
 }
 
 #[cfg(test)]
