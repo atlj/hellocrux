@@ -135,6 +135,12 @@ pub fn spawn(
                     .await
                     .inspect_err(|_| error!("Media library watcher loop was dropped."));
             }
+
+            download_signal_watcher
+                .data
+                .changed()
+                .await
+                .expect("Download channel was closed");
         }
     })
 }

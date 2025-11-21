@@ -1,7 +1,7 @@
 use super::State;
 use axum::{Json, extract, http::StatusCode};
 use domain::{Download, DownloadForm, DownloadState, series::EditSeriesFileMappingForm};
-use log::{debug, error};
+use log::error;
 use torrent::{TorrentExtra, qbittorrent_client::QBittorrentClientMessage};
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -31,10 +31,6 @@ pub async fn get_torrent_contents(
         torrent::QBittorrentWebApiError::NonOkStatus(status_code, ..) => status_code,
         _ => StatusCode::INTERNAL_SERVER_ERROR,
     })?;
-    debug!(
-        "Requested contents list of torrent with id {} {:?}",
-        &query.id, &contents
-    );
 
     Ok(Json(
         contents.into_iter().map(|contents| contents.name).collect(),
@@ -62,7 +58,6 @@ pub async fn get_downloads(extract::State(state): State) -> Json<Box<[Download]>
             .data
             .borrow()
             .iter()
-            .inspect(|torrents| debug!("Requested torrents list {:?}", torrents))
             .map(|torrent| torrent.clone().into())
             .map(|mut download: Download| {
                 if processing_list.contains(&download.id) {
