@@ -142,7 +142,7 @@ pub fn handle_play(model: &mut Model, play_event: PlayEvent) -> Command<Effect, 
                         url: base_url_clone
                             .join("static/")
                             .unwrap()
-                            .join(&content)
+                            .join(&content.media)
                             .unwrap()
                             .to_string(),
                     }),
@@ -176,7 +176,7 @@ pub fn handle_play(model: &mut Model, play_event: PlayEvent) -> Command<Effect, 
                         url: base_url_clone
                             .join("static/")
                             .unwrap()
-                            .join(episode_path)
+                            .join(episode_path.media.as_ref())
                             .unwrap()
                             .to_string(),
                     }),

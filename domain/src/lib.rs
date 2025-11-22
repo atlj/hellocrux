@@ -11,52 +11,77 @@ pub struct Media {
     pub content: MediaContent,
 }
 
-pub enum MediaStream {
-    Video,
-    Audio,
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub enum MediaContent {
+    Movie(MediaPaths),
+    Series(SeriesContents),
+}
+
+/// Episode no -> paths
+pub type SeasonContents = HashMap<u32, MediaPaths>;
+/// Season no -> season contents
+pub type SeriesContents = HashMap<u32, SeasonContents>;
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct MediaPaths {
+    pub media: String,
+    pub subtitles: Box<[Subtitle]>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
-pub enum MediaContent {
-    Movie(String),
-    Series(SeriesContents),
+pub struct Subtitle {
+    pub name: String,
+    pub language: LanguageCode,
+    pub path: String,
+}
+
+pub type LanguageCode = [char; 2];
+
+impl MediaPaths {
+    fn strip_prefix(&self, prefix: impl AsRef<Path>) -> Option<Self> {
+        let media = self
+            .media
+            .strip_prefix(prefix.as_ref().to_string_lossy().as_ref())?
+            .trim_start_matches('/')
+            .to_string();
+
+        let subtitles = self
+            .subtitles
+            .iter()
+            .map(|subtitle| {
+                Some(Subtitle {
+                    path: subtitle
+                        .path
+                        .strip_prefix(prefix.as_ref().to_string_lossy().as_ref())?
+                        .trim_start_matches('/')
+                        .to_string(),
+                    ..subtitle.clone()
+                })
+            })
+            .collect::<Option<Box<[_]>>>()?;
+
+        Some(Self { subtitles, media })
+    }
 }
 
 impl MediaContent {
     pub fn strip_prefix(mut self, prefix: impl AsRef<Path>) -> Option<Self> {
         match &mut self {
-            MediaContent::Movie(movie_path) => movie_path
-                .strip_prefix(prefix.as_ref().to_string_lossy().as_ref())
-                .map(|stripped_path| {
-                    Self::Movie(stripped_path.trim_start_matches('/').to_string())
-                }),
+            MediaContent::Movie(movie_path) => {
+                *movie_path = movie_path.strip_prefix(prefix)?;
+                Some(self)
+            }
             MediaContent::Series(hash_map) => {
                 for season in hash_map.values_mut() {
-                    let prefix_removed = season
-                        .values()
-                        .map(|path| {
-                            path.strip_prefix(prefix.as_ref().to_string_lossy().as_ref())
-                                .map(|str| str.trim_start_matches('/').to_string())
-                        })
-                        .collect::<Option<Box<[_]>>>()?;
-
-                    season
-                        .values_mut()
-                        .zip(prefix_removed)
-                        .for_each(|(value, new_path)| {
-                            *value = new_path;
-                        });
+                    for episode in season.values_mut() {
+                        *episode = episode.strip_prefix(&prefix)?;
+                    }
                 }
                 Some(self)
             }
         }
     }
 }
-
-/// Episode no -> path
-pub type SeasonContents = HashMap<u32, String>;
-/// Season no -> season contents
-pub type SeriesContents = HashMap<u32, SeasonContents>;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct MediaMetaData {
@@ -87,4 +112,9 @@ pub struct DownloadForm {
     pub hash: Box<str>,
     pub metadata: MediaMetaData,
     pub is_series: bool,
+}
+
+pub enum MediaStream {
+    Video,
+    Audio,
 }

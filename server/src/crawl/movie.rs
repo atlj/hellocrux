@@ -1,38 +1,94 @@
+use domain::{LanguageCode, Subtitle};
+
 use super::{Error, Result};
 use std::path::Path;
 
-pub(super) async fn try_extract_movie_path(path: impl AsRef<Path>) -> Result<Option<String>> {
+pub(super) async fn try_extract_movie_paths(
+    path: impl AsRef<Path>,
+) -> Result<Option<domain::MediaPaths>> {
     let mut read_dir = crate::dir::fully_read_dir(&path)
         .await
         .map_err(|_| Error::CantReadDir(path.as_ref().into()))?;
 
-    let result = read_dir.find_map(|entry| {
+    let media = read_dir.find_map(|entry| {
         let path = entry.path();
         if !domain::format::is_supported_video_file(&path) {
             return None;
         }
 
-        Some(path.to_string_lossy().into())
+        Some(path.to_string_lossy().to_string())
     });
 
+    let subtitles = try_extract_subtitles(path.as_ref().join("subtitles")).await?;
+
+    Ok(media.map(|media| domain::MediaPaths { media, subtitles }))
+}
+
+async fn try_extract_subtitles(path: impl AsRef<Path>) -> Result<Box<[Subtitle]>> {
+    let dir_contents = crate::dir::fully_read_dir(&path)
+        .await
+        .map_err(|_| Error::CantReadDir(path.as_ref().into()))?;
+
+    let result = dir_contents
+        .flat_map(|entry| {
+            let path = entry.path();
+
+            if path.is_dir() {
+                return None;
+            }
+
+            if let Some(extension) = path.extension() {
+                if extension == "srt" {
+                    return Some(path);
+                }
+            }
+
+            None
+        })
+        .flat_map(|path| {
+            parse_subtitle_name(&path)
+                .map(|(language, name)| (path.to_string_lossy().to_string(), language, name))
+        })
+        .map(|(path, language, name)| Subtitle {
+            name,
+            language,
+            path,
+        })
+        .collect();
+
     Ok(result)
+}
+
+fn parse_subtitle_name(path: impl AsRef<Path>) -> Option<(LanguageCode, String)> {
+    let file_stem = path.as_ref().file_stem()?.to_str()?;
+    let language_code = {
+        let mut iter = file_stem.chars();
+        match (iter.next(), iter.next()) {
+            (Some(a), Some(b)) => Some([a, b]),
+            _ => None,
+        }
+    }?;
+    let name: String = file_stem.chars().skip(2).collect();
+
+    Some((language_code, name))
 }
 
 #[cfg(test)]
 mod tests {
     use std::path::PathBuf;
 
-    use crate::crawl::movie::try_extract_movie_path;
+    use crate::crawl::movie::try_extract_movie_paths;
 
     #[tokio::test]
     async fn extract_movie_path() {
         let test_data_path: PathBuf = concat!(env!("CARGO_MANIFEST_DIR"), "/test-data").into();
         let path = test_data_path.join("crawl/example_movie");
         assert!(
-            try_extract_movie_path(path)
+            try_extract_movie_paths(path)
                 .await
                 .unwrap()
                 .unwrap()
+                .media
                 .contains("hey.mp4")
         );
     }

@@ -1,4 +1,4 @@
-use domain::SeriesContents;
+use domain::{LanguageCode, SeriesContents, Subtitle};
 
 use super::{Error, Result};
 use std::{collections::HashMap, path::Path};
@@ -51,6 +51,18 @@ async fn try_extract_season(path: impl AsRef<Path>) -> Result<Option<domain::Sea
         .await
         .map_err(|_| Error::CantReadDir(path.as_ref().into()))?;
 
+    let mut subtitles = {
+        let path = path.as_ref().join("subtitles");
+        if tokio::fs::try_exists(&path)
+            .await
+            .map_err(|_| super::Error::CantReadDir(path.clone()))?
+        {
+            Some(try_extract_subtitles(&path).await?)
+        } else {
+            None
+        }
+    };
+
     let result: domain::SeasonContents = read_dir.fold(HashMap::new(), |mut map, entry| {
         let current_path = entry.path();
         if !domain::format::is_supported_video_file(&current_path) {
@@ -60,7 +72,21 @@ async fn try_extract_season(path: impl AsRef<Path>) -> Result<Option<domain::Sea
         if let Some(episode_no) =
             super::get_numeric_content(entry.file_name().to_string_lossy().as_ref())
         {
-            map.insert(episode_no, current_path.to_string_lossy().into());
+            let subtitles = subtitles
+                .as_mut()
+                .and_then(|subtitles| {
+                    subtitles
+                        .remove(&(episode_no as usize))
+                        .map(|subtitles| subtitles.into_boxed_slice())
+                })
+                .unwrap_or(Box::new([]));
+
+            let media_paths = domain::MediaPaths {
+                subtitles,
+                media: current_path.to_string_lossy().into(),
+            };
+
+            map.insert(episode_no, media_paths);
         }
 
         map
@@ -71,6 +97,75 @@ async fn try_extract_season(path: impl AsRef<Path>) -> Result<Option<domain::Sea
     }
 
     Ok(Some(result))
+}
+
+async fn try_extract_subtitles(
+    path: impl AsRef<Path>,
+) -> super::Result<HashMap<usize, Vec<Subtitle>>> {
+    let dir_contents = crate::dir::fully_read_dir(&path)
+        .await
+        .map_err(|_| Error::CantReadDir(path.as_ref().into()))?;
+
+    let result = dir_contents
+        .filter_map(|entry| {
+            let path = entry.path();
+            if path.is_dir() {
+                return None;
+            }
+
+            if let Some(extension) = path.extension() {
+                if extension == "srt" {
+                    return Some(path);
+                }
+            }
+
+            None
+        })
+        .flat_map(parse_subtitle_name)
+        .fold(
+            HashMap::new(),
+            |mut map: HashMap<usize, Vec<Subtitle>>, (episode_no, language, name)| {
+                let subtitle = Subtitle {
+                    path: path.as_ref().to_string_lossy().to_string(),
+                    name,
+                    language,
+                };
+
+                if let Some(entry) = map.get_mut(&episode_no) {
+                    entry.push(subtitle);
+                } else {
+                    map.insert(episode_no, vec![subtitle]);
+                }
+
+                map
+            },
+        );
+
+    Ok(result)
+}
+
+fn parse_subtitle_name(path: impl AsRef<Path>) -> Option<(usize, LanguageCode, String)> {
+    let file_stem = path.as_ref().file_stem()?.to_str()?;
+    let episode_no = file_stem.chars().map_while(|char| char.to_digit(10)).fold(
+        None,
+        |acc, digit| match acc {
+            Some(number) => Some(number * 10 + digit),
+            None => Some(digit),
+        },
+    )? as usize;
+    let language_code = {
+        let mut iter = file_stem.chars().skip_while(|char| char.is_ascii_digit());
+        match (iter.next(), iter.next()) {
+            (Some(a), Some(b)) => Some([a, b]),
+            _ => None,
+        }
+    }?;
+    let name = file_stem
+        .chars()
+        .skip_while(|char| char.is_ascii_digit())
+        .skip(2)
+        .collect::<String>();
+    Some((episode_no, language_code, name))
 }
 
 #[cfg(test)]
@@ -85,11 +180,35 @@ mod tests {
         let path = test_data_path.join("crawl/example_series");
         let result = try_extract_series(&path).await.unwrap().unwrap();
 
-        assert!(result.get(&1).unwrap().get(&1).unwrap().contains("1.mp4"));
-        assert!(result.get(&1).unwrap().get(&2).unwrap().contains("2.mp4"));
+        assert!(
+            result
+                .get(&1)
+                .unwrap()
+                .get(&1)
+                .unwrap()
+                .media
+                .contains("1.mp4")
+        );
+        assert!(
+            result
+                .get(&1)
+                .unwrap()
+                .get(&2)
+                .unwrap()
+                .media
+                .contains("2.mp4")
+        );
 
         assert!(!result.contains_key(&2));
-        assert!(result.get(&7).unwrap().get(&9).unwrap().contains("9.mp4"));
+        assert!(
+            result
+                .get(&7)
+                .unwrap()
+                .get(&9)
+                .unwrap()
+                .media
+                .contains("9.mp4")
+        );
 
         assert!(!result.contains_key(&9));
     }
@@ -106,6 +225,7 @@ mod tests {
                 .unwrap()
                 .get(&1)
                 .unwrap()
+                .media
                 .contains("1.mp4")
         );
     }

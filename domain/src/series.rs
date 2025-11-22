@@ -3,6 +3,8 @@ use std::{
     marker::PhantomData,
 };
 
+use crate::SeriesContents;
+
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Hash)]
 pub struct EpisodeIdentifier {
     pub season_no: u32,
@@ -11,9 +13,7 @@ pub struct EpisodeIdentifier {
 
 // TODO unit tests
 impl EpisodeIdentifier {
-    pub fn find_earliest_available_episode(
-        series: &HashMap<u32, HashMap<u32, String>>,
-    ) -> EpisodeIdentifier {
+    pub fn find_earliest_available_episode(series: &SeriesContents) -> EpisodeIdentifier {
         let earliest_season_no = series
             .keys()
             .min()
@@ -29,10 +29,8 @@ impl EpisodeIdentifier {
         }
     }
 
-    pub fn find_next_episode(
-        &self,
-        series: &HashMap<u32, HashMap<u32, String>>,
-    ) -> Option<EpisodeIdentifier> {
+    // TODO rewrite
+    pub fn find_next_episode(&self, series: &SeriesContents) -> Option<EpisodeIdentifier> {
         // 1. Next episode is available
         let current_season_episodes = series.get(&self.season_no).unwrap();
         let next_episode_in_current_season = current_season_episodes
