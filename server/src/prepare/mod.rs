@@ -174,23 +174,12 @@ async fn find_movie_file(source_dir: &Path) -> Result<Option<PathBuf>> {
             }
         }
 
-        if check_if_video_file(&path) {
+        if domain::format::is_video_file(&path) {
             return Ok(Some(path));
         }
     }
 
     Ok(None)
-}
-
-// TODO extract this to domain
-fn check_if_video_file(path: &Path) -> bool {
-    match path.extension() {
-        None => false,
-        Some(extension) => matches!(
-            extension.to_string_lossy().as_ref(),
-            "mp4" | "mov" | "mkv" | "ts" | "avi",
-        ),
-    }
 }
 
 #[cfg(test)]

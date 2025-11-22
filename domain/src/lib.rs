@@ -1,7 +1,8 @@
+pub mod format;
 pub mod series;
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::{collections::HashMap, path::Path};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Media {
@@ -18,8 +19,44 @@ pub enum MediaStream {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum MediaContent {
     Movie(String),
-    Series(HashMap<u32, HashMap<u32, String>>),
+    Series(SeriesContents),
 }
+
+impl MediaContent {
+    pub fn strip_prefix(mut self, prefix: impl AsRef<Path>) -> Option<Self> {
+        match &mut self {
+            MediaContent::Movie(movie_path) => movie_path
+                .strip_prefix(prefix.as_ref().to_string_lossy().as_ref())
+                .map(|stripped_path| {
+                    Self::Movie(stripped_path.trim_start_matches('/').to_string())
+                }),
+            MediaContent::Series(hash_map) => {
+                for season in hash_map.values_mut() {
+                    let prefix_removed = season
+                        .values()
+                        .map(|path| {
+                            path.strip_prefix(prefix.as_ref().to_string_lossy().as_ref())
+                                .map(|str| str.trim_start_matches('/').to_string())
+                        })
+                        .collect::<Option<Box<[_]>>>()?;
+
+                    season
+                        .values_mut()
+                        .zip(prefix_removed)
+                        .for_each(|(value, new_path)| {
+                            *value = new_path;
+                        });
+                }
+                Some(self)
+            }
+        }
+    }
+}
+
+/// Episode no -> path
+pub type SeasonContents = HashMap<u32, String>;
+/// Season no -> season contents
+pub type SeriesContents = HashMap<u32, SeasonContents>;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct MediaMetaData {

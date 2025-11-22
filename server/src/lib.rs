@@ -1,3 +1,5 @@
+pub mod crawl;
+pub mod dir;
 pub mod download_handlers;
 pub mod prepare;
 pub mod service;
