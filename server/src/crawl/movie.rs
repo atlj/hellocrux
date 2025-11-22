@@ -19,7 +19,18 @@ pub(super) async fn try_extract_movie_paths(
         Some(path.to_string_lossy().to_string())
     });
 
-    let subtitles = try_extract_subtitles(path.as_ref().join("subtitles")).await?;
+    let subtitles = {
+        let path = path.as_ref().join("subtitles");
+        if tokio::fs::try_exists(&path)
+            .await
+            .map_err(|_| super::Error::CantReadDir(path.clone()))?
+        {
+            Some(try_extract_subtitles(&path).await?)
+        } else {
+            None
+        }
+    }
+    .unwrap_or(Box::new([]));
 
     Ok(media.map(|media| domain::MediaPaths { media, subtitles }))
 }

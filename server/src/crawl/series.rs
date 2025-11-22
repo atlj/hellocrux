@@ -121,12 +121,15 @@ async fn try_extract_subtitles(
 
             None
         })
-        .flat_map(parse_subtitle_name)
+        .flat_map(|path| {
+            parse_subtitle_name(&path)
+                .map(|(episode_no, language, name)| (path, episode_no, language, name))
+        })
         .fold(
             HashMap::new(),
-            |mut map: HashMap<usize, Vec<Subtitle>>, (episode_no, language, name)| {
+            |mut map: HashMap<usize, Vec<Subtitle>>, (path, episode_no, language, name)| {
                 let subtitle = Subtitle {
-                    path: path.as_ref().to_string_lossy().to_string(),
+                    path: path.to_string_lossy().to_string(),
                     name,
                     language,
                 };
