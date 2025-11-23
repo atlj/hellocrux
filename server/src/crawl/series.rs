@@ -157,12 +157,12 @@ fn parse_subtitle_name(path: impl AsRef<Path>) -> Option<(usize, LanguageCode, S
         },
     )? as usize;
     let language_code = {
-        let mut iter = file_stem.chars().skip_while(|char| char.is_ascii_digit());
-        match (iter.next(), iter.next()) {
-            (Some(a), Some(b)) => Some([a, b]),
-            _ => None,
-        }
-    }?;
+        let start_index = file_stem.find(|char: char| !char.is_ascii_digit())?;
+        file_stem
+            .get(start_index..start_index + 2)?
+            .try_into()
+            .ok()?
+    };
     let name = file_stem
         .chars()
         .skip_while(|char| char.is_ascii_digit())

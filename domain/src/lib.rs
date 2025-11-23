@@ -1,6 +1,8 @@
 pub mod format;
+pub mod language;
 pub mod series;
 
+pub use language::LanguageCode;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::Path};
 
@@ -34,8 +36,6 @@ pub struct Subtitle {
     pub language: LanguageCode,
     pub path: String,
 }
-
-pub type LanguageCode = [char; 2];
 
 impl MediaPaths {
     fn strip_prefix(&self, prefix: impl AsRef<Path>) -> Option<Self> {

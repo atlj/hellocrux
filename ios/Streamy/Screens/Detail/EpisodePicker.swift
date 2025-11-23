@@ -1,8 +1,9 @@
+import SharedTypes
 import SwiftUI
 
 struct EpisodePicker: View {
     let id: String
-    let series: [UInt32: [UInt32: String]]
+    let series: [UInt32: [UInt32: MediaPaths]]
     @State private var season = 1
     @EnvironmentObject var core: Core
 
@@ -11,8 +12,8 @@ struct EpisodePicker: View {
 
         for (seasonNumber, episodes) in series {
             var children = [Season]()
-            for (episodeNumber, source) in episodes {
-                children.append(Season(data: .episode(Int(seasonNumber), Int(episodeNumber), source)))
+            for (episodeNumber, _) in episodes {
+                children.append(Season(data: .episode(Int(seasonNumber), Int(episodeNumber))))
             }
             children.sort { $0.number < $1.number }
             seasons.append(Season(data: .season(Int(seasonNumber)), children: children))
@@ -28,7 +29,7 @@ struct EpisodePicker: View {
             case let .season(seasonId):
                 Text("Season \(seasonId)")
                     .font(.title3)
-            case let .episode(seasonId, episodeId, _):
+            case let .episode(seasonId, episodeId):
                 Button {
                     core.update(.play(.fromCertainEpisode(id: id, episode: .init(season_no: UInt32(seasonId), episode_no: UInt32(episodeId)))))
                 } label: {
@@ -48,9 +49,9 @@ struct EpisodePicker: View {
         EpisodePicker(
             id: "test", series: [
                 1: [
-                    8: "",
-                    1: "",
-                    2: "",
+                    8: .init(media: "", subtitles: []),
+                    1: .init(media: "", subtitles: []),
+                    2: .init(media: "", subtitles: []),
                 ],
                 2: [:],
             ]
@@ -68,7 +69,7 @@ struct Season: Hashable, Identifiable {
         switch data {
         case let .season(seasonNumber):
             seasonNumber
-        case let .episode(_, episodeNumber, _):
+        case let .episode(_, episodeNumber):
             episodeNumber
         }
     }
@@ -76,5 +77,5 @@ struct Season: Hashable, Identifiable {
 
 enum SeasonData: Hashable {
     case season(Int)
-    case episode(Int, Int, String)
+    case episode(Int, Int)
 }
