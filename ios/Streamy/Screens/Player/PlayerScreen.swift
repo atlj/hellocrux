@@ -25,7 +25,7 @@ struct PlayerScreen: View {
 
 #Preview {
     PlayerScreen(
-        overrideData: .init(position: .movie(id: "1", position_seconds: 0), url: "http://localhost:3000/static/jaho/recording.mov", title: "Test", next_episode: nil)
+        overrideData: .init(position: .movie(id: "1", position_seconds: 0), media_paths: .init(media: "", subtitles: []), title: "Test", next_episode: nil)
     )
     .environmentObject(Core())
 }

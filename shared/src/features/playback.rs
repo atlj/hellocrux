@@ -1,5 +1,5 @@
 use crux_core::{Command, render::render};
-use domain::{MediaContent, series::EpisodeIdentifier};
+use domain::{MediaContent, MediaPaths, Subtitle, series::EpisodeIdentifier};
 use futures::join;
 use partially::Partial;
 use serde::{Deserialize, Serialize};
@@ -24,7 +24,7 @@ pub struct PlaybackModel {
 #[derive(Serialize, Deserialize, Partial, Clone, Debug)]
 pub struct ActivePlayerData {
     pub position: PlaybackPosition,
-    pub url: String,
+    pub media_paths: MediaPaths,
     pub title: String,
     pub next_episode: Option<EpisodeIdentifier>,
 }
@@ -139,12 +139,29 @@ pub fn handle_play(model: &mut Model, play_event: PlayEvent) -> Command<Effect, 
                         next_episode: None,
                         position: playback_data,
                         title: media_item.metadata.title.clone(),
-                        url: base_url_clone
-                            .join("static/")
-                            .unwrap()
-                            .join(&content.media)
-                            .unwrap()
-                            .to_string(),
+                        media_paths: {
+                            MediaPaths {
+                                media: base_url_clone
+                                    .join("static/")
+                                    .unwrap()
+                                    .join(&content.media)
+                                    .unwrap()
+                                    .to_string(),
+                                subtitles: content
+                                    .subtitles
+                                    .into_iter()
+                                    .map(|subtitle| Subtitle {
+                                        path: base_url_clone
+                                            .join("static/")
+                                            .unwrap()
+                                            .join(&subtitle.path)
+                                            .unwrap()
+                                            .to_string(),
+                                        ..subtitle
+                                    })
+                                    .collect(),
+                            }
+                        },
                     }),
                 }
             }
@@ -154,7 +171,7 @@ pub fn handle_play(model: &mut Model, play_event: PlayEvent) -> Command<Effect, 
                 );
 
                 let season = episodes.get(&defaulted_episode_id.season_no).unwrap();
-                let episode_path = season.get(&defaulted_episode_id.episode_no).unwrap();
+                let media_paths = season.get(&defaulted_episode_id.episode_no).unwrap();
                 let title = format!(
                     "{} S{} E{}",
                     &media_item.metadata.title,
@@ -173,12 +190,29 @@ pub fn handle_play(model: &mut Model, play_event: PlayEvent) -> Command<Effect, 
                         next_episode: None,
                         position: playback_data,
                         title,
-                        url: base_url_clone
-                            .join("static/")
-                            .unwrap()
-                            .join(episode_path.media.as_ref())
-                            .unwrap()
-                            .to_string(),
+                        media_paths: {
+                            MediaPaths {
+                                media: base_url_clone
+                                    .join("static/")
+                                    .unwrap()
+                                    .join(&media_paths.media)
+                                    .unwrap()
+                                    .to_string(),
+                                subtitles: media_paths
+                                    .subtitles
+                                    .iter()
+                                    .map(|subtitle| Subtitle {
+                                        path: base_url_clone
+                                            .join("static/")
+                                            .unwrap()
+                                            .join(&subtitle.path)
+                                            .unwrap()
+                                            .to_string(),
+                                        ..subtitle.clone()
+                                    })
+                                    .collect(),
+                            }
+                        },
                     }),
                 }
             }

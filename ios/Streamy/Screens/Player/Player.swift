@@ -8,6 +8,11 @@ struct Player: UIViewControllerRepresentable {
 
     var url: URL {
         URL(string: data.url)!
+        URL(string: data.media_paths.media)!
+    }
+
+    var subtitles: [Subtitle] {
+        data.media_paths.subtitles
     }
 
     static var sharedPlayer: AVPlayer?
