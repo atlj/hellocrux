@@ -131,7 +131,7 @@ async fn try_extract_subtitles(
                 let subtitle = Subtitle {
                     path: path.to_string_lossy().to_string(),
                     name,
-                    language,
+                    language_iso639_2t: language.to_iso639_2t().to_string(),
                 };
 
                 if let Some(entry) = map.get_mut(&episode_no) {

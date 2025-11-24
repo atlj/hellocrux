@@ -33,7 +33,7 @@ pub struct MediaPaths {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Subtitle {
     pub name: String,
-    pub language: LanguageCode,
+    pub language_iso639_2t: String,
     pub path: String,
 }
 

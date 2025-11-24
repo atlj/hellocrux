@@ -62,7 +62,7 @@ async fn try_extract_subtitles(path: impl AsRef<Path>) -> Result<Box<[Subtitle]>
         })
         .map(|(path, language, name)| Subtitle {
             name,
-            language,
+            language_iso639_2t: language.to_iso639_2t().to_string(),
             path,
         })
         .collect();
