@@ -114,7 +114,7 @@ async fn try_extract_subtitles(
             }
 
             if let Some(extension) = path.extension() {
-                if extension == "srt" {
+                if extension == "mp4" {
                     return Some(path);
                 }
             }
