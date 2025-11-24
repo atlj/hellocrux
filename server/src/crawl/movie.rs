@@ -72,8 +72,8 @@ async fn try_extract_subtitles(path: impl AsRef<Path>) -> Result<Box<[Subtitle]>
 
 fn parse_subtitle_name(path: impl AsRef<Path>) -> Option<(LanguageCode, String)> {
     let file_stem = path.as_ref().file_stem()?.to_str()?;
-    let language_code: LanguageCode = file_stem.get(0..2)?.try_into().ok()?;
-    let name: String = file_stem.chars().skip(2).collect();
+    let language_code: LanguageCode = file_stem.get(0..3)?.try_into().ok()?;
+    let name: String = file_stem.chars().skip(3).collect();
 
     Some((language_code, name))
 }

@@ -159,14 +159,14 @@ fn parse_subtitle_name(path: impl AsRef<Path>) -> Option<(usize, LanguageCode, S
     let language_code = {
         let start_index = file_stem.find(|char: char| !char.is_ascii_digit())?;
         file_stem
-            .get(start_index..start_index + 2)?
+            .get(start_index..start_index + 3)?
             .try_into()
             .ok()?
     };
     let name = file_stem
         .chars()
         .skip_while(|char| char.is_ascii_digit())
-        .skip(2)
+        .skip(3)
         .collect::<String>();
     Some((episode_no, language_code, name))
 }
