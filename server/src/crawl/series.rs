@@ -175,7 +175,9 @@ fn parse_subtitle_name(path: impl AsRef<Path>) -> Option<(usize, LanguageCode, S
 mod tests {
     use std::path::PathBuf;
 
-    use crate::crawl::series::{try_extract_season, try_extract_series};
+    use domain::LanguageCode;
+
+    use crate::crawl::series::{parse_subtitle_name, try_extract_season, try_extract_series};
 
     #[tokio::test]
     async fn extract_series() {
@@ -220,16 +222,21 @@ mod tests {
     async fn extract_season() {
         let test_data_path: PathBuf = concat!(env!("CARGO_MANIFEST_DIR"), "/test-data").into();
         let path = test_data_path.join("crawl/example_series");
+        let result = try_extract_season(path.join("1")).await.unwrap().unwrap();
+        let first_episode = result.get(&1).unwrap();
+        assert!(first_episode.media.contains("1.mp4"));
 
-        assert!(
-            try_extract_season(path.join("1"))
-                .await
-                .unwrap()
-                .unwrap()
-                .get(&1)
-                .unwrap()
-                .media
-                .contains("1.mp4")
+        let subtitles = first_episode.subtitles.get(0).unwrap();
+        assert!(subtitles.path.contains("turheyyyy.mp4"));
+        assert_eq!(subtitles.language_iso639_2t, "tur");
+        assert_eq!(subtitles.name, "heyyyy");
+    }
+
+    #[test]
+    fn subtitle_name() {
+        assert_eq!(
+            parse_subtitle_name("0231enghey.srt").unwrap(),
+            (231, LanguageCode::English, "hey".to_string())
         );
     }
 }

@@ -82,19 +82,27 @@ fn parse_subtitle_name(path: impl AsRef<Path>) -> Option<(LanguageCode, String)>
 mod tests {
     use std::path::PathBuf;
 
-    use crate::crawl::movie::try_extract_movie_paths;
+    use domain::LanguageCode;
+
+    use crate::crawl::movie::{parse_subtitle_name, try_extract_movie_paths};
 
     #[tokio::test]
     async fn extract_movie_path() {
         let test_data_path: PathBuf = concat!(env!("CARGO_MANIFEST_DIR"), "/test-data").into();
         let path = test_data_path.join("crawl/example_movie");
-        assert!(
-            try_extract_movie_paths(path)
-                .await
-                .unwrap()
-                .unwrap()
-                .media
-                .contains("hey.mp4")
+        let result = try_extract_movie_paths(&path).await.unwrap().unwrap();
+        assert!(result.media.contains("hey.mp4"));
+        let subtitles = result.subtitles.get(0).unwrap();
+        assert!(subtitles.path.contains("engSubs.mp4"));
+        assert_eq!(subtitles.language_iso639_2t, "eng");
+        assert_eq!(subtitles.name, "Subs");
+    }
+
+    #[test]
+    fn subtitle_name() {
+        assert_eq!(
+            parse_subtitle_name("turSubtitlesx265.vtt").unwrap(),
+            (LanguageCode::Turkish, "Subtitlesx265".to_string())
         );
     }
 }
