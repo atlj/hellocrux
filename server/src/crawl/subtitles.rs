@@ -118,7 +118,45 @@ mod tests {
 
     use domain::LanguageCode;
 
-    use crate::crawl::subtitles::{explore_subtitles, parse_subtitle_name};
+    use crate::crawl::subtitles::{explore_subtitles, generate_subtitle_mp4, parse_subtitle_name};
+
+    #[tokio::test]
+    async fn test_generate_mp4_subtitle() {
+        let test_data_path: PathBuf = concat!(env!("CARGO_MANIFEST_DIR"), "/test-data").into();
+        let _ = tokio::fs::remove_dir_all(test_data_path.join("tmp/crawl/mp4_subs")).await;
+        tokio::fs::create_dir_all(test_data_path.join("tmp/crawl/mp4_subs"))
+            .await
+            .unwrap();
+
+        let path = test_data_path.join("crawl/subs");
+        generate_subtitle_mp4(
+            path.join("turexample_subs.vtt"),
+            ("example_subs".to_string(), LanguageCode::Turkish, None),
+        )
+        .await
+        .unwrap();
+
+        assert!(
+            tokio::fs::try_exists(path.join("turexample_subs.mp4"))
+                .await
+                .unwrap()
+        );
+
+        tokio::fs::remove_file(path.join("turexample_subs.mp4"))
+            .await
+            .unwrap();
+        generate_subtitle_mp4(
+            path.join("turexample_subs.srt"),
+            ("example_subs".to_string(), LanguageCode::Turkish, None),
+        )
+        .await
+        .unwrap();
+        assert!(
+            tokio::fs::try_exists(path.join("turexample_subs.mp4"))
+                .await
+                .unwrap()
+        );
+    }
 
     #[tokio::test]
     async fn subtitle_pairs() {
