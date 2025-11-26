@@ -5,37 +5,67 @@ use std::{
 
 use super::{Error, Result};
 use domain::{LanguageCode, Subtitle};
+use log::{info, warn};
 
-async fn try_generate_movie_subtitles(path: impl AsRef<Path>) -> Result<Option<Subtitle>> {
-    todo!()
-}
-
-async fn generate_subtitle_mp4(
+pub async fn try_generate_series_subtitles(
     path: impl AsRef<Path>,
-    explored_subtitle: ExploredSubtitle,
-) -> Result<()> {
-    crate::ffmpeg::ffmpeg([
-        // Input
-        "-i",
-        path.as_ref().to_string_lossy().to_string().as_str(),
-        // Encode subtitles as mov_text which works with AVPlayer
-        "-c:s",
-        "mov_text",
-        // Set language
-        "-metadata:s:s:0",
-        format!("language={}", explored_subtitle.1.to_iso639_1()).as_str(),
-        // Always overwrite
-        "-y",
-        // Output
-        path.as_ref()
-            .with_extension("mp4")
-            .to_string_lossy()
-            .to_string()
-            .as_str(),
-    ])
-    .await?;
+) -> Result<HashMap<usize, Vec<Subtitle>>> {
+    let explored_subtitles = explore_subtitles(&path).await?;
 
-    Ok(())
+    let mp4_subtitles_features = explored_subtitles
+        .iter()
+        .flat_map(
+            |(path, (explored_subtitle, mp4_exists))| match explored_subtitle {
+                Some(subtitle) if !mp4_exists => Some((path, subtitle)),
+                _ => None,
+            },
+        )
+        .map(|(path, explored_subtitle)| async {
+            info!("Generating mp4 subtitle for {}", path.display());
+            generate_subtitle_mp4(path.with_extension(&explored_subtitle.3), explored_subtitle)
+                .await
+        });
+
+    let mp4_subtitle_generation_results = futures::future::join_all(mp4_subtitles_features).await;
+    if let Some(err_result) = mp4_subtitle_generation_results
+        .into_iter()
+        .find(|result| result.is_err())
+    {
+        err_result?;
+    }
+
+    let result: HashMap<usize, Vec<Subtitle>> = explored_subtitles
+        .into_iter()
+        .fold(HashMap::new(), |mut map, (path, (explored_subtitle, _))| {
+            let explored_subtitle = if let Some(subs) = explored_subtitle {subs} else {
+                warn!(
+                    "An mp4 subtitle found but there is no text file for it. Ignoring it. Path: {}",
+                    path.display()
+                );
+
+                return map
+            };
+
+            let episode_number = if let Some(num) = explored_subtitle.2 {
+                num
+            } else {
+                warn!("A subtitle at {} was crawled for a series but it doesn't have an episode number. Ignoring it.", path.display());
+
+                return map
+            };
+
+            let subs_vec = map.entry(episode_number).or_default();
+
+            subs_vec.push(Subtitle {
+                name: explored_subtitle.0,
+                language_iso639_2t: explored_subtitle.1.to_iso639_2t().to_string(),
+                path: path.to_string_lossy().to_string()
+            });
+
+            map
+        });
+
+    Ok(result)
 }
 
 async fn explore_subtitles(
@@ -72,7 +102,7 @@ async fn explore_subtitles(
                 "mp4" => entry.1 = true,
                 "srt" | "vtt" => entry.0 = Some(explored_subtitle),
                 _ => unreachable!(
-                    "Non supported extensions should've been eliminated. Extension: {extension}"
+                    "Non supported extensions should've been eleminated. Extension: {extension}"
                 ),
             }
         }
@@ -83,7 +113,7 @@ async fn explore_subtitles(
     Ok(mapping)
 }
 
-type ExploredSubtitle = (String, LanguageCode, Option<usize>);
+type ExploredSubtitle = (String, LanguageCode, Option<usize>, String);
 
 fn parse_subtitle_name(path: impl AsRef<Path>) -> Option<ExploredSubtitle> {
     let file_stem = path.as_ref().file_stem()?.to_str()?;
@@ -109,7 +139,37 @@ fn parse_subtitle_name(path: impl AsRef<Path>) -> Option<ExploredSubtitle> {
         .skip(3)
         .collect::<String>();
 
-    Some((name, language_code, episode_no))
+    let extension = path.as_ref().extension()?.to_str()?;
+
+    Some((name, language_code, episode_no, extension.to_string()))
+}
+
+async fn generate_subtitle_mp4(
+    path: impl AsRef<Path>,
+    explored_subtitle: &ExploredSubtitle,
+) -> Result<()> {
+    crate::ffmpeg::ffmpeg([
+        // Input
+        "-i",
+        path.as_ref().to_string_lossy().as_ref(),
+        // Encode subtitles as mov_text which works with AVPlayer
+        "-c:s",
+        "mov_text",
+        // Set language
+        "-metadata:s:s:0",
+        format!("language={}", explored_subtitle.1.to_iso639_1()).as_str(),
+        // Always overwrite
+        "-y",
+        // Output
+        // TODO: perhaps remove this to string abomination
+        path.as_ref()
+            .with_extension("mp4")
+            .to_string_lossy()
+            .as_ref(),
+    ])
+    .await?;
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -131,7 +191,12 @@ mod tests {
         let path = test_data_path.join("crawl/subs");
         generate_subtitle_mp4(
             path.join("turexample_subs.vtt"),
-            ("example_subs".to_string(), LanguageCode::Turkish, None),
+            &(
+                "example_subs".to_string(),
+                LanguageCode::Turkish,
+                None,
+                "vtt".to_string(),
+            ),
         )
         .await
         .unwrap();
@@ -147,7 +212,12 @@ mod tests {
             .unwrap();
         generate_subtitle_mp4(
             path.join("turexample_subs.srt"),
-            ("example_subs".to_string(), LanguageCode::Turkish, None),
+            &(
+                "example_subs".to_string(),
+                LanguageCode::Turkish,
+                None,
+                "srt".to_string(),
+            ),
         )
         .await
         .unwrap();
@@ -166,15 +236,30 @@ mod tests {
         let values: Box<[_]> = result.into_values().collect();
 
         assert!(values.contains(&(
-            Some(("heyyy".to_string(), LanguageCode::English, Some(2,),)),
+            Some((
+                "heyyy".to_string(),
+                LanguageCode::English,
+                Some(2),
+                "vtt".to_string()
+            )),
             false,
         ),));
         assert!(values.contains(&(
-            Some(("hey".to_string(), LanguageCode::Turkish, Some(1))),
+            Some((
+                "hey".to_string(),
+                LanguageCode::Turkish,
+                Some(1),
+                "srt".to_string()
+            )),
             true
         )));
         assert!(values.contains(&(
-            Some(("nope".to_string(), LanguageCode::English, None)),
+            Some((
+                "nope".to_string(),
+                LanguageCode::English,
+                None,
+                "srt".to_string()
+            )),
             false
         )));
     }
@@ -183,11 +268,21 @@ mod tests {
     fn subtitle_name() {
         assert_eq!(
             parse_subtitle_name("0231enghey.srt").unwrap(),
-            ("hey".to_string(), LanguageCode::English, Some(231))
+            (
+                "hey".to_string(),
+                LanguageCode::English,
+                Some(231),
+                "srt".to_string()
+            )
         );
         assert_eq!(
             parse_subtitle_name("enghey.srt").unwrap(),
-            ("hey".to_string(), LanguageCode::English, None)
+            (
+                "hey".to_string(),
+                LanguageCode::English,
+                None,
+                "srt".to_string()
+            )
         );
         assert!(parse_subtitle_name("a.srt").is_none());
     }
