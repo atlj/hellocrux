@@ -226,7 +226,7 @@ mod tests {
         let first_episode = result.get(&1).unwrap();
         assert!(first_episode.media.contains("1.mp4"));
 
-        let subtitles = first_episode.subtitles.get(0).unwrap();
+        let subtitles = first_episode.subtitles.first().unwrap();
         assert!(subtitles.path.contains("turheyyyy.mp4"));
         assert_eq!(subtitles.language_iso639_2t, "tur");
         assert_eq!(subtitles.name, "heyyyy");

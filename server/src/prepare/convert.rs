@@ -1,4 +1,4 @@
-use std::{path::Path, process::Stdio};
+use std::path::Path;
 
 use domain::MediaStream;
 use log::info;
@@ -67,34 +67,7 @@ pub async fn convert_media(input_path: &Path, output_path: &Path) -> super::Resu
             args
         };
 
-        let result = tokio::process::Command::new("ffmpeg")
-            .args(&args)
-            .stdout(Stdio::piped())
-            .kill_on_drop(true)
-            .output()
-            .await
-            .map_err(|err| {
-                super::Error::ConvertError(format!("Couldn't spawn ffmpeg. Reason: {err}").into())
-            })?;
-
-        if !result.status.success() {
-            return Err(super::Error::ConvertError(
-                format!(
-                    "ffmpeg exited with non-zero status. stdout: {:?}, stderr: {:?}",
-                    result
-                        .stdout
-                        .into_iter()
-                        .map(|byte| byte as char)
-                        .collect::<String>(),
-                    result
-                        .stderr
-                        .into_iter()
-                        .map(|byte| byte as char)
-                        .collect::<String>()
-                )
-                .into(),
-            ));
-        }
+        crate::ffmpeg::ffmpeg(args).await?;
     }
 
     Ok(())
@@ -106,55 +79,28 @@ pub async fn get_codec(media_file: &Path, stream_type: &MediaStream) -> super::R
         MediaStream::Audio => 'a',
     };
 
-    let result = tokio::process::Command::new("ffprobe")
-        .args([
-            // Error on empty
-            "-v",
-            "error",
-            // Select the first video stream
-            "-select_streams",
-            &format!("{stream_identifier}:0"),
-            // Show the codec name
-            "-show_entries",
-            "stream=codec_name",
-            // Don't print anything unuseful
-            "-of",
-            "default=noprint_wrappers=1:nokey=1",
-            &media_file.as_os_str().to_string_lossy(),
-        ])
-        .stdout(Stdio::piped())
-        .kill_on_drop(true)
-        .output()
-        .await
-        .map_err(|err| {
-            super::Error::ConvertError(format!("Couldn't spawn ffmpeg. Reason: {err}").into())
-        })?;
-
-    if !result.status.success() {
-        return Err(super::Error::ConvertError(
-            format!(
-                "ffprobe exited with non-zero status. stdout: {:?}, stderr: {:?}",
-                result
-                    .stdout
-                    .into_iter()
-                    .map(|byte| byte as char)
-                    .collect::<String>(),
-                result
-                    .stderr
-                    .into_iter()
-                    .map(|byte| byte as char)
-                    .collect::<String>()
-            )
-            .into(),
-        ));
-    }
+    let result = crate::ffmpeg::ffprobe([
+        // Error on empty
+        "-v",
+        "error",
+        // Select the first video stream
+        "-select_streams",
+        &format!("{stream_identifier}:0"),
+        // Show the codec name
+        "-show_entries",
+        "stream=codec_name",
+        // Don't print anything unuseful
+        "-of",
+        "default=noprint_wrappers=1:nokey=1",
+        &media_file.as_os_str().to_string_lossy(),
+    ])
+    .await?;
 
     Ok(result
-        .stdout
-        .into_iter()
-        .flat_map(|byte| match byte as char {
+        .chars()
+        .flat_map(|char| match char {
             '\n' => None,
-            _ => Some(byte as char),
+            _ => Some(char),
         })
         .collect())
 }

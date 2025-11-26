@@ -1,6 +1,7 @@
 pub mod crawl;
 pub mod dir;
 pub mod download_handlers;
+pub mod ffmpeg;
 pub mod prepare;
 pub mod service;
 pub mod signal;

@@ -9,6 +9,7 @@ use tokio::{fs::OpenOptions, io::AsyncReadExt};
 
 mod movie;
 mod series;
+mod subtitles;
 
 pub(crate) async fn crawl_all_folders(path: impl AsRef<Path> + Display) -> Option<Box<[Media]>> {
     let read_dir = crate::dir::fully_read_dir(&path)
@@ -142,6 +143,7 @@ pub enum Error {
     CantReadMetadata,
     NoMediaContent,
     CantReadDir(PathBuf),
+    CantConvertSubtitle(crate::ffmpeg::Error),
 }
 
 impl From<serde_json::Error> for Error {
@@ -158,8 +160,18 @@ impl std::fmt::Display for Error {
             Error::CantReadMetadata => f.write_str("Couldn't read metadata"),
             Error::NoMediaContent => f.write_str("No media content"),
             Error::CantReadDir(path_buf) => write!(f, "Couldn't read {:#?}", path_buf),
+            Error::CantConvertSubtitle(ffmpeg_error) => write!(
+                f,
+                "Couldn't convert subtitle to .mp4 file. Reason: {ffmpeg_error}"
+            ),
         }
     }
 }
 
 impl std::error::Error for Error {}
+
+impl From<crate::ffmpeg::Error> for Error {
+    fn from(value: crate::ffmpeg::Error) -> Self {
+        Self::CantConvertSubtitle(value)
+    }
+}

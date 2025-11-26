@@ -92,7 +92,7 @@ mod tests {
         let path = test_data_path.join("crawl/example_movie");
         let result = try_extract_movie_paths(&path).await.unwrap().unwrap();
         assert!(result.media.contains("hey.mp4"));
-        let subtitles = result.subtitles.get(0).unwrap();
+        let subtitles = result.subtitles.first().unwrap();
         assert!(subtitles.path.contains("engSubs.mp4"));
         assert_eq!(subtitles.language_iso639_2t, "eng");
         assert_eq!(subtitles.name, "Subs");

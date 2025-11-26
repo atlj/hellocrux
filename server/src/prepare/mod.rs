@@ -12,25 +12,6 @@ use log::info;
 mod convert;
 mod moving;
 
-pub type Result<T> = core::result::Result<T, Error>;
-
-#[derive(Debug, Clone)]
-pub enum Error {
-    ConvertError(Box<str>),
-    MoveError(Box<str>),
-    PrepareError(Box<str>),
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(match self {
-            Error::ConvertError(message) => message,
-            Error::MoveError(message) => message,
-            Error::PrepareError(message) => message,
-        })
-    }
-}
-
 pub async fn prepare_movie(
     media_dir: &Path,
     source_dir: &Path,
@@ -387,5 +368,26 @@ mod tests {
             }
         }
         Ok(())
+    }
+}
+
+pub type Result<T> = core::result::Result<T, Error>;
+
+#[derive(Debug)]
+pub enum Error {
+    MoveError(Box<str>),
+    ConvertError(Box<str>),
+    PrepareError(Box<str>),
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{self:#?}"))
+    }
+}
+
+impl From<crate::ffmpeg::Error> for Error {
+    fn from(value: crate::ffmpeg::Error) -> Self {
+        Self::ConvertError(value.to_string().into_boxed_str())
     }
 }
