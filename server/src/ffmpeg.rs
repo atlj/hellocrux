@@ -13,7 +13,7 @@ pub async fn ffmpeg(args: impl IntoIterator<Item = impl AsRef<OsStr>>) -> Result
         let message: String = result
             .stdout
             .into_iter()
-            .chain(std::iter::once('\n' as u8))
+            .chain(std::iter::once(b'\n'))
             .chain(result.stderr)
             .map(|byte| byte as char)
             .collect();
@@ -37,7 +37,7 @@ pub async fn ffprobe(args: impl IntoIterator<Item = impl AsRef<OsStr>>) -> Resul
         let message: String = result
             .stdout
             .into_iter()
-            .chain(std::iter::once('\n' as u8))
+            .chain(std::iter::once(b'\n'))
             .chain(result.stderr)
             .map(|byte| byte as char)
             .collect();

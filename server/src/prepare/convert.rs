@@ -55,6 +55,8 @@ pub async fn convert_media(input_path: &Path, output_path: &Path) -> super::Resu
                 // Copy everything
                 "-c",
                 "copy",
+                // Always overwrite
+                "-y",
             ];
 
             // Override the tag for hevc
