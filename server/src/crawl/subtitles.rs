@@ -23,9 +23,9 @@ async fn generate_subtitle_mp4(
         "mov_text",
         // Set language
         "-metadata:s:s:0",
+        format!("language={}", explored_subtitle.1.to_iso639_1()).as_str(),
         // Always overwrite
         "-y",
-        format!("language={}", explored_subtitle.1.to_iso639_2t()).as_str(),
         // Output
         path.as_ref()
             .with_extension("mp4")
