@@ -62,9 +62,9 @@ struct Player: UIViewControllerRepresentable {
             await withTaskGroup(of: Void.self) { taskGroup in
                 for subtitle in subtitles {
                     taskGroup.addTask {
-                        let subtitleAsset = AVURLAsset(url: URL(string: subtitle.path)!)
+                        let subtitleAsset = AVURLAsset(url: URL(string: subtitle.track_path)!)
                         guard let loadedSubtitleTrack = try? await subtitleAsset.loadTracks(withMediaType: .subtitle).first else {
-                            await Self.logger.warning("Couldn't load subtitle track with path \(subtitle.path)")
+                            await Self.logger.warning("Couldn't load subtitle track with path \(subtitle.track_path)")
                             return
                         }
 
