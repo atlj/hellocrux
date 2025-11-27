@@ -7,6 +7,53 @@ use super::{Error, Result};
 use domain::{LanguageCode, Subtitle};
 use log::{info, warn};
 
+// TODO reduce duplication between this and series subtitles
+pub async fn try_generate_movie_subtitles(path: impl AsRef<Path>) -> Result<Vec<Subtitle>> {
+    let explored_subtitles = explore_subtitles(&path).await?;
+
+    let mp4_subtitles_features = explored_subtitles
+        .iter()
+        .flat_map(
+            |(path, (explored_subtitle, mp4_exists))| match explored_subtitle {
+                Some(subtitle) if !mp4_exists => Some((path, subtitle)),
+                _ => None,
+            },
+        )
+        .map(|(path, explored_subtitle)| async {
+            info!("Generating mp4 subtitle for {}", path.display());
+            generate_subtitle_mp4(path.with_extension(&explored_subtitle.3), explored_subtitle)
+                .await
+        });
+
+    let mp4_subtitle_generation_results = futures::future::join_all(mp4_subtitles_features).await;
+    if let Some(err_result) = mp4_subtitle_generation_results
+        .into_iter()
+        .find(|result| result.is_err())
+    {
+        err_result?;
+    }
+
+    let result: Vec<Subtitle> = explored_subtitles
+        .into_iter()
+        .flat_map(|(path, (explored_subtitle, _))| match explored_subtitle {
+            Some(explored_subtitle) => Some(Subtitle {
+                name: explored_subtitle.0,
+                language_iso639_2t: explored_subtitle.1.to_iso639_2t().to_string(),
+                path: path.to_string_lossy().to_string(),
+            }),
+            None => {
+                warn!(
+                    "An mp4 subtitle found but there is no text file for it. Ignoring it. Path: {}",
+                    path.display()
+                );
+                None
+            }
+        })
+        .collect();
+
+    Ok(result)
+}
+
 pub async fn try_generate_series_subtitles(
     path: impl AsRef<Path>,
 ) -> Result<HashMap<usize, Vec<Subtitle>>> {
@@ -180,8 +227,36 @@ mod tests {
 
     use crate::crawl::subtitles::{
         explore_subtitles, generate_subtitle_mp4, parse_subtitle_name,
-        try_generate_series_subtitles,
+        try_generate_movie_subtitles, try_generate_series_subtitles,
     };
+
+    #[tokio::test]
+    async fn generate_movie_subtitles() {
+        let test_data_path: PathBuf = concat!(env!("CARGO_MANIFEST_DIR"), "/test-data").into();
+        let _ = tokio::fs::remove_dir_all(test_data_path.join("tmp/crawl/subtitles/movie")).await;
+        tokio::fs::create_dir_all(test_data_path.join("tmp/crawl/subtitles/movie"))
+            .await
+            .unwrap();
+        copy_dir_all(
+            test_data_path.join("crawl/generate_movie_subs"),
+            test_data_path.join("tmp/crawl/subtitles/movie"),
+        )
+        .unwrap();
+
+        let result = try_generate_movie_subtitles(test_data_path.join("tmp/crawl/subtitles/movie"))
+            .await
+            .unwrap();
+
+        assert!(result.len() == 2);
+
+        assert!(
+            tokio::fs::try_exists(
+                test_data_path.join("tmp/crawl/subtitles/movie/engexample_subs.mp4")
+            )
+            .await
+            .unwrap()
+        );
+    }
 
     #[tokio::test]
     async fn generate_series_subtitles() {
