@@ -1,5 +1,5 @@
 use crux_core::{Command, render::render};
-use domain::{MediaContent, MediaPaths, Subtitle, series::EpisodeIdentifier};
+use domain::{MediaContent, MediaPaths, series::EpisodeIdentifier};
 use futures::join;
 use partially::Partial;
 use serde::{Deserialize, Serialize};
@@ -140,27 +140,7 @@ pub fn handle_play(model: &mut Model, play_event: PlayEvent) -> Command<Effect, 
                         position: playback_data,
                         title: media_item.metadata.title.clone(),
                         media_paths: {
-                            MediaPaths {
-                                media: base_url_clone
-                                    .join("static/")
-                                    .unwrap()
-                                    .join(&content.media)
-                                    .unwrap()
-                                    .to_string(),
-                                subtitles: content
-                                    .subtitles
-                                    .into_iter()
-                                    .map(|subtitle| Subtitle {
-                                        path: base_url_clone
-                                            .join("static/")
-                                            .unwrap()
-                                            .join(&subtitle.path)
-                                            .unwrap()
-                                            .to_string(),
-                                        ..subtitle
-                                    })
-                                    .collect(),
-                            }
+                            content.add_prefix(base_url_clone.join("static/").unwrap().as_ref())
                         },
                     }),
                 }
@@ -190,29 +170,8 @@ pub fn handle_play(model: &mut Model, play_event: PlayEvent) -> Command<Effect, 
                         next_episode: None,
                         position: playback_data,
                         title,
-                        media_paths: {
-                            MediaPaths {
-                                media: base_url_clone
-                                    .join("static/")
-                                    .unwrap()
-                                    .join(&media_paths.media)
-                                    .unwrap()
-                                    .to_string(),
-                                subtitles: media_paths
-                                    .subtitles
-                                    .iter()
-                                    .map(|subtitle| Subtitle {
-                                        path: base_url_clone
-                                            .join("static/")
-                                            .unwrap()
-                                            .join(&subtitle.path)
-                                            .unwrap()
-                                            .to_string(),
-                                        ..subtitle.clone()
-                                    })
-                                    .collect(),
-                            }
-                        },
+                        media_paths: media_paths
+                            .add_prefix(base_url_clone.join("static/").unwrap().as_ref()),
                     }),
                 }
             }

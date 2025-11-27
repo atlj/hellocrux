@@ -35,10 +35,40 @@ pub struct Subtitle {
     pub name: String,
     pub language_iso639_2t: String,
     pub path: String,
+    /// A container such as mp4 that has a subtitle stream
+    pub track_path: String,
 }
 
 impl MediaPaths {
-    fn strip_prefix(&self, prefix: impl AsRef<Path>) -> Option<Self> {
+    pub fn add_prefix(&self, prefix: impl AsRef<Path>) -> Self {
+        let media = prefix
+            .as_ref()
+            .join(&self.media)
+            .to_string_lossy()
+            .to_string();
+
+        let subtitles = self
+            .subtitles
+            .iter()
+            .map(|subtitle| Subtitle {
+                path: prefix
+                    .as_ref()
+                    .join(&subtitle.path)
+                    .to_string_lossy()
+                    .to_string(),
+                track_path: prefix
+                    .as_ref()
+                    .join(&subtitle.track_path)
+                    .to_string_lossy()
+                    .to_string(),
+                ..subtitle.clone()
+            })
+            .collect();
+
+        Self { media, subtitles }
+    }
+
+    pub fn strip_prefix(&self, prefix: impl AsRef<Path>) -> Option<Self> {
         let media = self
             .media
             .strip_prefix(prefix.as_ref().to_string_lossy().as_ref())?
@@ -65,6 +95,23 @@ impl MediaPaths {
 }
 
 impl MediaContent {
+    pub fn add_prefix(mut self, prefix: impl AsRef<Path>) -> Self {
+        match &mut self {
+            MediaContent::Movie(media_paths) => {
+                *media_paths = media_paths.add_prefix(prefix);
+                self
+            }
+            MediaContent::Series(hash_map) => {
+                for season in hash_map.values_mut() {
+                    for episode in season.values_mut() {
+                        *episode = episode.add_prefix(&prefix);
+                    }
+                }
+                self
+            }
+        }
+    }
+
     pub fn strip_prefix(mut self, prefix: impl AsRef<Path>) -> Option<Self> {
         match &mut self {
             MediaContent::Movie(movie_path) => {
