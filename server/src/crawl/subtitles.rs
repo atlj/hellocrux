@@ -39,7 +39,10 @@ pub async fn try_generate_movie_subtitles(path: impl AsRef<Path>) -> Result<Vec<
             Some(explored_subtitle) => Some(Subtitle {
                 name: explored_subtitle.0,
                 language_iso639_2t: explored_subtitle.1.to_iso639_2t().to_string(),
-                path: path.to_string_lossy().to_string(),
+                path: path
+                    .with_extension(explored_subtitle.3)
+                    .to_string_lossy()
+                    .to_string(),
             }),
             None => {
                 warn!(
@@ -106,7 +109,7 @@ pub async fn try_generate_series_subtitles(
             subs_vec.push(Subtitle {
                 name: explored_subtitle.0,
                 language_iso639_2t: explored_subtitle.1.to_iso639_2t().to_string(),
-                path: path.to_string_lossy().to_string()
+                path: path.with_extension(explored_subtitle.3).to_string_lossy().to_string()
             });
 
             map

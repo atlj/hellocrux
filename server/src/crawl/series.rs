@@ -1,6 +1,6 @@
-use domain::{LanguageCode, SeriesContents, Subtitle};
+use domain::SeriesContents;
 
-use super::{Error, Result};
+use super::{Error, Result, subtitles::try_generate_series_subtitles};
 use std::{collections::HashMap, path::Path};
 
 pub(super) async fn try_extract_series(
@@ -57,7 +57,7 @@ async fn try_extract_season(path: impl AsRef<Path>) -> Result<Option<domain::Sea
             .await
             .map_err(|_| super::Error::CantReadDir(path.clone()))?
         {
-            Some(try_extract_subtitles(&path).await?)
+            Some(try_generate_series_subtitles(&path).await?)
         } else {
             None
         }
@@ -99,85 +99,11 @@ async fn try_extract_season(path: impl AsRef<Path>) -> Result<Option<domain::Sea
     Ok(Some(result))
 }
 
-async fn try_extract_subtitles(
-    path: impl AsRef<Path>,
-) -> super::Result<HashMap<usize, Vec<Subtitle>>> {
-    let dir_contents = crate::dir::fully_read_dir(&path)
-        .await
-        .map_err(|_| Error::CantReadDir(path.as_ref().into()))?;
-
-    let result = dir_contents
-        .filter_map(|entry| {
-            let path = entry.path();
-            if path.is_dir() {
-                return None;
-            }
-
-            if let Some(extension) = path.extension() {
-                if extension == "mp4" {
-                    return Some(path);
-                }
-            }
-
-            None
-        })
-        .flat_map(|path| {
-            parse_subtitle_name(&path)
-                .map(|(episode_no, language, name)| (path, episode_no, language, name))
-        })
-        .fold(
-            HashMap::new(),
-            |mut map: HashMap<usize, Vec<Subtitle>>, (path, episode_no, language, name)| {
-                let subtitle = Subtitle {
-                    path: path.to_string_lossy().to_string(),
-                    name,
-                    language_iso639_2t: language.to_iso639_2t().to_string(),
-                };
-
-                if let Some(entry) = map.get_mut(&episode_no) {
-                    entry.push(subtitle);
-                } else {
-                    map.insert(episode_no, vec![subtitle]);
-                }
-
-                map
-            },
-        );
-
-    Ok(result)
-}
-
-fn parse_subtitle_name(path: impl AsRef<Path>) -> Option<(usize, LanguageCode, String)> {
-    let file_stem = path.as_ref().file_stem()?.to_str()?;
-    let episode_no = file_stem.chars().map_while(|char| char.to_digit(10)).fold(
-        None,
-        |acc, digit| match acc {
-            Some(number) => Some(number * 10 + digit),
-            None => Some(digit),
-        },
-    )? as usize;
-    let language_code = {
-        let start_index = file_stem.find(|char: char| !char.is_ascii_digit())?;
-        file_stem
-            .get(start_index..start_index + 3)?
-            .try_into()
-            .ok()?
-    };
-    let name = file_stem
-        .chars()
-        .skip_while(|char| char.is_ascii_digit())
-        .skip(3)
-        .collect::<String>();
-    Some((episode_no, language_code, name))
-}
-
 #[cfg(test)]
 mod tests {
     use std::path::PathBuf;
 
-    use domain::LanguageCode;
-
-    use crate::crawl::series::{parse_subtitle_name, try_extract_season, try_extract_series};
+    use crate::crawl::series::{try_extract_season, try_extract_series};
 
     #[tokio::test]
     async fn extract_series() {
@@ -227,16 +153,8 @@ mod tests {
         assert!(first_episode.media.contains("1.mp4"));
 
         let subtitles = first_episode.subtitles.first().unwrap();
-        assert!(subtitles.path.contains("turheyyyy.mp4"));
+        assert!(subtitles.path.contains("turheyyyy.srt"));
         assert_eq!(subtitles.language_iso639_2t, "tur");
         assert_eq!(subtitles.name, "heyyyy");
-    }
-
-    #[test]
-    fn subtitle_name() {
-        assert_eq!(
-            parse_subtitle_name("0231enghey.srt").unwrap(),
-            (231, LanguageCode::English, "hey".to_string())
-        );
     }
 }
