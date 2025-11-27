@@ -82,9 +82,6 @@ async fn explore_subtitles(
         } else {
             return map;
         };
-        let file_stem = path.file_stem().unwrap_or_else(|| {
-            panic!("Found a language code but there was no file stem at {path:#?}")
-        });
         let extension =
             if let Some(extension) = path.extension().and_then(|extension| extension.to_str()) {
                 extension
@@ -97,7 +94,7 @@ async fn explore_subtitles(
         }
 
         {
-            let entry = map.entry(file_stem.into()).or_insert((None, false));
+            let entry = map.entry(path.with_extension("")).or_insert((None, false));
             match extension {
                 "mp4" => entry.1 = true,
                 "srt" | "vtt" => entry.0 = Some(explored_subtitle),
@@ -174,11 +171,57 @@ async fn generate_subtitle_mp4(
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
+    use std::{
+        fs, io,
+        path::{Path, PathBuf},
+    };
 
     use domain::LanguageCode;
 
-    use crate::crawl::subtitles::{explore_subtitles, generate_subtitle_mp4, parse_subtitle_name};
+    use crate::crawl::subtitles::{
+        explore_subtitles, generate_subtitle_mp4, parse_subtitle_name,
+        try_generate_series_subtitles,
+    };
+
+    #[tokio::test]
+    async fn generate_series_subtitles() {
+        let test_data_path: PathBuf = concat!(env!("CARGO_MANIFEST_DIR"), "/test-data").into();
+        let _ = tokio::fs::remove_dir_all(test_data_path.join("tmp/crawl/subtitles/series")).await;
+        tokio::fs::create_dir_all(test_data_path.join("tmp/crawl/subtitles/series"))
+            .await
+            .unwrap();
+        copy_dir_all(
+            test_data_path.join("crawl/generate_series_subs"),
+            test_data_path.join("tmp/crawl/subtitles/series"),
+        )
+        .unwrap();
+
+        let result =
+            try_generate_series_subtitles(test_data_path.join("tmp/crawl/subtitles/series"))
+                .await
+                .unwrap();
+
+        let first_episode = result.get(&1).unwrap();
+        assert!(first_episode.len() == 1);
+        let first = first_episode.first().unwrap();
+        assert!(first.language_iso639_2t == LanguageCode::Turkish.to_iso639_2t());
+        assert_eq!(first.name, "example_subs");
+
+        let second_episode = result.get(&2).unwrap();
+        assert!(second_episode.len() == 1);
+        let second = second_episode.first().unwrap();
+        assert!(second.language_iso639_2t == LanguageCode::English.to_iso639_2t());
+        assert_eq!(second.name, "example_subs");
+
+        assert!(result.len() == 2);
+        assert!(
+            tokio::fs::try_exists(
+                test_data_path.join("tmp/crawl/subtitles/series/2engexample_subs.mp4")
+            )
+            .await
+            .unwrap()
+        );
+    }
 
     #[tokio::test]
     async fn test_generate_mp4_subtitle() {
@@ -285,5 +328,19 @@ mod tests {
             )
         );
         assert!(parse_subtitle_name("a.srt").is_none());
+    }
+
+    fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> io::Result<()> {
+        fs::create_dir_all(&dst)?;
+        for entry in fs::read_dir(src)? {
+            let entry = entry?;
+            let ty = entry.file_type()?;
+            if ty.is_dir() {
+                copy_dir_all(entry.path(), dst.as_ref().join(entry.file_name()))?;
+            } else {
+                fs::copy(entry.path(), dst.as_ref().join(entry.file_name()))?;
+            }
+        }
+        Ok(())
     }
 }
