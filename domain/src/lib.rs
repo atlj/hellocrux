@@ -85,6 +85,11 @@ impl MediaPaths {
                         .strip_prefix(prefix.as_ref().to_string_lossy().as_ref())?
                         .trim_start_matches('/')
                         .to_string(),
+                    track_path: subtitle
+                        .track_path
+                        .strip_prefix(prefix.as_ref().to_string_lossy().as_ref())?
+                        .trim_start_matches('/')
+                        .to_string(),
                     ..subtitle.clone()
                 })
             })
