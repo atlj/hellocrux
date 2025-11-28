@@ -5,7 +5,11 @@ pub mod ffmpeg;
 pub mod prepare;
 pub mod service;
 pub mod signal;
-use std::path::PathBuf;
+pub mod subtitle_handlers;
+use std::{
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use clap::Parser;
 
@@ -19,6 +23,7 @@ pub struct Args {
 
 #[derive(Clone)]
 pub struct AppState {
+    pub media_dir: Arc<Path>,
     pub media_signal_watcher: service::media::MediaSignalWatcher,
     pub download_signal_watcher: service::download::DownloadSignalWatcher,
     pub processing_list_watcher: service::process::ProcessingListWatcher,

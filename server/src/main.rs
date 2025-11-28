@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use axum::{
     Json, Router, extract,
     routing::{get, post},
@@ -33,6 +35,7 @@ async fn main() {
         media_signal_watcher,
         download_signal_watcher,
         processing_list_watcher,
+        media_dir: Arc::from(args.media_dir.clone().into_boxed_path()),
     };
 
     let abort_services = {

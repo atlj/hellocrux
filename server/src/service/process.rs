@@ -12,6 +12,7 @@ pub fn spawn(
         media_signal_watcher,
         mut download_signal_watcher,
         processing_list_watcher,
+        ..
     }: crate::AppState,
 ) -> tokio::task::JoinHandle<()> {
     tokio::spawn(async move {
