@@ -38,12 +38,15 @@ pub async fn spawn(
                 MediaSignal::CrawlPartial { media_id } => {
                     let mut entries = media_signal_watcher.data.borrow().clone();
 
+                    info!("Crawling media item with id {media_id}");
+
                     match crate::crawl::crawl_folder(
                         media_dir.join(&media_id).to_string_lossy().as_ref(),
                     )
                     .await
                     {
                         Some(new_media) => {
+                            info!("Updated media item with id {media_id}");
                             entries.insert(media_id, new_media);
                         }
                         None => {

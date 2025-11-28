@@ -27,9 +27,9 @@ pub async fn add_subtitle(
 
     let media_path = match episode_identifier {
         Some(domain::series::EpisodeIdentifier { season_no, .. }) => {
-            state.media_dir.join(media_id).join(season_no.to_string())
+            state.media_dir.join(&media_id).join(season_no.to_string())
         }
-        None => state.media_dir.join(media_id),
+        None => state.media_dir.join(&media_id),
     };
 
     if !tokio::fs::try_exists(&media_path)
@@ -77,6 +77,14 @@ pub async fn add_subtitle(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     writer.flush().await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    state
+        .media_signal_watcher
+        .signal_sender
+        .send(crate::service::media::MediaSignal::CrawlPartial { media_id })
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
 
     Ok(())
 }
