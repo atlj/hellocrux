@@ -132,7 +132,8 @@ pub fn spawn(
             if did_media_library_change {
                 let _ = media_signal_watcher
                     .signal_sender
-                    .send(())
+                    // TODO: only send crawl message for new data
+                    .send(super::media::MediaSignal::CrawlAll)
                     .await
                     .inspect_err(|_| error!("Media library watcher loop was dropped."));
             }

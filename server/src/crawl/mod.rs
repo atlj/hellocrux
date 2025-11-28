@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     fmt::{Debug, Display},
     path::{Path, PathBuf},
 };
@@ -11,7 +12,9 @@ mod movie;
 mod series;
 mod subtitles;
 
-pub(crate) async fn crawl_all_folders(path: impl AsRef<Path> + Display) -> Option<Box<[Media]>> {
+pub(crate) async fn crawl_all_folders(
+    path: impl AsRef<Path> + Display,
+) -> Option<HashMap<String, Media>> {
     let read_dir = crate::dir::fully_read_dir(&path)
         .await
         .inspect_err(|err| error!("Media library at {path} isn't readable. Reason: {err}"))
@@ -20,18 +23,27 @@ pub(crate) async fn crawl_all_folders(path: impl AsRef<Path> + Display) -> Optio
     let crawl_futures = read_dir.map(|entry| async move {
         let path = entry.path();
         if path.is_file() {
-            let result: Option<Media> = None;
+            let result: Option<(String, Media)> = None;
             return result;
         }
 
-        crawl_folder(path.to_string_lossy().as_ref()).await
+        let file_stem = path
+            .file_stem()
+            .map(|stem| stem.to_string_lossy().to_string())?;
+
+        crawl_folder(path.to_string_lossy().as_ref())
+            .await
+            .map(|media| (file_stem, media))
     });
 
     let result = futures::future::join_all(crawl_futures)
         .await
         .into_iter()
         .flatten()
-        .collect();
+        .fold(HashMap::new(), |mut map, (path, media)| {
+            map.insert(path, media);
+            map
+        });
 
     Some(result)
 }
