@@ -4,6 +4,7 @@ pub mod series;
 
 pub use language::LanguageCode;
 use serde::{Deserialize, Serialize};
+use series::EpisodeIdentifier;
 use std::{collections::HashMap, path::Path};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -164,6 +165,17 @@ pub struct DownloadForm {
     pub hash: Box<str>,
     pub metadata: MediaMetaData,
     pub is_series: bool,
+}
+
+// TODO consolidate some fields
+#[derive(serde::Deserialize, serde::Serialize, Clone, PartialEq, Eq, Debug)]
+pub struct AddSubtitleForm {
+    pub media_id: String,
+    pub episode_identifier: Option<EpisodeIdentifier>,
+    pub language_iso639: String,
+    pub name: String,
+    pub extension: String,
+    pub file_contents: String,
 }
 
 pub enum MediaStream {
