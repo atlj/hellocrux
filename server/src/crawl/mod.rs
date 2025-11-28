@@ -60,11 +60,17 @@ pub(crate) async fn crawl_folder(path: impl AsRef<Path> + Display) -> Option<Med
 }
 
 async fn try_extract_media(path: impl AsRef<Path>) -> Result<Media> {
+    let id: String = path
+        .as_ref()
+        .components()
+        .next_back()
+        .map(|last| last.as_os_str().to_string_lossy().into())
+        .ok_or_else(|| Error::CantReadDir(path.as_ref().into()))?;
     let metadata = try_extract_metadata(&path).await?;
     let content = try_extract_media_content(&path).await?;
 
     Ok(Media {
-        id: metadata.title.clone(),
+        id,
         metadata,
         content,
     })
