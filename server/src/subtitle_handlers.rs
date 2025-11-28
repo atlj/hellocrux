@@ -1,7 +1,8 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use axum::{extract, http::StatusCode};
 use domain::LanguageCode;
+use regex::Regex;
 use tokio::io::AsyncWriteExt;
 
 pub async fn add_subtitle(
@@ -15,10 +16,9 @@ pub async fn add_subtitle(
         file_contents,
     }): extract::Json<domain::AddSubtitleForm>,
 ) -> axum::response::Result<()> {
-    if Path::new(&media_id).components().count() > 1
-        || Path::new(&extension).components().count() > 1
-        || Path::new(&name).components().count() > 1
-    {
+    if !is_path_safe(&media_id) || 
+        // TODO check if this is in a certain set.
+        !is_path_safe(&extension) || !is_path_safe(&name) {
         return Err(StatusCode::FORBIDDEN.into());
     }
 
@@ -76,5 +76,15 @@ pub async fn add_subtitle(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
+    writer.flush().await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
     Ok(())
+}
+
+fn is_path_safe(name: &str) -> bool {
+    // Only allow letters, numbers, underscores, and hyphens
+    // ^ and $ ensure the entire string matches
+    let allowed = Regex::new(r"^[a-zA-Z0-9_-]{1,64}$").unwrap();
+
+    allowed.is_match(name)
 }

@@ -18,3 +18,4 @@ tokio = { version = "1.45.1", features = [
   "io-util",
 ] }
 log = { version = "0.4.27", features = ["kv_serde"] }
+regex = "1.12.2"

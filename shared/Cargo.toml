@@ -19,7 +19,7 @@ uniffi = "0.29.3"
 url = { workspace = true }
 wasm-bindgen = "0.2.100"
 futures = { workspace = true }
-regex = "1.12.2"
+regex = { workspace = true }
 
 [target.uniffi-bindgen.dependencies]
 uniffi = { version = "0.29.3", features = ["cli"] }
