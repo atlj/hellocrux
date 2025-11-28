@@ -1,11 +1,11 @@
 use std::{collections::HashMap, path::PathBuf};
 
 use domain::Media;
-use log::{error, info};
+use log::{error, info, warn};
 
 pub enum MediaSignal {
     CrawlAll,
-    CrawlCertainMedia { media_id: String },
+    CrawlPartial { media_id: String },
 }
 
 pub type MediaSignalWatcher = crate::signal::SignalWatcher<MediaSignal, HashMap<String, Media>>;
@@ -35,7 +35,25 @@ pub async fn spawn(
                     info!("Found {:#?} media items", entries.len());
                     entries
                 }
-                MediaSignal::CrawlCertainMedia { media_id } => todo!(),
+                MediaSignal::CrawlPartial { media_id } => {
+                    let mut entries = media_signal_watcher.data.borrow().clone();
+
+                    match crate::crawl::crawl_folder(
+                        media_dir.join(&media_id).to_string_lossy().as_ref(),
+                    )
+                    .await
+                    {
+                        Some(new_media) => {
+                            entries.insert(media_id, new_media);
+                        }
+                        None => {
+                            entries.remove(&media_id);
+                            warn!("Recrawled entry with id {media_id} but it was gone.");
+                        }
+                    };
+
+                    entries
+                }
             };
 
             if media_signal_receiver.updater.send(entries).is_err() {
