@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
 use axum::{
     Json, Router, extract,
@@ -24,7 +24,7 @@ async fn main() {
     let (media_signal_watcher, media_signal_receiver): (
         server::service::media::MediaSignalWatcher,
         _,
-    ) = server::signal::new_watcher_receiver_pair(HashMap::new());
+    ) = server::signal::new_watcher_receiver_pair(Box::new([]));
     let (download_signal_watcher, download_signal_receiver): (
         server::service::download::DownloadSignalWatcher,
         _,
@@ -95,16 +95,7 @@ async fn main() {
 }
 
 async fn movie_list_handler(extract::State(state): State) -> Json<Box<[Media]>> {
-    Json(
-        state
-            .media_signal_watcher
-            .data
-            .borrow()
-            // TODO think about returning this without cloning
-            .clone()
-            .into_values()
-            .collect::<Box<[_]>>(),
-    )
+    Json(state.media_signal_watcher.data.borrow().as_ref().into())
 }
 
 async fn health_handler() -> String {

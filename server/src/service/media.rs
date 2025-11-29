@@ -8,8 +8,8 @@ pub enum MediaSignal {
     CrawlPartial { media_id: String },
 }
 
-pub type MediaSignalWatcher = crate::signal::SignalWatcher<MediaSignal, HashMap<String, Media>>;
-pub type MediaSignalReceiver = crate::signal::SignalReceiver<MediaSignal, HashMap<String, Media>>;
+pub type MediaSignalWatcher = crate::signal::SignalWatcher<MediaSignal, Box<[Media]>>;
+pub type MediaSignalReceiver = crate::signal::SignalReceiver<MediaSignal, Box<[Media]>>;
 
 /// A service that crawls the media library
 pub async fn spawn(
@@ -18,26 +18,27 @@ pub async fn spawn(
     media_signal_watcher: MediaSignalWatcher,
 ) -> tokio::task::JoinHandle<()> {
     let handle = tokio::spawn(async move {
+        let mut media_library = HashMap::new();
+
         while let Some(signal) = media_signal_receiver.signal_receiver.recv().await {
             tokio::fs::create_dir_all(&media_dir)
                 .await
                 .expect("Couldn't create media dir");
 
-            let entries = match signal {
+            media_library = match signal {
                 MediaSignal::CrawlAll => {
                     info!("Crawling media items");
 
-                    let entries: HashMap<String, Media> =
+                    let media_library =
                         crate::crawl::crawl_all_folders(media_dir.to_string_lossy().as_ref())
                             .await
                             .unwrap_or(HashMap::new());
 
-                    info!("Found {:#?} media items", entries.len());
-                    entries
+                    info!("Found {:#?} media items", media_library.len());
+
+                    media_library
                 }
                 MediaSignal::CrawlPartial { media_id } => {
-                    let mut entries = media_signal_watcher.data.borrow().clone();
-
                     info!("Crawling media item with id {media_id}");
 
                     match crate::crawl::crawl_folder(
@@ -47,17 +48,19 @@ pub async fn spawn(
                     {
                         Some(new_media) => {
                             info!("Updated media item with id {media_id}");
-                            entries.insert(media_id, new_media);
+                            media_library.insert(media_id, new_media);
                         }
                         None => {
-                            entries.remove(&media_id);
+                            media_library.remove(&media_id);
                             warn!("Recrawled entry with id {media_id} but it was gone.");
                         }
                     };
 
-                    entries
+                    media_library
                 }
             };
+
+            let entries = media_library.values().cloned().collect();
 
             if media_signal_receiver.updater.send(entries).is_err() {
                 error!("Media list receiver was dropped. Can't update the media library")
