@@ -2,6 +2,7 @@ use crate::{language::LanguageCode, series::EpisodeIdentifier};
 
 pub trait SubtitleProvider {
     type Identifier: std::fmt::Display;
+    type Error;
 
     fn search_subtitles<F>(
         &self,
@@ -10,11 +11,11 @@ pub trait SubtitleProvider {
         episode: Option<EpisodeIdentifier>,
     ) -> F
     where
-        F: Future<Output = Box<[Self::Identifier]>>;
+        F: Future<Output = Result<Box<[Self::Identifier]>, Self::Error>>;
 
     fn download_subtitles<F>(&self, identifier: &Self::Identifier) -> F
     where
-        F: Future<Output = String>;
+        F: Future<Output = Result<String, Self::Error>>;
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]

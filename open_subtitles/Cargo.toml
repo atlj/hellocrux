@@ -1,0 +1,6 @@
+[package]
+name = "open_subtitles"
+edition = "2024"
+
+[dependencies]
+domain = { path = "../domain" }
