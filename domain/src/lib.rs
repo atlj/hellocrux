@@ -1,11 +1,11 @@
 pub mod format;
 pub mod language;
 pub mod series;
+pub mod subtitles;
 
-pub use language::LanguageCode;
 use serde::{Deserialize, Serialize};
-use series::EpisodeIdentifier;
 use std::{collections::HashMap, path::Path};
+use subtitles::Subtitle;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Media {
@@ -29,15 +29,6 @@ pub type SeriesContents = HashMap<u32, SeasonContents>;
 pub struct MediaPaths {
     pub media: String,
     pub subtitles: Box<[Subtitle]>,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
-pub struct Subtitle {
-    pub name: String,
-    pub language_iso639_2t: String,
-    pub path: String,
-    /// A container such as mp4 that has a subtitle stream
-    pub track_path: String,
 }
 
 impl MediaPaths {
@@ -165,17 +156,6 @@ pub struct DownloadForm {
     pub hash: Box<str>,
     pub metadata: MediaMetaData,
     pub is_series: bool,
-}
-
-// TODO consolidate some fields
-#[derive(serde::Deserialize, serde::Serialize, Clone, PartialEq, Eq, Debug)]
-pub struct AddSubtitleForm {
-    pub media_id: String,
-    pub episode_identifier: Option<EpisodeIdentifier>,
-    pub language_iso639: String,
-    pub name: String,
-    pub extension: String,
-    pub file_contents: String,
 }
 
 pub enum MediaStream {

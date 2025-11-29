@@ -28,7 +28,7 @@ fn main() -> anyhow::Result<()> {
     typegen.register_type::<domain::MediaContent>()?;
     typegen.register_type::<domain::Download>()?;
     typegen.register_type::<domain::DownloadState>()?;
-    typegen.register_type::<domain::LanguageCode>()?;
+    typegen.register_type::<domain::language::LanguageCode>()?;
     typegen.register_type::<domain::series::EpisodeIdentifier>()?;
 
     let output_root = PathBuf::from("./generated");

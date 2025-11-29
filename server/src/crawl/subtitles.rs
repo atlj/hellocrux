@@ -4,7 +4,7 @@ use std::{
 };
 
 use super::{Error, Result};
-use domain::{LanguageCode, Subtitle};
+use domain::{language::LanguageCode, subtitles::Subtitle};
 use log::{info, warn};
 
 // TODO reduce duplication between this and series subtitles
@@ -228,7 +228,7 @@ mod tests {
         path::{Path, PathBuf},
     };
 
-    use domain::LanguageCode;
+    use domain::language::LanguageCode;
 
     use crate::crawl::subtitles::{
         explore_subtitles, generate_subtitle_mp4, parse_subtitle_name,

@@ -1,20 +1,21 @@
 use std::path::PathBuf;
 
 use axum::{extract, http::StatusCode};
-use domain::LanguageCode;
+use domain::language::LanguageCode;
+use domain::subtitles::AddSubtitleForm;
 use regex::Regex;
 use tokio::io::AsyncWriteExt;
 
 pub async fn add_subtitle(
     extract::State(state): crate::State,
-    extract::Json(domain::AddSubtitleForm {
+    extract::Json(AddSubtitleForm {
         media_id,
         episode_identifier,
         extension,
         name,
         language_iso639,
         file_contents,
-    }): extract::Json<domain::AddSubtitleForm>,
+    }): extract::Json<AddSubtitleForm>,
 ) -> axum::response::Result<()> {
     if !is_path_safe(&media_id) || 
         // TODO check if this is in a certain set.
