@@ -1,4 +1,21 @@
-use crate::series::EpisodeIdentifier;
+use crate::{language::LanguageCode, series::EpisodeIdentifier};
+
+pub trait SubtitleProvider {
+    type Identifier: std::fmt::Display;
+
+    fn search_subtitles<F>(
+        &self,
+        title: &str,
+        language: LanguageCode,
+        episode: Option<EpisodeIdentifier>,
+    ) -> F
+    where
+        F: Future<Output = Box<[Self::Identifier]>>;
+
+    fn download_subtitles<F>(&self, identifier: &Self::Identifier) -> F
+    where
+        F: Future<Output = String>;
+}
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub struct Subtitle {
