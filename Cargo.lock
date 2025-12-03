@@ -1232,6 +1232,10 @@ name = "open_subtitles"
 version = "0.0.0"
 dependencies = [
  "domain",
+ "percent-encoding",
+ "reqwest",
+ "tokio",
+ "url",
 ]
 
 [[package]]

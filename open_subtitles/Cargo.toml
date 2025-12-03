@@ -4,3 +4,9 @@ edition = "2024"
 
 [dependencies]
 domain = { path = "../domain" }
+url = { workspace = true }
+percent-encoding = { version = "*" }
+
+[dev-dependencies]
+reqwest = { workspace = true }
+tokio = { workspace = true }

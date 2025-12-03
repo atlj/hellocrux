@@ -4,18 +4,17 @@ pub trait SubtitleProvider {
     type Identifier: std::fmt::Display;
     type Error;
 
-    fn search_subtitles<F>(
+    fn search_subtitles(
         &self,
         title: &str,
         language: LanguageCode,
         episode: Option<EpisodeIdentifier>,
-    ) -> F
-    where
-        F: Future<Output = Result<Box<[Self::Identifier]>, Self::Error>>;
+    ) -> impl Future<Output = Result<impl Iterator<Item = Self::Identifier>, Self::Error>>;
 
-    fn download_subtitles<F>(&self, identifier: &Self::Identifier) -> F
-    where
-        F: Future<Output = Result<String, Self::Error>>;
+    fn download_subtitles(
+        &self,
+        identifier: &Self::Identifier,
+    ) -> impl Future<Output = Result<String, Self::Error>>;
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
