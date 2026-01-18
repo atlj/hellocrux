@@ -6,7 +6,7 @@ use axum::{
 };
 use clap::Parser;
 use domain::Media;
-use log::info;
+use log::{error, info};
 use server::{AppState, Args, State, download_handlers, subtitle_handlers};
 use tokio::net::TcpListener;
 use tower_http::services::ServeDir;
@@ -56,10 +56,16 @@ async fn main() {
         let torrent_watcher_handle =
             server::service::process::spawn(args.media_dir.clone(), shared_state.clone());
 
+        let zeroconf_handle = server::service::zeroconf::spawn(3000);
+        // No need to halt, just log if we can't register Zeroconf.
+        let zeroconf_handle = zeroconf_handle
+            .inspect_err(|err| error!("Coudln't spawn Zeroconf service. Reason: {err}"));
+
         move || {
             media_watcher_join_handler.abort();
             bittorrent_client_join_handle.abort();
             torrent_watcher_handle.abort();
+            let _ = zeroconf_handle.map(|handle| handle.abort());
         }
     };
 
