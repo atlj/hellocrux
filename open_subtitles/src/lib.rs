@@ -65,7 +65,7 @@ where
             url,
             vec![
                 ("User-Agent".to_string(), "Streamy v0.0.1".to_string()),
-                ("Api-Key".to_string(), API_KEY.to_string()),
+                ("Api-Key".to_string(), API_KEY.trim_end().to_string()),
                 ("Accept".to_string(), "application/json".to_string()),
             ],
         )
