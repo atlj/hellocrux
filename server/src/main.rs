@@ -56,16 +56,16 @@ async fn main() {
         let torrent_watcher_handle =
             server::service::process::spawn(args.media_dir.clone(), shared_state.clone());
 
-        let zeroconf_handle = server::service::zeroconf::spawn(3000);
+        let mdns_handle = server::service::mdns::spawn(3000);
         // No need to halt, just log if we can't register Zeroconf.
-        let zeroconf_handle = zeroconf_handle
-            .inspect_err(|err| error!("Coudln't spawn Zeroconf service. Reason: {err}"));
+        let mdns_handle =
+            mdns_handle.inspect_err(|err| error!("Coudln't spawn Zeroconf service. Reason: {err}"));
 
         move || {
             media_watcher_join_handler.abort();
             bittorrent_client_join_handle.abort();
             torrent_watcher_handle.abort();
-            let _ = zeroconf_handle.map(|handle| handle.abort());
+            let _ = mdns_handle.map(|handle| handle.shutdown());
         }
     };
 

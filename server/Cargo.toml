@@ -16,4 +16,4 @@ log = { workspace = true }
 tower-http = { version = "0.6.6", features = ["fs"] }
 tower = "0.5.2"
 regex = { workspace = true }
-zeroconf = "0.17.0"
+mdns-sd = "0.17.2"
