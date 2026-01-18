@@ -1234,6 +1234,8 @@ dependencies = [
  "domain",
  "percent-encoding",
  "reqwest",
+ "serde",
+ "serde_json",
  "tokio",
  "url",
 ]

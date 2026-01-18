@@ -6,6 +6,8 @@ edition = "2024"
 domain = { path = "../domain" }
 url = { workspace = true }
 percent-encoding = { version = "*" }
+serde = {workspace = true}
+serde_json = {workspace = true}
 
 [dev-dependencies]
 reqwest = { workspace = true }

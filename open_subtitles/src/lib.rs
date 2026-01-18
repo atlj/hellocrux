@@ -1,6 +1,9 @@
+mod dto;
 use std::str::FromStr;
 
 use url::Url;
+
+use crate::dto::{OpenSubtitlesSubtitle, OpenSubtitlesSubtitleResponse};
 
 const BASE_URL: &str = "https://api.opensubtitles.com/api/v1/";
 const API_KEY: &str = include_str!("../../open_subtitles_api_key");
@@ -16,13 +19,55 @@ where
     pub get: &'a F,
 }
 
+#[derive(Debug)]
+pub struct Subtitle {
+    title: String,
+    id: String,
+    download_count: usize,
+}
+
+impl From<OpenSubtitlesSubtitle> for Subtitle {
+    fn from(value: OpenSubtitlesSubtitle) -> Self {
+        Self {
+            id: value.attributes.subtitle_id,
+            // TODO: remove clone
+            title: value.attributes.files[0].file_name.clone(),
+            download_count: value.attributes.download_count,
+        }
+    }
+}
+
+impl std::fmt::Display for Subtitle {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
+
+#[derive(Debug)]
+pub enum OpenSubtitlesError<Inner> {
+    GetError(Inner),
+    DeserializeError(serde_json::Error),
+}
+
+impl<Inner: std::fmt::Display> std::fmt::Display for OpenSubtitlesError<Inner> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self}")
+    }
+}
+
+impl<Inner> From<serde_json::Error> for OpenSubtitlesError<Inner> {
+    fn from(value: serde_json::Error) -> Self {
+        Self::DeserializeError(value)
+    }
+}
+
 impl<F, E, R> domain::subtitles::SubtitleProvider for SubtitleProvider<'_, F, E, R>
 where
     F: Fn(Url, Vec<(String, String)>) -> R,
     R: Future<Output = Result<String, E>>,
 {
-    type Identifier = String;
-    type Error = E;
+    type Identifier = Subtitle;
+    type Error = OpenSubtitlesError<E>;
 
     async fn search_subtitles(
         &self,
@@ -69,9 +114,12 @@ where
                 ("Accept".to_string(), "application/json".to_string()),
             ],
         )
-        .await?;
+        .await
+        .map_err(|inner| OpenSubtitlesError::GetError(inner))?;
 
-        Ok(std::iter::once(result))
+        let parsed_result: OpenSubtitlesSubtitleResponse = serde_json::from_str(&result)?;
+
+        Ok(parsed_result.data.into_iter().map(Subtitle::from))
     }
 
     async fn download_subtitles(
@@ -86,7 +134,9 @@ where
 mod tests {
     use std::str::FromStr;
 
-    use domain::{language::LanguageCode, subtitles::SubtitleProvider as _};
+    use domain::{
+        language::LanguageCode, series::EpisodeIdentifier, subtitles::SubtitleProvider as _,
+    };
     use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
     use url::Url;
 
@@ -117,13 +167,18 @@ mod tests {
         let provider = SubtitleProvider { get: &get };
 
         let res = provider
-            .search_subtitles("Toy Story", LanguageCode::Turkish, None)
+            .search_subtitles(
+                "Attack on Titan",
+                LanguageCode::English,
+                Some(EpisodeIdentifier {
+                    season_no: 2,
+                    episode_no: 8,
+                }),
+            )
             .await
-            .unwrap()
-            .next()
             .unwrap();
 
-        dbg!(res);
+        dbg!(res.collect::<Vec<_>>());
 
         panic!()
     }
