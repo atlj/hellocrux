@@ -98,10 +98,10 @@ fn update_next_episode(
         let next_episode = episode_identifier.find_next_episode(content)?;
         let active_player = model.playback.active_player.as_mut()?;
 
-        if let Some(current_next_episode) = active_player.next_episode.as_ref() {
-            if *current_next_episode == next_episode {
-                return None;
-            }
+        if let Some(current_next_episode) = active_player.next_episode.as_ref()
+            && *current_next_episode == next_episode
+        {
+            return None;
         }
 
         active_player.next_episode = Some(next_episode);

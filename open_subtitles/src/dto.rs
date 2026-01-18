@@ -75,7 +75,38 @@ pub(super) struct RelatedLink {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(super) struct File {
-    pub file_id: u64,
+    pub file_id: usize,
     pub cd_number: usize,
     pub file_name: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(super) struct DownloadForm {
+    pub file_id: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(super) struct DownloadResponse {
+    pub link: String,
+    pub file_name: String,
+    pub requests: u32,
+    pub remaining: u32,
+    pub message: String,
+    pub reset_time: String,
+    pub reset_time_utc: String,
+}
+
+impl From<OpenSubtitlesSubtitle> for super::Subtitle {
+    fn from(val: OpenSubtitlesSubtitle) -> Self {
+        let file = val
+            .attributes
+            .files
+            .first()
+            .expect("OpenSubtitles response contains at least one file");
+        super::Subtitle {
+            id: file.file_id,
+            title: file.file_name.clone(),
+            download_count: val.attributes.download_count,
+        }
+    }
 }

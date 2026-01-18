@@ -17,9 +17,10 @@ pub async fn add_subtitle(
         file_contents,
     }): extract::Json<AddSubtitleForm>,
 ) -> axum::response::Result<()> {
-    if !is_path_safe(&media_id) || 
+    if !is_path_safe(&media_id) ||
         // TODO check if this is in a certain set.
-        !is_path_safe(&extension) || !is_path_safe(&name) {
+        !is_path_safe(&extension) || !is_path_safe(&name)
+    {
         return Err(StatusCode::FORBIDDEN.into());
     }
 
@@ -77,7 +78,10 @@ pub async fn add_subtitle(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    writer.flush().await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    writer
+        .flush()
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     state
         .media_signal_watcher
@@ -85,7 +89,6 @@ pub async fn add_subtitle(
         .send(crate::service::media::MediaSignal::CrawlPartial { media_id })
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-
 
     Ok(())
 }

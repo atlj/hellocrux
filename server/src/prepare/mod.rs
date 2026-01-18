@@ -149,10 +149,10 @@ async fn find_movie_file(source_dir: &Path) -> Result<Option<PathBuf>> {
     while let Ok(Some(entry)) = read_dir.next_entry().await {
         let path = entry.path();
 
-        if path.is_dir() {
-            if let Some(sub_dir_media_path) = Box::pin(find_movie_file(&path)).await? {
-                return Ok(Some(sub_dir_media_path));
-            }
+        if path.is_dir()
+            && let Some(sub_dir_media_path) = Box::pin(find_movie_file(&path)).await?
+        {
+            return Ok(Some(sub_dir_media_path));
         }
 
         if domain::format::is_video_file(&path) {
