@@ -16,6 +16,9 @@ struct ServerAddressEntryScreen: View {
                 .font(.title.monospaced())
                 .fontWeight(.semibold)
                 .padding(.bottom, 20)
+            if !core.view.discovered_addresses.isEmpty {
+                DiscoveredAddresses(addresses: core.view.discovered_addresses)
+            }
             VStack {
                 HStack {
                     Label("server://", systemImage: core.view.connection_state == .error ? "exclamationmark.triangle" : "xserve")
