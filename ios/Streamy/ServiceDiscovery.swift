@@ -1,7 +1,9 @@
 import Network
+import SharedTypes
 
 class ServiceDiscovery {
     let browser = NWBrowser(for: .bonjour(type: "_streamy._tcp", domain: nil), using: .tcp)
+    weak var delegate: ServiceDiscoveryDelegate?
 
     init() {
         browser.browseResultsChangedHandler = { [weak self] results, changes in
@@ -39,7 +41,7 @@ class ServiceDiscovery {
                 return connections
             }
 
-            print(connections)
+            delegate?.discovered(addresses: connections)
         }
     }
 
@@ -79,4 +81,8 @@ class ServiceDiscovery {
     private func truncNetworkInterface(from ip: String) -> String {
         ip.components(separatedBy: "%").first ?? ip
     }
+}
+
+protocol ServiceDiscoveryDelegate: AnyObject {
+    func discovered(addresses: [String])
 }

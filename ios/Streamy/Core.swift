@@ -57,10 +57,13 @@ class Core: ObservableObject {
             switch navigationOperation {
             case let .push(screen):
                 navigationObserver?.push(screen: screen)
+                respond(request, response: [])
             case let .replaceRoot(screen):
                 navigationObserver?.replaceRoot(screen: screen)
+                respond(request, response: [])
             case let .reset(screen):
                 navigationObserver?.reset(screen: screen)
+                respond(request, response: [])
             }
 
         case let .http(httpOperation):
@@ -111,10 +114,14 @@ class Core: ObservableObject {
             switch serviceDiscoveryOperation {
             case .start:
                 serviceDiscovery = ServiceDiscovery()
+                serviceDiscovery?.delegate = self
                 serviceDiscovery?.start()
+                respond(request, response: [])
             case .stop:
                 serviceDiscovery?.cancel()
+                serviceDiscovery?.delegate = nil
                 serviceDiscovery = nil
+                respond(request, response: [])
             }
         }
     }
@@ -127,6 +134,14 @@ class Core: ObservableObject {
         let requests: [Request] = try! .bincodeDeserialize(input: [UInt8](handleResponse(requestId, Data(response))))
         for request in requests {
             processEffect(request)
+        }
+    }
+}
+
+extension Core: @preconcurrency ServiceDiscoveryDelegate {
+    func discovered(addresses: [String]) {
+        DispatchQueue.main.async {
+            self.update(.serverCommunication(.discovered(addresses)))
         }
     }
 }
