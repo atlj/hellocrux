@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::capabilities::service_discovery::ServiceDiscoveryOperation;
 use crate::features;
 use crate::features::data::DataRequest;
 use crate::features::playback::PlaybackModel;
@@ -42,6 +43,7 @@ pub enum Effect {
     Store(StorageOperation),
     Navigate(NavigationOperation),
     Http(HttpOperation),
+    ServiceDiscovery(ServiceDiscoveryOperation),
 }
 
 pub type CruxContext = CommandContext<Effect, Event>;

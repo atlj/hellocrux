@@ -6,7 +6,7 @@ use crate::{
     Effect, Event, Model, PartialModel,
     capabilities::{
         navigation::{self, Screen},
-        storage,
+        service_discovery, storage,
     },
     features::utils::update_model,
 };
@@ -79,7 +79,12 @@ pub fn handle_screen_change(model: &mut Model, screen: Screen) -> Command<Effect
         Screen::ServerDownloads => Command::done(),
         Screen::AddDownload => Command::done(),
         Screen::Startup => Command::done(),
-        Screen::ServerAddressEntry => Command::done(),
+        Screen::ServerAddressEntry => {
+            Command::new(|ctx| async move {
+                // Stopped when connection is successful
+                service_discovery::start().into_future(ctx).await
+            })
+        }
         Screen::ServerFileMapping(id) => match model.torrent_contents {
             Some((ref existing_id, _)) if *existing_id == id => Command::done(),
             _ => Command::event(Event::UpdateData(DataRequest::GetContents(id))),

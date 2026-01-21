@@ -5,6 +5,7 @@ import SharedTypes
 @MainActor
 class Core: ObservableObject {
     static let shared = Core()
+    var serviceDiscovery: ServiceDiscovery?
 
     @Published var view: ViewModel
     var navigationObserver: (any NavigationObserver)?
@@ -27,6 +28,7 @@ class Core: ObservableObject {
         switch request.effect {
         case .render:
             view = try! .bincodeDeserialize(input: [UInt8](Streamy.view()))
+
         case let .store(storageOperation):
             switch storageOperation {
             case let .store(key, value):
@@ -50,6 +52,7 @@ class Core: ObservableObject {
                 UserDefaults.standard.removeObject(forKey: key)
                 respond(request, response: [0])
             }
+
         case let .navigate(navigationOperation):
             switch navigationOperation {
             case let .push(screen):
@@ -59,6 +62,7 @@ class Core: ObservableObject {
             case let .reset(screen):
                 navigationObserver?.reset(screen: screen)
             }
+
         case let .http(httpOperation):
             switch httpOperation {
             case let .get(urlString):
@@ -101,6 +105,16 @@ class Core: ObservableObject {
                     }
                 }
                 task.resume()
+            }
+
+        case let .serviceDiscovery(serviceDiscoveryOperation):
+            switch serviceDiscoveryOperation {
+            case .start:
+                serviceDiscovery = ServiceDiscovery()
+                serviceDiscovery?.start()
+            case .stop:
+                serviceDiscovery?.cancel()
+                serviceDiscovery = nil
             }
         }
     }

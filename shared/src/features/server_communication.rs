@@ -7,6 +7,7 @@ use crate::{
     capabilities::{
         http::{self, ServerConnectionState},
         navigation::{self, Screen},
+        service_discovery,
         storage::{self, store},
     },
 };
@@ -74,6 +75,7 @@ pub fn handle_server_communication(
                 store("server_address", url.to_string())
                     .into_future(ctx.clone())
                     .await;
+                service_discovery::stop().into_future(ctx.clone()).await;
                 navigation::replace_root(Screen::List)
                     .into_future(ctx)
                     .await;
