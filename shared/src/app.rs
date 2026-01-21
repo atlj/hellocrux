@@ -56,6 +56,7 @@ pub struct Model {
     pub downloads: Vec<Download>,
     pub torrent_contents: Option<(String, SeriesFileMapping)>,
     pub playback: PlaybackModel,
+    pub discovered_addresses: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
@@ -65,6 +66,7 @@ pub struct ViewModel {
     downloads: Vec<Download>,
     playback_detail: PlaybackModel,
     torrent_contents: Option<(String, SeriesFileMapping)>,
+    discovered_addresses: Vec<String>,
 }
 
 #[derive(Default)]
@@ -123,6 +125,7 @@ impl App for CounterApp {
             playback_detail: model.playback.clone(),
             downloads: model.downloads.clone(),
             torrent_contents: model.torrent_contents.clone(),
+            discovered_addresses: model.discovered_addresses.clone(),
         }
     }
 }

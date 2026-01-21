@@ -15,6 +15,7 @@ use super::utils::update_model;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ServerCommunicationEvent {
+    Discovered(Vec<String>),
     TryConnecting(String),
     Reset,
 }
@@ -87,6 +88,15 @@ pub fn handle_server_communication(
             navigation::reset(Some(Screen::ServerAddressEntry))
                 .into_future(ctx)
                 .await;
+        }),
+        ServerCommunicationEvent::Discovered(addresses) => Command::new(|ctx| async move {
+            update_model(
+                &ctx,
+                PartialModel {
+                    discovered_addresses: Some(addresses),
+                    ..Default::default()
+                },
+            );
         }),
     }
 }
