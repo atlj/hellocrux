@@ -18,7 +18,7 @@ struct DiscoveredAddresses: View {
     }
 
     var body: some View {
-        // TODO BETTER UX
+        // TODO: BETTER UX
         VStack {
             Text("Discovered Servers")
                 .font(.title3)

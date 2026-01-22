@@ -80,14 +80,14 @@ struct Player: UIViewControllerRepresentable {
                     return
                 }
                 player.replaceCurrentItem(with: AVPlayerItem(asset: mixComposition))
+
+                player.seek(
+                    to: .init(
+                        seconds: Double(data.position.getInitialSeconds()),
+                        preferredTimescale: CMTimeScale(NSEC_PER_SEC)
+                    ))
             }
         }
-
-        player.seek(
-            to: .init(
-                seconds: Double(data.position.getInitialSeconds()),
-                preferredTimescale: CMTimeScale(NSEC_PER_SEC)
-            ))
 
         Player.timeObserver = player.addPeriodicTimeObserver(
             forInterval: .init(seconds: 1, preferredTimescale: CMTimeScale(NSEC_PER_SEC)),
