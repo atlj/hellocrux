@@ -33,6 +33,7 @@ struct NewDownloadScreen: View {
             } label: {
                 Label("Add New Download", systemImage: "plus")
             }
+            .foregroundStyle(.primary)
             .disabled(disabled)
         }
         .navigationTitle("Add New Download")
