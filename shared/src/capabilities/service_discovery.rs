@@ -2,6 +2,12 @@ use crux_core::{Command, Request, capability::Operation, command::RequestBuilder
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct DiscoveredService {
+    name: String,
+    address: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ServiceDiscoveryOperation {
     Start,
     Stop,

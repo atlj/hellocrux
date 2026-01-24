@@ -7,7 +7,7 @@ use crate::{
     capabilities::{
         http::{self, ServerConnectionState},
         navigation::{self, Screen},
-        service_discovery,
+        service_discovery::{self, DiscoveredService},
         storage::{self, store},
     },
 };
@@ -16,7 +16,7 @@ use super::utils::update_model;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ServerCommunicationEvent {
-    Discovered(Vec<String>),
+    Discovered(Vec<DiscoveredService>),
     TryConnecting(String),
     Reset,
 }
@@ -91,11 +91,11 @@ pub fn handle_server_communication(
                 .into_future(ctx)
                 .await;
         }),
-        ServerCommunicationEvent::Discovered(addresses) => Command::new(|ctx| async move {
+        ServerCommunicationEvent::Discovered(services) => Command::new(|ctx| async move {
             update_model(
                 &ctx,
                 PartialModel {
-                    discovered_addresses: Some(addresses),
+                    discovered_services: Some(services),
                     ..Default::default()
                 },
             );

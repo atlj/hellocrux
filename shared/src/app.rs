@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::capabilities::service_discovery::ServiceDiscoveryOperation;
+use crate::capabilities::service_discovery::{DiscoveredService, ServiceDiscoveryOperation};
 use crate::features;
 use crate::features::data::DataRequest;
 use crate::features::playback::PlaybackModel;
@@ -58,7 +58,7 @@ pub struct Model {
     pub downloads: Vec<Download>,
     pub torrent_contents: Option<(String, SeriesFileMapping)>,
     pub playback: PlaybackModel,
-    pub discovered_addresses: Vec<String>,
+    pub discovered_services: Vec<DiscoveredService>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
@@ -68,7 +68,7 @@ pub struct ViewModel {
     downloads: Vec<Download>,
     playback_detail: PlaybackModel,
     torrent_contents: Option<(String, SeriesFileMapping)>,
-    discovered_addresses: Vec<String>,
+    discovered_services: Vec<DiscoveredService>,
 }
 
 #[derive(Default)]
@@ -127,7 +127,7 @@ impl App for CounterApp {
             playback_detail: model.playback.clone(),
             downloads: model.downloads.clone(),
             torrent_contents: model.torrent_contents.clone(),
-            discovered_addresses: model.discovered_addresses.clone(),
+            discovered_services: model.discovered_services.clone(),
         }
     }
 }
