@@ -139,7 +139,7 @@ class Core: ObservableObject {
 }
 
 extension Core: @preconcurrency ServiceDiscoveryDelegate {
-    func discovered(addresses: [String]) {
+    func discovered(addresses: [DiscoveredService]) {
         DispatchQueue.main.async {
             self.update(.serverCommunication(.discovered(addresses)))
         }

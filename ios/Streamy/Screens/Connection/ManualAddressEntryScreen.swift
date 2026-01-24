@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ManualAddressEntryScreen: View {
     @State var address = ""
-    @FocusState private var focused: Focus?
+    @FocusState private var focused
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var core: Core
 
@@ -33,9 +33,9 @@ struct ManualAddressEntryScreen: View {
                         Text("Server Address")
                     }
                     .keyboardType(.URL)
-                    .focused($focused, equals: .onlyField)
+                    .focused($focused, equals: true)
                     .task {
-                        focused = .onlyField
+                        focused = true
                     }
                     .font(.body.monospaced())
                     .autocorrectionDisabled()

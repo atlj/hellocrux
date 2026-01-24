@@ -22,31 +22,33 @@ class ServiceDiscovery {
     private func handleBrowseResultsChanged(results: Set<NWBrowser.Result>, changes _: Set<NWBrowser.Result.Change>) {
         // TODO: resolve using changes instead of results to avoid reconnections
         Task {
-            let connections = await withTaskGroup { taskGroup in
+            let discoveredServices = await withTaskGroup { taskGroup in
                 for result in results {
                     taskGroup.addTask {
-                        await self.resolvePath(to: result.endpoint)
+                        await self.resolve(endpoint: result.endpoint)
                     }
                 }
 
-                var connections = [String]()
+                var discoveredServices = [DiscoveredService]()
                 for await connection in taskGroup {
                     guard let connection else {
                         continue
                     }
 
-                    connections.append(connection)
+                    discoveredServices.append(connection)
                 }
 
-                return connections
+                return discoveredServices
             }
 
-            delegate?.discovered(addresses: connections)
+            delegate?.discovered(addresses: discoveredServices)
         }
     }
 
-    private func resolvePath(to endpoint: NWEndpoint) async -> String? {
+    private func resolve(endpoint: NWEndpoint) async -> DiscoveredService? {
         let connection = NWConnection(to: endpoint, using: .tcp)
+
+        let name = if case let .service(name: name, type: _, domain: _, interface: _) = endpoint { name } else { "Unknown" }
 
         return await withCheckedContinuation { continuation in
             connection.stateUpdateHandler = { state in
@@ -66,12 +68,13 @@ class ServiceDiscovery {
                 }
 
                 let ip = self.truncNetworkInterface(from: "\(host)")
-                let result = "\(ip):\(port)"
+                let address = "\(ip):\(port)"
+                let discoveredService = DiscoveredService(name: name, address: address)
 
                 connection.stateUpdateHandler = nil
                 connection.cancel()
 
-                continuation.resume(returning: result)
+                continuation.resume(returning: discoveredService)
             }
 
             connection.start(queue: .global(qos: .background))
@@ -84,5 +87,5 @@ class ServiceDiscovery {
 }
 
 protocol ServiceDiscoveryDelegate: AnyObject {
-    func discovered(addresses: [String])
+    func discovered(addresses: [DiscoveredService])
 }
