@@ -43,12 +43,7 @@ struct ManualAddressEntryScreen: View {
                     .textInputAutocapitalization(.never)
                     .submitLabel(.continue)
                     .onSubmit(submit)
-                } header: { Text("Server Address") } footer: {
-                    if address == lastSubmittedAddress, core.view.connection_state == .error {
-                        Text("Couldn't connect to the given address.")
-                            .foregroundStyle(.red)
-                    }
-                }
+                } header: { Text("Server Address") }
             }
             .navigationTitle("Connect Manually")
             .navigationBarTitleDisplayMode(.inline)
@@ -67,6 +62,14 @@ struct ManualAddressEntryScreen: View {
                     }
                     .disabled(disableSubmit)
                 }
+            }
+            .alert(
+                "Can't connect",
+                isPresented: .constant(core.view.connection_state == .error)
+            ) {
+                Button("Ok") { lastSubmittedAddress = nil }
+            } message: {
+                Text("Make sure you have a valid network connection to \(address) and try again.")
             }
         }
     }

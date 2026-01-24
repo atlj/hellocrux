@@ -34,23 +34,24 @@ struct ConnectionScreen: View {
                         lastInteractedService = discoveredService
                         core.update(.serverCommunication(.tryConnecting(discoveredService.address)))
                     } label: {
-                        HStack {
+                        Label {
                             HStack {
-                                Image(systemName: errored ? "exclamationmark.triangle" : "xserve")
                                 VStack(alignment: .leading) {
                                     Text(discoveredService.name)
                                         .foregroundStyle(.primary)
                                     Text(discoveredService.address)
+                                        .font(.footnote)
                                         .foregroundStyle(.secondary)
                                 }
+                                Spacer()
+                                if loading {
+                                    ProgressView()
+                                }
                             }
-                            Spacer()
-                            if loading {
-                                ProgressView()
-                            }
+                        } icon: {
+                            Image(systemName: errored ? "exclamationmark.triangle" : "xserve")
                         }
                     }
-                    .buttonStyle(.plain)
                     .foregroundStyle(
                         errored ? .red : .primary
                     )
@@ -92,13 +93,6 @@ struct ConnectionScreen: View {
 extension DiscoveredService: @retroactive Identifiable {
     public var id: String {
         "\(name)\(address)"
-    }
-}
-
-private struct ConnectionError: LocalizedError {
-    let name: String
-    fileprivate var errorDescription: String? {
-        ""
     }
 }
 
