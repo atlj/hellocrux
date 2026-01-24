@@ -20,7 +20,7 @@
 		207D11FB2E19C1F300632149 /* EpisodePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 207D11FA2E19C1F300632149 /* EpisodePicker.swift */; };
 		20956DE52E0F557600656DFE /* MediaDetailScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20956DE42E0F557600656DFE /* MediaDetailScreen.swift */; };
 		20956DE72E0F641900656DFE /* SettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20956DE62E0F641900656DFE /* SettingsScreen.swift */; };
-		20A9C62C2E3444CB0053FA3B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 20A9C62B2E3444CB0053FA3B /* Assets.xcassets */; };
+		2099758E2F257B0B00EC6831 /* Streamy.icon in Resources */ = {isa = PBXBuildFile; fileRef = 2099758D2F257B0B00EC6831 /* Streamy.icon */; };
 		20C2643E2E0CA8E800DC017A /* ListScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20C2643D2E0CA8E800DC017A /* ListScreen.swift */; };
 		20CB7CE22EC64BF800E708E4 /* FileMappingEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20CB7CE12EC64BF800E708E4 /* FileMappingEntry.swift */; };
 		20CE70432EC37112004BDA54 /* NewDownloadScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20CE70422EC37112004BDA54 /* NewDownloadScreen.swift */; };
@@ -106,7 +106,7 @@
 		207D11FA2E19C1F300632149 /* EpisodePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EpisodePicker.swift; sourceTree = "<group>"; };
 		20956DE42E0F557600656DFE /* MediaDetailScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaDetailScreen.swift; sourceTree = "<group>"; };
 		20956DE62E0F641900656DFE /* SettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScreen.swift; sourceTree = "<group>"; };
-		20A9C62B2E3444CB0053FA3B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		2099758D2F257B0B00EC6831 /* Streamy.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = Streamy.icon; sourceTree = "<group>"; };
 		20C2643D2E0CA8E800DC017A /* ListScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListScreen.swift; sourceTree = "<group>"; };
 		20CB7CE12EC64BF800E708E4 /* FileMappingEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileMappingEntry.swift; sourceTree = "<group>"; };
 		20CE70422EC37112004BDA54 /* NewDownloadScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewDownloadScreen.swift; sourceTree = "<group>"; };
@@ -271,7 +271,7 @@
 				02BD345E6AE3454655CDC6D2 /* Core.swift */,
 				2063F8202E0B410F00745BA9 /* Screens */,
 				CF5BE0317D54587DCCF48AF4 /* Info.plist */,
-				20A9C62B2E3444CB0053FA3B /* Assets.xcassets */,
+				2099758D2F257B0B00EC6831 /* Streamy.icon */,
 			);
 			path = Streamy;
 			sourceTree = "<group>";
@@ -367,7 +367,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				2AD69AC61D674BB2BC300FC2 /* uniffi-bindgen in Resources */,
-				20A9C62C2E3444CB0053FA3B /* Assets.xcassets in Resources */,
+				2099758E2F257B0B00EC6831 /* Streamy.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -419,7 +419,7 @@
 		38E9C57DFAFF962AE6CC44FE /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = Streamy;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = PJL7DA2X5F;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -444,7 +444,7 @@
 		39E600C588D5780CE6402DF1 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = Streamy;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = PJL7DA2X5F;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
