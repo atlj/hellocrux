@@ -25,7 +25,7 @@ struct NavigationContainer: View {
     func getView(screen: Screen) -> some View {
         switch screen {
         case .serverAddressEntry:
-            ServerAddressEntryScreen()
+            ConnectionScreen()
         case .list:
             ListScreen()
         case .startup:
