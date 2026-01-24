@@ -38,6 +38,7 @@ struct EpisodePicker: View {
                         Spacer()
                     }
                 }
+                .accessibilityLabel("Episode \(episodeId), Season \(seasonId)")
             }
         }
         .listRowBackground(Color.clear)

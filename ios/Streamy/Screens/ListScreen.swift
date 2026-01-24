@@ -4,7 +4,7 @@ import SwiftUI
 struct ListScreen: View {
     @EnvironmentObject var core: Core
     var overrideMediaItems: [Media]?
-    let columns = [GridItem(.flexible()), GridItem(.flexible())]
+    let columns = [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)]
 
     @State var searchString = ""
     var items: [Media] {
@@ -33,17 +33,39 @@ struct ListScreen: View {
     var body: some View {
         GeometryReader { proxy in
             ScrollView {
-                LazyVGrid(columns: columns) {
+                LazyVGrid(columns: columns, spacing: 12) {
                     ForEach(filteredItems, id: \.id) { mediaItem in
                         NavigationLink(value: Screen.detail(mediaItem)) {
-                            AsyncImage(url: URL(string: mediaItem.metadata.thumbnail)) { image in
-                                image.resizable()
-                            } placeholder: {
-                                ProgressView()
+                            VStack(alignment: .leading) {
+                                AsyncImage(url: URL(string: mediaItem.metadata.thumbnail)) { image in
+                                    image
+                                        .resizable()
+                                } placeholder: {
+                                    ProgressView()
+                                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                }
+                                .overlay {
+                                    VStack {
+                                        Spacer()
+                                        Text(mediaItem.metadata.title)
+                                            .lineLimit(2)
+                                            .font(.footnote)
+                                            .multilineTextAlignment(.leading)
+                                            .foregroundStyle(.white)
+                                            .padding()
+                                            .padding(.top, 12)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                            .background(
+                                                Rectangle()
+                                                    .fill(.linearGradient(colors: [.black.opacity(0), .black.opacity(0.7), .black], startPoint: .top, endPoint: .bottom))
+                                            )
+                                    }
+                                }
+                                .frame(height: proxy.size.width * 0.7)
+                                .clipShape(RoundedRectangle(cornerRadius: 12.0))
                             }
-                            .frame(height: proxy.size.width * 0.7)
-                            .clipShape(RoundedRectangle(cornerRadius: 12.0))
                         }
+                        .foregroundStyle(.primary)
                         .contextMenu {
                             Button("Play From Beginning", systemImage: "play.fill") {
                                 core.update(.play(.fromBeginning(id: mediaItem.id)))

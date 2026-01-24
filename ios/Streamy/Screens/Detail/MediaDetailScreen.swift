@@ -84,6 +84,7 @@ struct MediaDetailScreen: View {
             }
         }
         .navigationTitle(media.metadata.title)
+        .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             core.update(.screenChanged(.detail(media)))
         }
