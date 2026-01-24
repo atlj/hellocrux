@@ -56,10 +56,10 @@ async fn main() {
         let torrent_watcher_handle =
             server::service::process::spawn(args.media_dir.clone(), shared_state.clone());
 
-        let mdns_handle = server::service::mdns::spawn(3000);
+        let mdns_handle = server::service::mdns::spawn(&args.name, 3000);
         // No need to halt, just log if we can't register Zeroconf.
         let mdns_handle =
-            mdns_handle.inspect_err(|err| error!("Coudln't spawn Zeroconf service. Reason: {err}"));
+            mdns_handle.inspect_err(|err| error!("Couldn't spawn Zeroconf service. Reason: {err}"));
 
         move || {
             media_watcher_join_handler.abort();
