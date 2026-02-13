@@ -95,18 +95,3 @@ pub(super) struct DownloadResponse {
     pub reset_time: String,
     pub reset_time_utc: String,
 }
-
-impl From<OpenSubtitlesSubtitle> for super::Subtitle {
-    fn from(val: OpenSubtitlesSubtitle) -> Self {
-        let file = val
-            .attributes
-            .files
-            .first()
-            .expect("OpenSubtitles response contains at least one file");
-        super::Subtitle {
-            id: file.file_id,
-            title: file.file_name.clone(),
-            download_count: val.attributes.download_count,
-        }
-    }
-}

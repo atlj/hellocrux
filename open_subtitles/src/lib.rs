@@ -31,15 +31,24 @@ pub trait HttpClient {
 }
 
 #[derive(Debug)]
-pub struct Subtitle {
+pub struct SubtitleItem {
     pub title: String,
     pub id: usize,
     pub download_count: usize,
+    pub language: domain::language::LanguageCode,
 }
 
-impl std::fmt::Display for Subtitle {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{self:?}")
+impl domain::subtitles::SubtitleItem for SubtitleItem {
+    fn get_language(&self) -> &domain::language::LanguageCode {
+        &self.language
+    }
+
+    fn get_title(&self) -> &str {
+        &self.title
+    }
+
+    fn get_download_count(&self) -> Option<usize> {
+        Some(self.download_count)
     }
 }
 
@@ -54,7 +63,7 @@ impl<C: HttpClient> SubtitleProvider<C> {
 }
 
 impl<C: HttpClient> domain::subtitles::SubtitleProvider for SubtitleProvider<C> {
-    type Identifier = Subtitle;
+    type Item = SubtitleItem;
     type Error = Error<C::Error>;
 
     async fn search_subtitles(
@@ -62,7 +71,7 @@ impl<C: HttpClient> domain::subtitles::SubtitleProvider for SubtitleProvider<C> 
         title: &str,
         language: domain::language::LanguageCode,
         episode: Option<domain::series::EpisodeIdentifier>,
-    ) -> Result<impl Iterator<Item = Self::Identifier>, Self::Error> {
+    ) -> Result<impl Iterator<Item = Self::Item>, Self::Error> {
         let mut url = Url::from_str(BASE_URL).unwrap().join("subtitles").unwrap();
 
         let encoded_title =
@@ -90,16 +99,23 @@ impl<C: HttpClient> domain::subtitles::SubtitleProvider for SubtitleProvider<C> 
             .map_err(Error::Request)?;
 
         let parsed: dto::OpenSubtitlesSubtitleResponse = serde_json::from_str(&result)?;
-        Ok(parsed
-            .data
-            .into_iter()
-            .map(dto::OpenSubtitlesSubtitle::into))
+        Ok(parsed.data.into_iter().map(move |val| {
+            let file = val
+                .attributes
+                .files
+                .first()
+                .expect("OpenSubtitles response contains at least one file");
+
+            Self::Item {
+                id: file.file_id,
+                title: file.file_name.clone(),
+                download_count: val.attributes.download_count,
+                language: language.clone(),
+            }
+        }))
     }
 
-    async fn download_subtitles(
-        &self,
-        identifier: &Self::Identifier,
-    ) -> Result<String, Self::Error> {
+    async fn download_subtitles(&self, identifier: &Self::Item) -> Result<String, Self::Error> {
         let url = Url::from_str(BASE_URL).unwrap().join("download").unwrap();
 
         let response = self
@@ -154,7 +170,7 @@ mod tests {
     use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
     use url::Url;
 
-    use crate::{HttpClient, Subtitle, SubtitleProvider};
+    use crate::{HttpClient, SubtitleItem, SubtitleProvider};
 
     struct Client {
         client: reqwest::Client,
@@ -235,7 +251,6 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore = "reason"]
     async fn test_download_subtitles() {
         let provider = SubtitleProvider {
             client: Client {
@@ -244,10 +259,11 @@ mod tests {
         };
 
         let res = provider
-            .download_subtitles(&Subtitle {
+            .download_subtitles(&SubtitleItem {
                 title: "a".to_string(),
                 id: 3999587,
                 download_count: 0,
+                language: LanguageCode::Turkish,
             })
             .await
             .unwrap();

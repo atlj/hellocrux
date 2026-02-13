@@ -1,7 +1,13 @@
 use crate::{language::LanguageCode, series::EpisodeIdentifier};
 
+pub trait SubtitleItem {
+    fn get_language(&self) -> &LanguageCode;
+    fn get_title(&self) -> &str;
+    fn get_download_count(&self) -> Option<usize>;
+}
+
 pub trait SubtitleProvider {
-    type Identifier: std::fmt::Display;
+    type Item: SubtitleItem;
     type Error;
 
     fn search_subtitles(
@@ -9,11 +15,11 @@ pub trait SubtitleProvider {
         title: &str,
         language: LanguageCode,
         episode: Option<EpisodeIdentifier>,
-    ) -> impl Future<Output = Result<impl Iterator<Item = Self::Identifier>, Self::Error>>;
+    ) -> impl Future<Output = Result<impl Iterator<Item = Self::Item>, Self::Error>>;
 
     fn download_subtitles(
         &self,
-        identifier: &Self::Identifier,
+        item: &Self::Item,
     ) -> impl Future<Output = Result<String, Self::Error>>;
 }
 
