@@ -22,6 +22,11 @@ pub enum DataRequest {
     GetDownloads,
     AddDownload(DownloadForm),
     GetContents(String),
+    GetSubtitles {
+        title: String,
+        language: domain::language::LanguageCode,
+        episode: Option<EpisodeIdentifier>,
+    },
     SetSeriesFileMapping(EditSeriesFileMappingForm<file_mapping_form_state::NeedsValidation>),
 }
 
@@ -215,6 +220,11 @@ pub fn update_data(model: &mut Model, request: DataRequest) -> Command<Effect, E
                 .into_future(ctx.clone())
                 .await;
         }),
+        DataRequest::GetSubtitles {
+            title,
+            language,
+            episode,
+        } => todo!(),
     }
 }
 
