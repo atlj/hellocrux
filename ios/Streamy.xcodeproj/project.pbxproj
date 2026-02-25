@@ -142,13 +142,6 @@
 			);
 			sourceTree = "<group>";
 		};
-		20157BF72F2176820018BD51 /* AddressEntry */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = AddressEntry;
-			sourceTree = "<group>";
-		};
 		2023BE102EC34B11002FDDF9 /* Download */ = {
 			isa = PBXGroup;
 			children = (
@@ -181,7 +174,6 @@
 			isa = PBXGroup;
 			children = (
 				206EAC512F22A3AF00C7DD68 /* Connection */,
-				20157BF72F2176820018BD51 /* AddressEntry */,
 				2023BE102EC34B11002FDDF9 /* Download */,
 				20DA34002E352763007A3933 /* Player */,
 				20DA33FF2E351727007A3933 /* Detail */,

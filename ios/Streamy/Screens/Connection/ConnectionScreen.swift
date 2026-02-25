@@ -23,11 +23,17 @@ struct ConnectionScreen: View {
             Section {
                 ForEach(core.view.discovered_services) { discoveredService in
                     var errored: Bool {
-                        lastInteractedService == discoveredService && core.view.connection_state == .error
+                        if case .error = core.view.connection_state, lastInteractedService == discoveredService {
+                            return true
+                        }
+                        return false
                     }
 
                     var loading: Bool {
-                        lastInteractedService == discoveredService && core.view.connection_state == .pending
+                        if case .loading = core.view.connection_state, lastInteractedService == discoveredService {
+                            return true
+                        }
+                        return false
                     }
 
                     Button {

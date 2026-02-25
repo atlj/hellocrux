@@ -85,7 +85,7 @@ fn update_next_episode(
     {
         let playing_item = model
             .media_items
-            .as_ref()
+            .get_data()
             .and_then(|items| items.get(id))
             .expect("Received playback progress from an unexistent series");
 
@@ -113,7 +113,10 @@ fn update_next_episode(
 
 pub fn handle_play(model: &mut Model, play_event: PlayEvent) -> Command<Effect, Event> {
     let id = play_event.get_id().clone();
-    let media_item = if let Some(item) = model.media_items.as_ref().and_then(|items| items.get(&id))
+    let media_item = if let Some(item) = model
+        .media_items
+        .get_data()
+        .and_then(|items| items.get(&id))
     {
         item.clone()
     } else {

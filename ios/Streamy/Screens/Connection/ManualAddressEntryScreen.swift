@@ -9,8 +9,20 @@ struct ManualAddressEntryScreen: View {
     @State var lastSubmittedAddress: String?
 
     private var disableSubmit: Bool {
-        core.view.connection_state == .pending
-            || address.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        if case .loading = core.view.connection_state {
+            return true
+        }
+        if address.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return true
+        }
+        return false
+    }
+
+    private var error: Bool {
+        if case .error = core.view.connection_state {
+            return true
+        }
+        return false
     }
 
     private func submit() {
@@ -55,7 +67,7 @@ struct ManualAddressEntryScreen: View {
                     Button(action: submit) {
                         HStack {
                             Text("Connect")
-                            if core.view.connection_state == .pending {
+                            if case .loading = core.view.connection_state {
                                 ProgressView()
                             }
                         }
@@ -65,7 +77,7 @@ struct ManualAddressEntryScreen: View {
             }
             .alert(
                 "Can't connect",
-                isPresented: .constant(core.view.connection_state == .error)
+                isPresented: .constant(error)
             ) {
                 Button("Ok") { lastSubmittedAddress = nil }
             } message: {

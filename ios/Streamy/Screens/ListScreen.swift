@@ -1,3 +1,4 @@
+import Combine
 import SharedTypes
 import SwiftUI
 
@@ -7,21 +8,41 @@ struct ListScreen: View {
     let columns = [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)]
 
     @State var searchString = ""
-    var items: [Media] {
+    var items: [Media]? {
         if let overrideMediaItems {
             return overrideMediaItems
         }
 
-        if let modelItems = core.view.media_items {
-            return Array(modelItems.values).sorted {
-                $0.metadata.title < $1.metadata.title
-            }
+        let values: [String: Media].Values? = switch core.view.media_items {
+        case let .loading(data):
+            data?.values
+        case let .success(data):
+            data.values
+        case .error:
+            nil
         }
 
-        return []
+        guard let values else {
+            return nil
+        }
+
+        return Array(values).sorted {
+            $0.metadata.title < $1.metadata.title
+        }
     }
 
-    var filteredItems: [Media] {
+    var error: Bool {
+        if case .error = core.view.media_items {
+            return true
+        }
+        return false
+    }
+
+    var filteredItems: [Media]? {
+        guard let items else {
+            return nil
+        }
+
         let searchTrimmed = searchString.trimmingCharacters(in: .whitespacesAndNewlines)
         if searchTrimmed.isEmpty {
             return items
@@ -34,7 +55,7 @@ struct ListScreen: View {
         GeometryReader { proxy in
             ScrollView {
                 LazyVGrid(columns: columns, spacing: 12) {
-                    ForEach(filteredItems, id: \.id) { mediaItem in
+                    ForEach(filteredItems ?? [], id: \.id) { mediaItem in
                         NavigationLink(value: Screen.detail(mediaItem)) {
                             VStack(alignment: .leading) {
                                 AsyncImage(url: URL(string: mediaItem.metadata.thumbnail)) { image in
@@ -79,13 +100,23 @@ struct ListScreen: View {
                 .padding(.horizontal)
             }
             .refreshable {
-                // TODO: Fix UI being janky
                 core.update(.updateData(.getMedia))
+                var cancellable: AnyCancellable?
+                await withCheckedContinuation { continuation in
+
+                    cancellable = core.$view
+                        .sink { value in
+                            if case .success = value.media_items {
+                                continuation.resume()
+                            }
+                        }
+                }
             }
-            // TODO: search appears later
             .searchable(text: $searchString, prompt: "Search Media")
             .overlay {
-                if items.isEmpty {
+                if items == nil && !error {
+                    ProgressView()
+                } else if (items ?? []).isEmpty || error {
                     VStack(spacing: 16.0) {
                         Text("No media items found")
                         Button("Try Again") {
@@ -93,11 +124,11 @@ struct ListScreen: View {
                         }
                         .buttonStyle(.borderedProminent)
                     }
-                }
-
-                if filteredItems.isEmpty, !searchString.isEmpty {
+                } else {
                     if #available(iOS 17.0, *) {
-                        ContentUnavailableView.search
+                        if let filteredItems, filteredItems.isEmpty, !searchString.isEmpty {
+                            ContentUnavailableView.search
+                        }
                     }
                 }
             }

@@ -17,13 +17,6 @@ pub enum HttpOutput {
     Error,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
-pub enum ServerConnectionState {
-    Connected,
-    Pending,
-    Error,
-}
-
 impl Operation for HttpOperation {
     type Output = HttpOutput;
 }

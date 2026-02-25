@@ -1,23 +1,23 @@
-use std::collections::HashMap;
-
 use crate::capabilities::service_discovery::{DiscoveredService, ServiceDiscoveryOperation};
 use crate::features;
 use crate::features::data::DataRequest;
 use crate::features::playback::PlaybackModel;
+use crate::features::query::QueryState;
+use crate::features::query::view_model_queries::{ConnectionState, MediaItems, MediaItemsContent};
 use crate::features::{
     playback::{PlayEvent, PlaybackPosition},
     server_communication::ServerCommunicationEvent,
 };
 use crux_core::command::CommandContext;
 use crux_core::{App, Command, macros::effect, render::RenderOperation};
+use domain::Download;
 use domain::series::SeriesFileMapping;
-use domain::{Download, Media};
 use partially::Partial;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::capabilities::{
-    http::{HttpOperation, ServerConnectionState},
+    http::HttpOperation,
     navigation::{NavigationOperation, Screen},
     storage::StorageOperation,
 };
@@ -53,8 +53,8 @@ pub type CruxContext = CommandContext<Effect, Event>;
 pub struct Model {
     pub base_url: Option<Url>,
     pub current_screen: Screen,
-    pub connection_state: Option<ServerConnectionState>,
-    pub media_items: Option<HashMap<String, Media>>,
+    pub connection_state: Option<QueryState<()>>,
+    pub media_items: QueryState<MediaItemsContent>,
     pub downloads: Vec<Download>,
     pub torrent_contents: Option<(String, SeriesFileMapping)>,
     pub playback: PlaybackModel,
@@ -63,8 +63,8 @@ pub struct Model {
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct ViewModel {
-    connection_state: Option<ServerConnectionState>,
-    media_items: Option<HashMap<String, Media>>,
+    connection_state: Option<ConnectionState>,
+    media_items: MediaItems,
     downloads: Vec<Download>,
     playback_detail: PlaybackModel,
     torrent_contents: Option<(String, SeriesFileMapping)>,
@@ -122,8 +122,8 @@ impl App for CounterApp {
 
     fn view(&self, model: &Self::Model) -> Self::ViewModel {
         ViewModel {
-            connection_state: model.connection_state.clone(),
-            media_items: model.media_items.clone(),
+            connection_state: model.connection_state.clone().map(ConnectionState::from),
+            media_items: model.media_items.clone().into(),
             playback_detail: model.playback.clone(),
             downloads: model.downloads.clone(),
             torrent_contents: model.torrent_contents.clone(),

@@ -1,10 +1,11 @@
 use crux_core::typegen::TypeGen;
 use shared::{
     CounterApp,
-    capabilities::{http::ServerConnectionState, navigation::Screen},
+    capabilities::navigation::Screen,
     features::{
         data::DataRequest,
         playback::{PlayEvent, PlaybackPosition},
+        query::view_model_queries::{ConnectionState, MediaItems},
         server_communication::ServerCommunicationEvent,
     },
 };
@@ -16,7 +17,8 @@ fn main() -> anyhow::Result<()> {
     let mut typegen = TypeGen::new();
     typegen.register_app::<CounterApp>()?;
     typegen.register_type::<Screen>()?;
-    typegen.register_type::<ServerConnectionState>()?;
+    typegen.register_type::<ConnectionState>()?;
+    typegen.register_type::<MediaItems>()?;
     typegen.register_type::<PlayEvent>()?;
     typegen.register_type::<ServerCommunicationEvent>()?;
     typegen.register_type::<DataRequest>()?;

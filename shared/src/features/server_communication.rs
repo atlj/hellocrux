@@ -5,11 +5,12 @@ use url::Url;
 use crate::{
     Effect, Event, Model, PartialModel,
     capabilities::{
-        http::{self, ServerConnectionState},
+        http,
         navigation::{self, Screen},
         service_discovery::{self, DiscoveredService},
         storage::{self, store},
     },
+    features::query::QueryState,
 };
 
 use super::utils::update_model;
@@ -27,7 +28,9 @@ pub fn handle_server_communication(
 ) -> Command<Effect, Event> {
     match event {
         ServerCommunicationEvent::TryConnecting(mut address) => {
-            model.connection_state = Some(ServerConnectionState::Pending);
+            model.connection_state = Some(QueryState::Loading {
+                data: model.connection_state.as_ref().map(|_| ()),
+            });
 
             let command = Command::new(|ctx| async move {
                 if !address.starts_with("http") {
@@ -40,7 +43,9 @@ pub fn handle_server_communication(
                     update_model(
                         &ctx,
                         PartialModel {
-                            connection_state: Some(Some(ServerConnectionState::Error)),
+                            connection_state: Some(Some(QueryState::Error {
+                                message: "Faulty URL passed".to_string(),
+                            })),
                             ..Default::default()
                         },
                     );
@@ -49,26 +54,32 @@ pub fn handle_server_communication(
 
                 url.set_path("health");
                 let connection_state = match http::get(url.clone()).into_future(ctx.clone()).await {
-                    http::HttpOutput::Success { .. } => ServerConnectionState::Connected,
-                    http::HttpOutput::Error => ServerConnectionState::Error,
+                    http::HttpOutput::Success { .. } => QueryState::Success { data: () },
+                    http::HttpOutput::Error => QueryState::Error {
+                        message: "Couldn't connect to server".to_string(),
+                    },
                 };
 
+                let is_error = connection_state.is_error();
+
                 url.set_path("");
+
+                let base_url = if connection_state.is_success() {
+                    Some(Some(url.clone()))
+                } else {
+                    None
+                };
 
                 update_model(
                     &ctx,
                     PartialModel {
-                        connection_state: Some(Some(connection_state.clone())),
-                        base_url: if matches!(connection_state, ServerConnectionState::Connected) {
-                            Some(Some(url.clone()))
-                        } else {
-                            None
-                        },
+                        connection_state: Some(Some(connection_state)),
+                        base_url,
                         ..Default::default()
                     },
                 );
 
-                if matches!(connection_state, ServerConnectionState::Error) {
+                if is_error {
                     return;
                 }
 
