@@ -114,21 +114,28 @@ struct ListScreen: View {
             }
             .searchable(text: $searchString, prompt: "Search Media")
             .overlay {
-                if items == nil && !error {
-                    ProgressView()
-                } else if (items ?? []).isEmpty || error {
+                switch core.view.media_items {
+                case let .loading(data: data):
+                    if data == nil {
+                        ProgressView()
+                    }
+                case let .success(data: data):
+                    if data.isEmpty {
+                        Text("Your media library is empty.")
+                    } else {
+                        if #available(iOS 17.0, *) {
+                            if let filteredItems, filteredItems.isEmpty, !searchString.isEmpty {
+                                ContentUnavailableView.search
+                            }
+                        }
+                    }
+                case let .error(message: message):
                     VStack(spacing: 16.0) {
-                        Text("No media items found")
+                        Text("Couldn't fetch your media library. Reason: \(message)")
                         Button("Try Again") {
                             core.update(.screenChanged(.list))
                         }
                         .buttonStyle(.borderedProminent)
-                    }
-                } else {
-                    if #available(iOS 17.0, *) {
-                        if let filteredItems, filteredItems.isEmpty, !searchString.isEmpty {
-                            ContentUnavailableView.search
-                        }
                     }
                 }
             }
