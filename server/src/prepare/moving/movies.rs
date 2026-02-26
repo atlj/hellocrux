@@ -6,6 +6,7 @@ use tokio::io::AsyncWriteExt;
 
 use super::sanitize_name_for_url;
 
+/// Returns the resulting movie file's path
 pub async fn generate_movie_media(
     media_dir: &Path,
     movie_file: &Path,

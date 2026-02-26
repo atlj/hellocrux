@@ -1,6 +1,5 @@
 use std::fmt::Display;
 
-use base64::{Engine as _, engine::general_purpose::URL_SAFE};
 use reqwest::{Client, StatusCode, Url};
 
 use crate::{
@@ -179,7 +178,7 @@ fn encode_extra(extra: &TorrentExtra) -> QBittorrentWebApiResult<String> {
         )
     })?;
 
-    Ok(URL_SAFE.encode(json_string))
+    Ok(domain::encode_decode::encode_url_safe(&json_string))
 }
 
 #[derive(serde::Serialize)]

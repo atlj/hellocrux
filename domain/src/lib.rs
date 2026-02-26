@@ -1,3 +1,4 @@
+pub mod encode_decode;
 pub mod format;
 pub mod language;
 pub mod series;

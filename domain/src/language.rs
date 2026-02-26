@@ -190,7 +190,7 @@ impl LanguageCode {
     /// # Examples
     ///
     /// ```
-    /// assert_eq(server::language::LanguageCode::English.to_iso639_2t(), "eng");
+    /// assert_eq!(domain::language::LanguageCode::English.to_iso639_2t(), "eng");
     /// ```
     pub fn to_iso639_2t(&self) -> &'static str {
         use LanguageCode as L;
@@ -385,7 +385,7 @@ impl LanguageCode {
     /// # Examples
     ///
     /// ```
-    /// assert_eq(server::language::LanguageCode::English.to_iso639_2t(), "en");
+    /// assert_eq!(domain::language::LanguageCode::English.to_iso639_1(), "en");
     /// ```
     pub fn to_iso639_1(&self) -> &'static str {
         use LanguageCode as L;

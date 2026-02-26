@@ -470,6 +470,7 @@ dependencies = [
 name = "domain"
 version = "0.0.0"
 dependencies = [
+ "base64",
  "serde",
 ]
 
@@ -2307,7 +2308,6 @@ dependencies = [
 name = "torrent"
 version = "0.0.0"
 dependencies = [
- "base64",
  "domain",
  "log",
  "reqwest",

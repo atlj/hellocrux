@@ -261,7 +261,6 @@ pub struct TorrentContents {
 }
 
 pub mod into_domain {
-    use base64::{Engine as _, engine::general_purpose::URL_SAFE};
     use std::fmt::Display;
 
     use crate::{
@@ -293,27 +292,17 @@ pub mod into_domain {
         type Error = Error;
 
         fn try_from(value: &TorrentInfo) -> Result<Self, Self::Error> {
-            let extra_str_bytes = URL_SAFE.decode(value.category.as_bytes()).map_err(|err| {
-                Error::CantDecodeUsingBase64(
+            let extra_string =
+                domain::encode_decode::decode_url_safe(&value.category).map_err(|err| {
+                    Error::CantDecodeUsingBase64(
                 format!(
                     "Couldn't decode torrent named {}'s category ({}) using base64. Reason: {err}",
                     value.name, value.category
                 ).into()
                 )
-            })?;
+                })?;
 
-            let extra_string = str::from_utf8(&extra_str_bytes).map_err(|err| {
-                Error::CantConvertBase64BytesToString(
-
-                        format!(
-                            "Couldn't convert b64 decoded bytes from torrent with name {}'s category ({}) to a string. Reason: {err}",
-                            value.name,
-                            value.category
-                        ).into()
-                )
-                    })?;
-
-            serde_json::from_str(extra_string).map_err(|err| {
+            serde_json::from_str(&extra_string).map_err(|err| {
                 Error::CantDeserializeStringToTorrentExtra(
                     format!(
                         "Couldn't deserialize torrent named {}'s category ({}). Reason: {err}",

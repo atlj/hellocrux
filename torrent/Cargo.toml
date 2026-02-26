@@ -8,5 +8,4 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true }
 domain = { path = "../domain" }
-base64 = { workspace = true }
 log = { workspace = true }
