@@ -1,7 +1,7 @@
 import SharedTypes
 import SwiftUI
 
-struct DownloadScreen: View {
+struct MediaManagerScreen: View {
     @EnvironmentObject var core: Core
     var overrideDownloads: [Download]?
 
@@ -15,21 +15,16 @@ struct DownloadScreen: View {
 
     var body: some View {
         List {
-            NavigationLink(value: Screen.addDownload) {
-                Label("Add New Torrent", systemImage: "doc.fill.badge.plus")
-            }
-            Section {
-                if downloads.isEmpty {
-                    Text("No Downloads Yet")
-                        .foregroundStyle(.gray)
-                } else {
-                    ForEach(downloads, id: \.id) { download in
-                        DownloadItem(data: download)
-                    }
+            Section("Downloads") {
+                NavigationLink(value: Screen.addDownload) {
+                    Label("Download Media", systemImage: "square.and.arrow.down")
+                }
+                ForEach(downloads, id: \.id) { download in
+                    DownloadItem(data: download)
                 }
             }
         }
-        .navigationTitle("Downloads")
+        .navigationTitle("Manage Media")
         .task(priority: .background) {
             while true {
                 core.update(.updateData(.getDownloads))
@@ -44,7 +39,7 @@ struct DownloadScreen: View {
 }
 
 #Preview {
-    DownloadScreen(
+    MediaManagerScreen(
         overrideDownloads: [
             Download(id: "sdlkfjvs", title: "Big Buck Bunny", progress: 0.2, needs_file_mapping: true, state: .inProgress),
             Download(id: "my movie", title: "My Movie", progress: 0.7, needs_file_mapping: true, state: .inProgress),

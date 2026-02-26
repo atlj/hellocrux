@@ -145,8 +145,8 @@ struct ListScreen: View {
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink(value: Screen.serverDownloads) {
-                    Label("Downloads", systemImage: "square.and.arrow.down")
+                NavigationLink(value: Screen.mediaManager) {
+                    Label("Manage Media", systemImage: "server.rack")
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {

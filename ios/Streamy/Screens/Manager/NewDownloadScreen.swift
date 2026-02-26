@@ -31,12 +31,12 @@ struct NewDownloadScreen: View {
                     core.navigationObserver?.pop()
                 }
             } label: {
-                Label("Add New Download", systemImage: "plus")
+                Label("Start Downloading", systemImage: "square.and.arrow.down")
             }
             .foregroundStyle(.primary)
             .disabled(disabled)
         }
-        .navigationTitle("Add New Download")
+        .navigationTitle("Download Media")
         .overlay {
             if showLoading {
                 VStack {

@@ -8,7 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		1989BD3C863A9FB37C889B6D /* SharedTypes in Frameworks */ = {isa = PBXBuildFile; productRef = ADFA4530638891CDAA6FCC5D /* SharedTypes */; };
-		2023BE122EC34B18002FDDF9 /* DownloadScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2023BE112EC34B15002FDDF9 /* DownloadScreen.swift */; };
+		2023BE122EC34B18002FDDF9 /* MediaManagerScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2023BE112EC34B15002FDDF9 /* MediaManagerScreen.swift */; };
 		2023BE142EC3552B002FDDF9 /* DownloadItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2023BE132EC3552B002FDDF9 /* DownloadItem.swift */; };
 		2045B9592EC52CA70086C080 /* FileMappingScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2045B9582EC52CA70086C080 /* FileMappingScreen.swift */; };
 		20556FC02F24D423000D67CF /* GetHeight.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20556FBF2F24D422000D67CF /* GetHeight.swift */; };
@@ -94,7 +94,7 @@
 /* Begin PBXFileReference section */
 		02BD345E6AE3454655CDC6D2 /* Core.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core.swift; sourceTree = "<group>"; };
 		1974E5BC3D6D22A1D5676B40 /* Streamy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Streamy.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		2023BE112EC34B15002FDDF9 /* DownloadScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadScreen.swift; sourceTree = "<group>"; };
+		2023BE112EC34B15002FDDF9 /* MediaManagerScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaManagerScreen.swift; sourceTree = "<group>"; };
 		2023BE132EC3552B002FDDF9 /* DownloadItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadItem.swift; sourceTree = "<group>"; };
 		2045B9582EC52CA70086C080 /* FileMappingScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileMappingScreen.swift; sourceTree = "<group>"; };
 		20556FBF2F24D422000D67CF /* GetHeight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GetHeight.swift; sourceTree = "<group>"; };
@@ -142,15 +142,15 @@
 			);
 			sourceTree = "<group>";
 		};
-		2023BE102EC34B11002FDDF9 /* Download */ = {
+		2023BE102EC34B11002FDDF9 /* Manager */ = {
 			isa = PBXGroup;
 			children = (
 				2045B95A2EC52CAF0086C080 /* FileMapping */,
-				2023BE112EC34B15002FDDF9 /* DownloadScreen.swift */,
+				2023BE112EC34B15002FDDF9 /* MediaManagerScreen.swift */,
 				2023BE132EC3552B002FDDF9 /* DownloadItem.swift */,
 				20CE70422EC37112004BDA54 /* NewDownloadScreen.swift */,
 			);
-			path = Download;
+			path = Manager;
 			sourceTree = "<group>";
 		};
 		2045B95A2EC52CAF0086C080 /* FileMapping */ = {
@@ -174,7 +174,7 @@
 			isa = PBXGroup;
 			children = (
 				206EAC512F22A3AF00C7DD68 /* Connection */,
-				2023BE102EC34B11002FDDF9 /* Download */,
+				2023BE102EC34B11002FDDF9 /* Manager */,
 				20DA34002E352763007A3933 /* Player */,
 				20DA33FF2E351727007A3933 /* Detail */,
 				20C2643D2E0CA8E800DC017A /* ListScreen.swift */,
@@ -381,7 +381,7 @@
 				2063F8252E0B417D00745BA9 /* NavigationContainer.swift in Sources */,
 				20CE70432EC37112004BDA54 /* NewDownloadScreen.swift in Sources */,
 				2066D0902F215AB20099E249 /* ServiceDiscovery.swift in Sources */,
-				2023BE122EC34B18002FDDF9 /* DownloadScreen.swift in Sources */,
+				2023BE122EC34B18002FDDF9 /* MediaManagerScreen.swift in Sources */,
 				206EAC562F22A42600C7DD68 /* ConnectionScreen.swift in Sources */,
 				DE3600B1A063D422BDA42B19 /* Core.swift in Sources */,
 				A022BC4B1B16254762ED55B3 /* shared.udl in Sources */,
