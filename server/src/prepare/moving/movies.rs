@@ -13,6 +13,29 @@ pub async fn generate_movie_media(
     metadata: &MediaMetaData,
 ) -> Result<PathBuf> {
     let target_dir = media_dir.join(sanitize_name_for_url(&metadata.title));
+    // We want to avoid URL breaking names since files are hosted directly with their names
+    let file_name = {
+        let movie_file_name = movie_file
+            .file_stem()
+            .and_then(|name| name.to_str())
+            .ok_or_else(|| {
+                Error::MoveError(
+                    format!(
+                        "Can't get the file name of movie file at: {}",
+                        movie_file.display()
+                    )
+                    .into(),
+                )
+            })?;
+        let extension = movie_file.extension().ok_or_else(|| {
+            Error::MoveError(
+                format!("Can't read movie file extension {}", movie_file.display()).into(),
+            )
+        })?;
+
+        let url_encoded_name = domain::encode_decode::encode_url_safe(movie_file_name);
+        format!("{url_encoded_name}-tbd.{}", extension.to_string_lossy())
+    };
 
     // 1. Create destination dir
     {
@@ -31,27 +54,18 @@ pub async fn generate_movie_media(
 
     // 2. Move movie file to destination
     {
-        let extension = movie_file.extension().ok_or_else(|| {
-            Error::MoveError(
-                format!("Can't read movie file extension {}", movie_file.display()).into(),
-            )
-        })?;
-
-        tokio::fs::rename(
-            movie_file,
-            target_dir.join(format!("movie-tbd.{}", extension.to_string_lossy())),
-        )
-        .await
-        .map_err(|err| {
-            Error::MoveError(
-                format!(
-                    "Couldn't move movie file from {} to {}. Reason: {err}",
-                    movie_file.display(),
-                    target_dir.display()
+        tokio::fs::rename(movie_file, target_dir.join(&file_name))
+            .await
+            .map_err(|err| {
+                Error::MoveError(
+                    format!(
+                        "Couldn't move movie file from {} to {}. Reason: {err}",
+                        movie_file.display(),
+                        target_dir.display()
+                    )
+                    .into(),
                 )
-                .into(),
-            )
-        })?;
+            })?;
     }
 
     // 3. Save metadata
@@ -78,7 +92,7 @@ pub async fn generate_movie_media(
             })?;
     }
 
-    Ok(target_dir)
+    Ok(target_dir.join(&file_name))
 }
 
 #[cfg(test)]
@@ -107,12 +121,16 @@ mod tests {
 
         let _ = tokio::fs::remove_dir_all(test_data_path.join("tmp/generate_movie_media")).await;
 
-        generate_movie_media(
+        let movie_file_path = generate_movie_media(
             &test_data_path.join("tmp/generate_movie_media"),
             &test_data_path.join("test_copy.mkv"),
             &metadata,
         )
         .await
         .unwrap();
+
+        dbg!(&movie_file_path);
+
+        assert!(tokio::fs::try_exists(movie_file_path).await.unwrap());
     }
 }
