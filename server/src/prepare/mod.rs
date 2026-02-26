@@ -302,7 +302,8 @@ mod tests {
 
         assert!(
             tokio::fs::try_exists(
-                test_data_path.join("tmp/prepared_series/Amazing_Series/1/1.mp4")
+                test_data_path
+                    .join("tmp/prepared_series/Amazing_Series/1/1-dGhlLWxvb2tzLVMxRTE=.mp4")
             )
             .await
             .unwrap()

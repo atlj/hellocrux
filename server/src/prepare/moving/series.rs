@@ -43,16 +43,23 @@ pub async fn generate_series_media(
         .fold(
             HashMap::with_capacity(mapping.file_mapping.len()),
             |mut map, (source_path, episode_identifier)| {
-                // TODO remove unwrap
-                let extension = source_path.extension().unwrap();
+                // TODO remove these unwraps
 
-                // TODO extract this logic
-                let destination = target_dir.join(format!(
-                    "{}/{}-tbd.{}",
-                    episode_identifier.season_no,
-                    episode_identifier.episode_no,
-                    extension.to_string_lossy()
-                ));
+                let encoded_file_name = {
+                    let extension = source_path.extension().unwrap();
+                    let file_stem = source_path.file_stem().unwrap().to_str().unwrap();
+                    let encoded_file_stem = domain::encode_decode::encode_url_safe(file_stem);
+
+                    format!(
+                        "{}/{}-{}-tbd.{}",
+                        episode_identifier.season_no,
+                        episode_identifier.episode_no,
+                        encoded_file_stem,
+                        extension.to_string_lossy()
+                    )
+                };
+
+                let destination = target_dir.join(encoded_file_name);
 
                 map.insert(source_path.clone(), destination);
                 map
@@ -251,28 +258,34 @@ mod tests {
         assert!(resulting_paths.into_iter().any(|path| {
             path.to_str().unwrap().contains(
                 test_data_path
-                    .join("tmp/series_media/My_Series/1/1-tbd.mkv")
+                    .join("tmp/series_media/My_Series/1/1-dGhlLWxvb2tzLVMxRTE=-tbd.mkv")
                     .to_str()
                     .unwrap(),
             )
         }));
 
         assert!(
-            tokio::fs::try_exists(test_data_path.join("tmp/series_media/My_Series/1/1-tbd.mkv"))
-                .await
-                .unwrap()
+            tokio::fs::try_exists(
+                test_data_path.join("tmp/series_media/My_Series/1/1-dGhlLWxvb2tzLVMxRTE=-tbd.mkv")
+            )
+            .await
+            .unwrap()
         );
 
         assert!(
-            tokio::fs::try_exists(test_data_path.join("tmp/series_media/My_Series/1/2-tbd.mkv"))
-                .await
-                .unwrap()
+            tokio::fs::try_exists(
+                test_data_path.join("tmp/series_media/My_Series/1/2-dGhlLWxvb2tzLVMxRTI=-tbd.mkv")
+            )
+            .await
+            .unwrap()
         );
 
         assert!(
-            tokio::fs::try_exists(test_data_path.join("tmp/series_media/My_Series/2/1-tbd.mkv"))
-                .await
-                .unwrap()
+            tokio::fs::try_exists(
+                test_data_path.join("tmp/series_media/My_Series/2/1-dGhlLWxvb2tzLVMyRTE=-tbd.mkv")
+            )
+            .await
+            .unwrap()
         );
 
         assert!(
