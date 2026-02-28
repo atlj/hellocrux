@@ -1,8 +1,7 @@
 use domain::{language::LanguageCode, series::EpisodeIdentifier};
-pub struct SubtitleDownloadOption<Id>
-where
-    Id: serde::Serialize + serde::de::DeserializeOwned,
-{
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct SubtitleDownloadOption<Id> {
     pub id: Id,
     pub title: String,
     pub download_count: usize,
@@ -19,7 +18,10 @@ pub trait SubtitleProvider {
         language: LanguageCode,
         episode: Option<EpisodeIdentifier>,
     ) -> impl Future<
-        Output = impl Iterator<Item = Result<SubtitleDownloadOption<Self::SubtitleId>, Self::Error>>,
+        Output = Result<
+            impl Iterator<Item = SubtitleDownloadOption<Self::SubtitleId>>,
+            Self::Error,
+        >,
     >;
 
     fn download(

@@ -5,7 +5,6 @@ pub mod ffmpeg;
 pub mod prepare;
 pub mod service;
 pub mod signal;
-pub mod subtitle_handlers;
 use std::{
     path::{Path, PathBuf},
     sync::Arc,

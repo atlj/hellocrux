@@ -1,4 +1,4 @@
-use super::{Error, Result, subtitles::try_generate_movie_subtitles};
+use super::{Error, Result};
 use std::path::Path;
 
 pub(super) async fn try_extract_movie_paths(
@@ -17,22 +17,7 @@ pub(super) async fn try_extract_movie_paths(
         Some(path.to_string_lossy().to_string())
     });
 
-    let subtitles = {
-        let path = path.as_ref().join("subtitles");
-        if tokio::fs::try_exists(&path)
-            .await
-            .map_err(|_| super::Error::CantReadDir(path.clone()))?
-        {
-            Some(
-                try_generate_movie_subtitles(&path)
-                    .await?
-                    .into_boxed_slice(),
-            )
-        } else {
-            None
-        }
-    }
-    .unwrap_or(Box::new([]));
+    let subtitles = { None }.unwrap_or(Box::new([]));
 
     Ok(media.map(|media| domain::MediaPaths { media, subtitles }))
 }
@@ -52,6 +37,5 @@ mod tests {
         let subtitles = result.subtitles.first().unwrap();
         assert!(subtitles.path.contains("engSubs.vtt"));
         assert_eq!(subtitles.language_iso639_2t, "eng");
-        assert_eq!(subtitles.name, "Subs");
     }
 }

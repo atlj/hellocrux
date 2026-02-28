@@ -1285,19 +1285,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4895175b425cb1f87721b59f0f286c2092bd4af812243672510e1ac53e2e0ad"
 
 [[package]]
-name = "open_subtitles"
-version = "0.0.0"
-dependencies = [
- "domain",
- "percent-encoding",
- "reqwest",
- "serde",
- "serde_json",
- "tokio",
- "url",
-]
-
-[[package]]
 name = "openssl"
 version = "0.10.74"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2010,7 +1997,13 @@ name = "subtitles"
 version = "0.0.0"
 dependencies = [
  "domain",
+ "log",
+ "percent-encoding",
+ "reqwest",
  "serde",
+ "serde_json",
+ "tokio",
+ "url",
 ]
 
 [[package]]

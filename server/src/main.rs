@@ -7,7 +7,7 @@ use axum::{
 use clap::Parser;
 use domain::Media;
 use log::{error, info};
-use server::{AppState, Args, State, download_handlers, subtitle_handlers};
+use server::{AppState, Args, State, download_handlers};
 use tokio::net::TcpListener;
 use tower_http::services::ServeDir;
 
@@ -84,7 +84,6 @@ async fn main() {
             post(download_handlers::update_file_mapping),
         )
         .route("/download/get", get(download_handlers::get_downloads))
-        .route("/subtitle/add", post(subtitle_handlers::add_subtitle))
         .with_state(shared_state);
 
     let listener = TcpListener::bind("0.0.0.0:3000")

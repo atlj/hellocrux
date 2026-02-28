@@ -95,3 +95,18 @@ pub(super) struct DownloadResponse {
     pub reset_time: String,
     pub reset_time_utc: String,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OpenSubtitlesError {
+    pub status: Option<usize>,
+    pub error: Option<String>,
+    pub message: Option<String>,
+}
+
+impl std::fmt::Display for OpenSubtitlesError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:#?}", self)
+    }
+}
+
+impl std::error::Error for OpenSubtitlesError {}

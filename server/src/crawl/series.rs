@@ -1,6 +1,6 @@
 use domain::SeriesContents;
 
-use super::{Error, Result, subtitles::try_generate_series_subtitles};
+use super::{Error, Result};
 use std::{collections::HashMap, path::Path};
 
 pub(super) async fn try_extract_series(
@@ -51,18 +51,6 @@ async fn try_extract_season(path: impl AsRef<Path>) -> Result<Option<domain::Sea
         .await
         .map_err(|_| Error::CantReadDir(path.as_ref().into()))?;
 
-    let mut subtitles = {
-        let path = path.as_ref().join("subtitles");
-        if tokio::fs::try_exists(&path)
-            .await
-            .map_err(|_| super::Error::CantReadDir(path.clone()))?
-        {
-            Some(try_generate_series_subtitles(&path).await?)
-        } else {
-            None
-        }
-    };
-
     let result: domain::SeasonContents = read_dir.fold(HashMap::new(), |mut map, entry| {
         let current_path = entry.path();
         if !domain::format::is_supported_video_file(&current_path) {
@@ -72,14 +60,7 @@ async fn try_extract_season(path: impl AsRef<Path>) -> Result<Option<domain::Sea
         if let Some(episode_no) =
             super::get_numeric_content(entry.file_name().to_string_lossy().as_ref())
         {
-            let subtitles = subtitles
-                .as_mut()
-                .and_then(|subtitles| {
-                    subtitles
-                        .remove(&(episode_no as usize))
-                        .map(|subtitles| subtitles.into_boxed_slice())
-                })
-                .unwrap_or(Box::new([]));
+            let subtitles = Box::new([]);
 
             let media_paths = domain::MediaPaths {
                 subtitles,
@@ -155,6 +136,5 @@ mod tests {
         let subtitles = first_episode.subtitles.first().unwrap();
         assert!(subtitles.path.contains("turheyyyy.srt"));
         assert_eq!(subtitles.language_iso639_2t, "tur");
-        assert_eq!(subtitles.name, "heyyyy");
     }
 }

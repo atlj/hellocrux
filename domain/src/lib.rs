@@ -6,7 +6,8 @@ pub mod subtitles;
 
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::Path};
-use subtitles::Subtitle;
+
+use crate::subtitles::Subtitle;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Media {

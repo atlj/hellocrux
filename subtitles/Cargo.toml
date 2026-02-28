@@ -5,3 +5,11 @@ edition = "2024"
 [dependencies]
 domain = { path = "../domain" }
 serde = { workspace = true }
+serde_json = { workspace = true }
+reqwest = { workspace = true }
+url = { workspace = true }
+percent-encoding = { version = "*" }
+log = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }
