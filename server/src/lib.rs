@@ -5,6 +5,7 @@ pub mod ffmpeg;
 pub mod prepare;
 pub mod service;
 pub mod signal;
+pub mod subtitle_handlers;
 use std::{
     path::{Path, PathBuf},
     sync::Arc,
@@ -33,6 +34,7 @@ impl Args {
 
 #[derive(Clone)]
 pub struct AppState {
+    pub subtitle_provider: subtitles::OpenSubtitlesClient,
     pub media_dir: Arc<Path>,
     pub media_signal_watcher: service::media::MediaSignalWatcher,
     pub download_signal_watcher: service::download::DownloadSignalWatcher,

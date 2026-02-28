@@ -7,7 +7,8 @@ use axum::{
 use clap::Parser;
 use domain::Media;
 use log::{error, info};
-use server::{AppState, Args, State, download_handlers};
+use server::{AppState, Args, State, download_handlers, subtitle_handlers};
+use subtitles::OpenSubtitlesClient;
 use tokio::net::TcpListener;
 use tower_http::services::ServeDir;
 
@@ -20,6 +21,7 @@ async fn main() {
         download_path.push("qbittorrent");
         download_path
     };
+    let subtitle_provider = OpenSubtitlesClient::new();
 
     let (media_signal_watcher, media_signal_receiver): (
         server::service::media::MediaSignalWatcher,
@@ -32,6 +34,7 @@ async fn main() {
     let processing_list_watcher =
         server::service::process::ProcessingListWatcher::new(Box::new([]));
     let shared_state = AppState {
+        subtitle_provider,
         media_signal_watcher,
         download_signal_watcher,
         processing_list_watcher,
@@ -84,6 +87,10 @@ async fn main() {
             post(download_handlers::update_file_mapping),
         )
         .route("/download/get", get(download_handlers::get_downloads))
+        .route(
+            "/subtitles/search",
+            get(subtitle_handlers::search_subtitles),
+        )
         .with_state(shared_state);
 
     let listener = TcpListener::bind("0.0.0.0:3000")

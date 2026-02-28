@@ -9,6 +9,7 @@ axum = { version = "0.8.4", features = ["default", "json", "macros"] }
 serde = { workspace = true }
 domain = { path = "../domain" }
 torrent = { path = "../torrent" }
+subtitles = { path = "../subtitles" }
 clap = { version = "4.5.40", features = ["derive"] }
 futures = { workspace = true }
 env_logger = "0.11.8"

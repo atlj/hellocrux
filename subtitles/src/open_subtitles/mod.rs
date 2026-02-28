@@ -28,6 +28,7 @@ static DEFAULT_HEADERS: LazyLock<reqwest::header::HeaderMap> = LazyLock::new(|| 
     headers
 });
 
+#[derive(Debug, Clone)]
 pub struct OpenSubtitlesClient {
     http_client: reqwest::Client,
 }
@@ -267,6 +268,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "Downlaod quota is limited"]
     async fn search_and_download_subtitles() {
         let client = OpenSubtitlesClient::new();
 
@@ -290,6 +292,5 @@ mod tests {
 
         dbg!(&download_result);
         assert!(download_result.is_empty());
-        panic!()
     }
 }
