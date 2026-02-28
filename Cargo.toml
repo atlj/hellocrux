@@ -6,6 +6,7 @@ members = [
   "server",
   "torrent",
   "open_subtitles",
+  "subtitles",
 ]
 resolver = "1"
 
