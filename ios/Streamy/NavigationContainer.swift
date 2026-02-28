@@ -38,6 +38,8 @@ struct NavigationContainer: View {
             PlayerScreen()
         case .mediaManager:
             MediaManagerScreen()
+        case let .mediaManagerDetail(media):
+            MediaManagerDetailScreen(media: media)
         case .addDownload:
             NewDownloadScreen()
         case let .serverFileMapping(id):

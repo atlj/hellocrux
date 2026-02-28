@@ -18,6 +18,9 @@
 		206EAC592F22ACDE00C7DD68 /* ManualAddressEntryScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 206EAC582F22ACDE00C7DD68 /* ManualAddressEntryScreen.swift */; };
 		207D11F82E19455900632149 /* PlayerScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 207D11F72E19455900632149 /* PlayerScreen.swift */; };
 		207D11FB2E19C1F300632149 /* EpisodePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 207D11FA2E19C1F300632149 /* EpisodePicker.swift */; };
+		208840162F51EA0D00DB7DEA /* ManageMediaItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 208840152F51EA0D00DB7DEA /* ManageMediaItem.swift */; };
+		208840192F51F71E00DB7DEA /* MediaManagerDetailScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 208840182F51F71E00DB7DEA /* MediaManagerDetailScreen.swift */; };
+		2088401D2F51F83800DB7DEA /* PreviewData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2088401C2F51F83600DB7DEA /* PreviewData.swift */; };
 		20956DE52E0F557600656DFE /* MediaDetailScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20956DE42E0F557600656DFE /* MediaDetailScreen.swift */; };
 		20956DE72E0F641900656DFE /* SettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20956DE62E0F641900656DFE /* SettingsScreen.swift */; };
 		2099758E2F257B0B00EC6831 /* Streamy.icon in Resources */ = {isa = PBXBuildFile; fileRef = 2099758D2F257B0B00EC6831 /* Streamy.icon */; };
@@ -104,6 +107,9 @@
 		206EAC582F22ACDE00C7DD68 /* ManualAddressEntryScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualAddressEntryScreen.swift; sourceTree = "<group>"; };
 		207D11F72E19455900632149 /* PlayerScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerScreen.swift; sourceTree = "<group>"; };
 		207D11FA2E19C1F300632149 /* EpisodePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EpisodePicker.swift; sourceTree = "<group>"; };
+		208840152F51EA0D00DB7DEA /* ManageMediaItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManageMediaItem.swift; sourceTree = "<group>"; };
+		208840182F51F71E00DB7DEA /* MediaManagerDetailScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaManagerDetailScreen.swift; sourceTree = "<group>"; };
+		2088401C2F51F83600DB7DEA /* PreviewData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewData.swift; sourceTree = "<group>"; };
 		20956DE42E0F557600656DFE /* MediaDetailScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaDetailScreen.swift; sourceTree = "<group>"; };
 		20956DE62E0F641900656DFE /* SettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScreen.swift; sourceTree = "<group>"; };
 		2099758D2F257B0B00EC6831 /* Streamy.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = Streamy.icon; sourceTree = "<group>"; };
@@ -147,8 +153,10 @@
 			children = (
 				2045B95A2EC52CAF0086C080 /* FileMapping */,
 				2023BE112EC34B15002FDDF9 /* MediaManagerScreen.swift */,
+				208840152F51EA0D00DB7DEA /* ManageMediaItem.swift */,
 				2023BE132EC3552B002FDDF9 /* DownloadItem.swift */,
 				20CE70422EC37112004BDA54 /* NewDownloadScreen.swift */,
+				208840182F51F71E00DB7DEA /* MediaManagerDetailScreen.swift */,
 			);
 			path = Manager;
 			sourceTree = "<group>";
@@ -190,6 +198,14 @@
 				206EAC582F22ACDE00C7DD68 /* ManualAddressEntryScreen.swift */,
 			);
 			path = Connection;
+			sourceTree = "<group>";
+		};
+		2088401B2F51F80C00DB7DEA /* DevelopmentAssets */ = {
+			isa = PBXGroup;
+			children = (
+				2088401C2F51F83600DB7DEA /* PreviewData.swift */,
+			);
+			path = DevelopmentAssets;
 			sourceTree = "<group>";
 		};
 		20DA33FF2E351727007A3933 /* Detail */ = {
@@ -256,6 +272,7 @@
 		E6F6A75B1B8366C3D868D1E4 /* Streamy */ = {
 			isa = PBXGroup;
 			children = (
+				2088401B2F51F80C00DB7DEA /* DevelopmentAssets */,
 				20556FBD2F24D419000D67CF /* Modifiers */,
 				2066D08E2F215AAE0099E249 /* ServiceDiscovery.swift */,
 				BD91B42EB1E1DA6D86D57AC3 /* App.swift */,
@@ -378,14 +395,17 @@
 				20956DE72E0F641900656DFE /* SettingsScreen.swift in Sources */,
 				20C2643E2E0CA8E800DC017A /* ListScreen.swift in Sources */,
 				D47B166DEAAF41F0FC860C3B /* App.swift in Sources */,
+				208840162F51EA0D00DB7DEA /* ManageMediaItem.swift in Sources */,
 				2063F8252E0B417D00745BA9 /* NavigationContainer.swift in Sources */,
 				20CE70432EC37112004BDA54 /* NewDownloadScreen.swift in Sources */,
 				2066D0902F215AB20099E249 /* ServiceDiscovery.swift in Sources */,
 				2023BE122EC34B18002FDDF9 /* MediaManagerScreen.swift in Sources */,
 				206EAC562F22A42600C7DD68 /* ConnectionScreen.swift in Sources */,
+				2088401D2F51F83800DB7DEA /* PreviewData.swift in Sources */,
 				DE3600B1A063D422BDA42B19 /* Core.swift in Sources */,
 				A022BC4B1B16254762ED55B3 /* shared.udl in Sources */,
 				207D11FB2E19C1F300632149 /* EpisodePicker.swift in Sources */,
+				208840192F51F71E00DB7DEA /* MediaManagerDetailScreen.swift in Sources */,
 				20956DE52E0F557600656DFE /* MediaDetailScreen.swift in Sources */,
 				2045B9592EC52CA70086C080 /* FileMappingScreen.swift in Sources */,
 				20CB7CE22EC64BF800E708E4 /* FileMappingEntry.swift in Sources */,
@@ -413,6 +433,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = Streamy;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_ASSET_PATHS = Streamy/DevelopmentAssets;
 				DEVELOPMENT_TEAM = PJL7DA2X5F;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = Streamy/Info.plist;
@@ -438,6 +459,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = Streamy;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_ASSET_PATHS = Streamy/DevelopmentAssets;
 				DEVELOPMENT_TEAM = PJL7DA2X5F;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = Streamy/Info.plist;

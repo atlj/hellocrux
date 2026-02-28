@@ -77,6 +77,7 @@ pub fn handle_screen_change(model: &mut Model, screen: Screen) -> Command<Effect
             );
         }),
         Screen::MediaManager => Command::done(),
+        Screen::MediaManagerDetail(_) => Command::done(),
         Screen::AddDownload => Command::done(),
         Screen::Startup => Command::done(),
         Screen::ServerAddressEntry => {

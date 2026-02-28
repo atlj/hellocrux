@@ -19,6 +19,7 @@ pub enum Screen {
     Settings,
     Player,
     MediaManager,
+    MediaManagerDetail(Media),
     ServerFileMapping(String),
     AddDownload,
 }
