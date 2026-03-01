@@ -33,8 +33,15 @@ async fn main() {
     ) = server::signal::new_watcher_receiver_pair(Box::new([]));
     let processing_list_watcher =
         server::service::process::ProcessingListWatcher::new(Box::new([]));
+
+    let (subtitle_signal_sender, subtitle_signal_receiver): (
+        server::service::subtitle::SubtitleSignalSender,
+        _,
+    ) = tokio::sync::mpsc::channel(100);
+
     let shared_state = AppState {
         subtitle_provider,
+        subtitle_signal_sender,
         media_signal_watcher,
         download_signal_watcher,
         processing_list_watcher,
@@ -64,10 +71,17 @@ async fn main() {
         let mdns_handle =
             mdns_handle.inspect_err(|err| error!("Couldn't spawn Zeroconf service. Reason: {err}"));
 
+        let subtitle_handle = server::service::subtitle::spawn(
+            args.media_dir.clone(),
+            subtitle_signal_receiver,
+            shared_state.subtitle_provider.clone(),
+        );
+
         move || {
             media_watcher_join_handler.abort();
             bittorrent_client_join_handle.abort();
             torrent_watcher_handle.abort();
+            subtitle_handle.abort();
             let _ = mdns_handle.map(|handle| handle.shutdown());
         }
     };

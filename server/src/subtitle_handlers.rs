@@ -1,11 +1,20 @@
-use std::path::Path;
+use std::{collections::HashMap, path::Path};
 
 use axum::{Json, extract, http::StatusCode, response::IntoResponse};
-use domain::{series::EpisodeIdentifier, subtitles::SearchSubtitlesQuery};
+use domain::{
+    series::EpisodeIdentifier,
+    subtitles::{
+        SearchSubtitlesQuery, SubtitleDownloadError, SubtitleDownloadForm, SubtitleRequest,
+    },
+};
+use futures::FutureExt;
 use log::warn;
 use subtitles::SubtitleProvider;
 
-use crate::State;
+use crate::{
+    State,
+    service::subtitle::{SubtitleSignal, SubtitleSignalSender},
+};
 
 pub async fn search_subtitles(
     extract::State(state): State,
@@ -74,4 +83,62 @@ pub async fn search_subtitles(
         .collect();
 
     Ok(Json(result))
+}
+
+pub async fn download_subtitles(
+    extract::State(state): State,
+    axum::Json(SubtitleDownloadForm { media_id, requests }): axum::Json<SubtitleDownloadForm>,
+) -> axum::response::Result<axum::Json<HashMap<usize, Result<(), SubtitleDownloadError>>>> {
+    // TODO: rewrite body so it's readable
+    let futures = requests.into_iter().map(|request| {
+        let subtitle_id = request.subtitle_id;
+        download_subtitle(
+            media_id.clone(),
+            request,
+            state.subtitle_signal_sender.clone(),
+        )
+        .map(move |future_result| future_result.map(|result| (subtitle_id, result)))
+    });
+
+    let result: axum::response::Result<Box<[(usize, Result<(), SubtitleDownloadError>)]>> =
+        futures::future::join_all(futures)
+            .await
+            .into_iter()
+            .collect();
+
+    let download_results = result?;
+    let len = download_results.len();
+
+    Ok(Json(download_results.into_iter().fold(
+        HashMap::with_capacity(len),
+        |mut map, (id, result)| {
+            map.insert(id, result);
+            map
+        },
+    )))
+}
+
+async fn download_subtitle(
+    media_id: String,
+    request: SubtitleRequest,
+    signal_sender: SubtitleSignalSender,
+) -> axum::response::Result<Result<(), SubtitleDownloadError>> {
+    let (result_sender, result_receiver) = tokio::sync::oneshot::channel();
+
+    let signal = SubtitleSignal::Download {
+        result_sender,
+        media_id,
+        request,
+    };
+
+    signal_sender
+        .send(signal)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let result = result_receiver
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(result)
 }
