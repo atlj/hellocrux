@@ -7,13 +7,34 @@ pub mod subtitles;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::Path};
 
-use crate::subtitles::Subtitle;
+use crate::{series::EpisodeIdentifier, subtitles::Subtitle};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Media {
     pub id: String,
     pub metadata: MediaMetaData,
     pub content: MediaContent,
+}
+
+impl Media {
+    pub fn get_media_paths(
+        &self,
+        episode_identifier: Option<&EpisodeIdentifier>,
+    ) -> Option<&MediaPaths> {
+        match (&self.content, episode_identifier) {
+            (MediaContent::Movie(paths), None) => Some(paths),
+            (
+                MediaContent::Series(hash_map),
+                Some(EpisodeIdentifier {
+                    season_no,
+                    episode_no,
+                }),
+            ) => hash_map
+                .get(season_no)
+                .and_then(|season| season.get(episode_no)),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -30,6 +51,7 @@ pub type SeriesContents = HashMap<u32, SeasonContents>;
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct MediaPaths {
     pub media: String,
+    pub track_name: String,
     pub subtitles: Box<[Subtitle]>,
 }
 
@@ -59,7 +81,11 @@ impl MediaPaths {
             })
             .collect();
 
-        Self { media, subtitles }
+        Self {
+            media,
+            subtitles,
+            track_name: self.track_name.clone(),
+        }
     }
 
     pub fn strip_prefix(&self, prefix: impl AsRef<Path>) -> Option<Self> {
@@ -89,7 +115,11 @@ impl MediaPaths {
             })
             .collect::<Option<Box<[_]>>>()?;
 
-        Some(Self { subtitles, media })
+        Some(Self {
+            subtitles,
+            media,
+            track_name: self.track_name.clone(),
+        })
     }
 }
 

@@ -72,7 +72,6 @@ async fn main() {
             mdns_handle.inspect_err(|err| error!("Couldn't spawn Zeroconf service. Reason: {err}"));
 
         let subtitle_handle = server::service::subtitle::spawn(
-            args.media_dir.clone(),
             subtitle_signal_receiver,
             shared_state.subtitle_provider.clone(),
         );
@@ -104,6 +103,10 @@ async fn main() {
         .route(
             "/subtitles/search",
             get(subtitle_handlers::search_subtitles),
+        )
+        .route(
+            "/subtitles/download",
+            post(subtitle_handlers::download_subtitles),
         )
         .with_state(shared_state);
 

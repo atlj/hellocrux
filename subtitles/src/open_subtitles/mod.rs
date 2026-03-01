@@ -48,7 +48,7 @@ impl OpenSubtitlesClient {
 
     fn check_api_error(api_response_str: &str) -> Result<()> {
         if let Ok(error) = serde_json::from_str::<OpenSubtitlesError>(api_response_str)
-            && (error.status.is_some() || error.message.is_some() || error.error.is_some())
+            && (error.status.is_some() || error.error.is_some())
         {
             return Err(error.into());
         }
@@ -63,7 +63,7 @@ impl SubtitleProvider for OpenSubtitlesClient {
 
     async fn search(
         &self,
-        title: &str,
+        query: &str,
         language: domain::language::LanguageCode,
         episode: Option<domain::series::EpisodeIdentifier>,
     ) -> std::result::Result<
@@ -76,7 +76,7 @@ impl SubtitleProvider for OpenSubtitlesClient {
                 .expect("search URL to be valid");
 
             let encoded_title =
-                percent_encoding::utf8_percent_encode(title, percent_encoding::NON_ALPHANUMERIC);
+                percent_encoding::utf8_percent_encode(query, percent_encoding::NON_ALPHANUMERIC);
 
             let query_string = match episode {
                 // Series
@@ -106,7 +106,6 @@ impl SubtitleProvider for OpenSubtitlesClient {
             url.set_query(Some(&query_string));
             url
         };
-        dbg!(&search_url.to_string());
 
         let result_string = self
             .http_client
@@ -140,10 +139,7 @@ impl SubtitleProvider for OpenSubtitlesClient {
             }))
     }
 
-    async fn download(
-        &self,
-        item: &crate::SubtitleDownloadOption<Self::SubtitleId>,
-    ) -> core::result::Result<String, Self::Error> {
+    async fn download(&self, id: &Self::SubtitleId) -> core::result::Result<String, Self::Error> {
         let url = OPEN_SUBTITLES_BASE_URL
             .join("download")
             .expect("download URL has to be valid");
@@ -151,7 +147,7 @@ impl SubtitleProvider for OpenSubtitlesClient {
         let download_link_response_string = self
             .http_client
             .post(url)
-            .form(&DownloadForm { file_id: item.id })
+            .form(&DownloadForm { file_id: *id })
             .headers(DEFAULT_HEADERS.clone())
             .send()
             .await?
@@ -268,7 +264,6 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore = "Downlaod quota is limited"]
     async fn search_and_download_subtitles() {
         let client = OpenSubtitlesClient::new();
 
@@ -288,9 +283,9 @@ mod tests {
         dbg!(&search_result);
         let first_result = search_result.first().unwrap();
 
-        let download_result = client.download(first_result).await.unwrap();
+        let download_result = client.download(&first_result.id).await.unwrap();
 
         dbg!(&download_result);
-        assert!(download_result.is_empty());
+        assert!(!download_result.is_empty());
     }
 }

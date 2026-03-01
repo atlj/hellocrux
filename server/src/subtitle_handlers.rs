@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::Path};
+use std::{collections::HashMap, path::PathBuf};
 
 use axum::{Json, extract, http::StatusCode, response::IntoResponse};
 use domain::{
@@ -8,7 +8,6 @@ use domain::{
     },
 };
 use futures::FutureExt;
-use log::warn;
 use subtitles::SubtitleProvider;
 
 use crate::{
@@ -28,51 +27,21 @@ pub async fn search_subtitles(
         _ => None,
     };
 
-    // 1. Find the media file name
-    let media_file_name: String = {
-        // 1a: Get media from library
-        let media_data = state.media_signal_watcher.data.borrow();
-        let media = media_data
+    let track_name: String = {
+        let media_library = state.media_signal_watcher.data.borrow();
+        let media = media_library
             .iter()
             .find(|media| media.id == query.media_id)
-            .ok_or(StatusCode::NOT_FOUND.into_response())?;
-
-        let media_path: &Path = match (&media.content, &episode_identifier) {
-            (
-                domain::MediaContent::Series(series),
-                Some(EpisodeIdentifier {
-                    episode_no,
-                    season_no,
-                }),
-            ) => {
-                let media_path = series
-                    .get(season_no)
-                    .and_then(|season| season.get(episode_no))
-                    .ok_or(StatusCode::BAD_REQUEST)?
-                    .media
-                    .as_ref();
-
-                Ok(media_path)
-            }
-            (domain::MediaContent::Movie(media_paths), None) => Ok(media_paths.media.as_ref()),
-            _ => Err(StatusCode::BAD_REQUEST.into_response()),
-        }?;
-
-        let file_stem = media_path
-            .file_stem()
-            .and_then(|stem| stem.to_str())
-            .expect("File stem to be valid");
-
-        // 1b: Decode the file stem using b64
-        domain::encode_decode::decode_url_safe(file_stem).unwrap_or_else(|_| {
-                        warn!("While searching for subtitles of {} episode {:#?}, couldn't decode the file stem using base64 ({file_stem}). Returning the file stem directly.", media.metadata.title, &episode_identifier);
-                        file_stem.to_string()
-                    })
+            .ok_or(StatusCode::NOT_FOUND)?;
+        let media_paths = media
+            .get_media_paths(episode_identifier.as_ref())
+            .ok_or(StatusCode::NOT_FOUND)?;
+        media_paths.track_name.clone()
     };
 
     let result = state
         .subtitle_provider
-        .search(&media_file_name, query.language_code, episode_identifier)
+        .search(&track_name, query.language_code, episode_identifier)
         .await
         .map_err(|search_error| {
             axum::response::Response::builder()
@@ -89,17 +58,37 @@ pub async fn download_subtitles(
     extract::State(state): State,
     axum::Json(SubtitleDownloadForm { media_id, requests }): axum::Json<SubtitleDownloadForm>,
 ) -> axum::response::Result<axum::Json<HashMap<usize, Result<(), SubtitleDownloadError>>>> {
-    // TODO: rewrite body so it's readable
-    let futures = requests.into_iter().map(|request| {
+    if requests.is_empty() {
+        return Err(StatusCode::BAD_REQUEST.into());
+    }
+
+    // 1. Get all the paths for requests
+    let request_path_pairs = {
+        let media_library = state.media_signal_watcher.data.borrow();
+        let media = media_library
+            .iter()
+            .find(|media| media.id == media_id)
+            .ok_or(StatusCode::NOT_FOUND.into_response())?;
+
+        requests
+            .into_iter()
+            .map(|request| {
+                media
+                    .get_media_paths(request.episode_identifier.as_ref())
+                    .map(|media_paths| (request, state.media_dir.join(&media_paths.media)))
+            })
+            .collect::<Option<Vec<(SubtitleRequest, PathBuf)>>>()
+    }
+    .ok_or(StatusCode::BAD_REQUEST)?;
+
+    // 2. Download
+    let futures = request_path_pairs.into_iter().map(|(request, media_path)| {
         let subtitle_id = request.subtitle_id;
-        download_subtitle(
-            media_id.clone(),
-            request,
-            state.subtitle_signal_sender.clone(),
-        )
-        .map(move |future_result| future_result.map(|result| (subtitle_id, result)))
+        download_subtitle(media_path, request, state.subtitle_signal_sender.clone())
+            .map(move |future_result| future_result.map(|result| (subtitle_id, result)))
     });
 
+    // 3. Check if any internal errors happened
     let result: axum::response::Result<Box<[(usize, Result<(), SubtitleDownloadError>)]>> =
         futures::future::join_all(futures)
             .await
@@ -108,6 +97,14 @@ pub async fn download_subtitles(
 
     let download_results = result?;
     let len = download_results.len();
+
+    // 4. Now update the media library
+    state
+        .media_signal_watcher
+        .signal_sender
+        .send(crate::service::media::MediaSignal::CrawlPartial { media_id })
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Ok(Json(download_results.into_iter().fold(
         HashMap::with_capacity(len),
@@ -119,15 +116,15 @@ pub async fn download_subtitles(
 }
 
 async fn download_subtitle(
-    media_id: String,
+    media_path: PathBuf,
     request: SubtitleRequest,
     signal_sender: SubtitleSignalSender,
 ) -> axum::response::Result<Result<(), SubtitleDownloadError>> {
     let (result_sender, result_receiver) = tokio::sync::oneshot::channel();
 
     let signal = SubtitleSignal::Download {
+        media_path,
         result_sender,
-        media_id,
         request,
     };
 

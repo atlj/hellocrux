@@ -100,7 +100,6 @@ pub(super) struct DownloadResponse {
 pub struct OpenSubtitlesError {
     pub status: Option<usize>,
     pub error: Option<String>,
-    pub message: Option<String>,
 }
 
 impl std::fmt::Display for OpenSubtitlesError {

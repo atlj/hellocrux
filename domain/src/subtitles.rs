@@ -32,6 +32,8 @@ pub struct Subtitle {
 pub enum SubtitleDownloadError {
     SubtitleAlreadyExists,
     DownloadQuotaReached,
+    InternalFileSystemError,
+    NonExistentSubtitle,
 }
 
 impl std::fmt::Display for SubtitleDownloadError {

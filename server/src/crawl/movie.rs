@@ -19,7 +19,21 @@ pub(super) async fn try_extract_movie_paths(
 
     let subtitles = { None }.unwrap_or(Box::new([]));
 
-    Ok(media.map(|media| domain::MediaPaths { media, subtitles }))
+    Ok(media.map(|media| {
+        let path: &Path = media.as_ref();
+        let file_stem = path
+            .file_stem()
+            .and_then(|stem| stem.to_str())
+            .expect("Media file to have a proper stem");
+        let track_name = domain::encode_decode::decode_url_safe(file_stem)
+            .unwrap_or_else(|_| file_stem.to_string());
+
+        domain::MediaPaths {
+            media,
+            subtitles,
+            track_name,
+        }
+    }))
 }
 
 #[cfg(test)]

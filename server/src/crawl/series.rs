@@ -62,9 +62,18 @@ async fn try_extract_season(path: impl AsRef<Path>) -> Result<Option<domain::Sea
         {
             let subtitles = Box::new([]);
 
+            let media = current_path.to_string_lossy().into();
+            let file_stem = current_path
+                .file_stem()
+                .and_then(|stem| stem.to_str())
+                .expect("Media file to have a valid stem");
+            let track_name = domain::encode_decode::decode_url_safe(file_stem)
+                .unwrap_or_else(|_| file_stem.to_string());
+
             let media_paths = domain::MediaPaths {
                 subtitles,
-                media: current_path.to_string_lossy().into(),
+                media,
+                track_name,
             };
 
             map.insert(episode_no, media_paths);

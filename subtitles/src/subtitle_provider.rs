@@ -14,7 +14,7 @@ pub trait SubtitleProvider {
 
     fn search(
         &self,
-        title: &str,
+        query: &str,
         language: LanguageCode,
         episode: Option<EpisodeIdentifier>,
     ) -> impl Future<
@@ -24,8 +24,5 @@ pub trait SubtitleProvider {
         >,
     >;
 
-    fn download(
-        &self,
-        item: &SubtitleDownloadOption<Self::SubtitleId>,
-    ) -> impl Future<Output = Result<String, Self::Error>>;
+    fn download(&self, id: &Self::SubtitleId) -> impl Future<Output = Result<String, Self::Error>>;
 }
