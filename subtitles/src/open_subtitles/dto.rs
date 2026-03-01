@@ -58,13 +58,13 @@ pub(super) struct Uploader {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(super) struct FeatureDetails {
-    pub feature_id: u64,
+    pub feature_id: Option<u64>,
     pub feature_type: String,
     pub year: usize,
     pub title: String,
     pub movie_name: String,
-    pub imdb_id: u64,
-    pub tmdb_id: u64,
+    pub imdb_id: Option<u64>,
+    pub tmdb_id: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
