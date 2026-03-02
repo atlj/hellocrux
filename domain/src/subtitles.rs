@@ -18,6 +18,7 @@ pub struct SubtitleRequest {
 pub struct SubtitleDownloadForm {
     pub media_id: String,
     pub requests: Box<[SubtitleRequest]>,
+    pub language_code: LanguageCode,
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]

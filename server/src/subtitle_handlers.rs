@@ -2,6 +2,7 @@ use std::{collections::HashMap, path::PathBuf};
 
 use axum::{Json, extract, http::StatusCode, response::IntoResponse};
 use domain::{
+    language::LanguageCode,
     series::EpisodeIdentifier,
     subtitles::{
         SearchSubtitlesQuery, SubtitleDownloadError, SubtitleDownloadForm, SubtitleRequest,
@@ -56,7 +57,11 @@ pub async fn search_subtitles(
 
 pub async fn download_subtitles(
     extract::State(state): State,
-    axum::Json(SubtitleDownloadForm { media_id, requests }): axum::Json<SubtitleDownloadForm>,
+    axum::Json(SubtitleDownloadForm {
+        media_id,
+        requests,
+        language_code,
+    }): axum::Json<SubtitleDownloadForm>,
 ) -> axum::response::Result<axum::Json<HashMap<usize, Result<(), SubtitleDownloadError>>>> {
     if requests.is_empty() {
         return Err(StatusCode::BAD_REQUEST.into());
@@ -84,8 +89,13 @@ pub async fn download_subtitles(
     // 2. Download
     let futures = request_path_pairs.into_iter().map(|(request, media_path)| {
         let subtitle_id = request.subtitle_id;
-        download_subtitle(media_path, request, state.subtitle_signal_sender.clone())
-            .map(move |future_result| future_result.map(|result| (subtitle_id, result)))
+        download_subtitle(
+            media_path,
+            request,
+            language_code.clone(),
+            state.subtitle_signal_sender.clone(),
+        )
+        .map(move |future_result| future_result.map(|result| (subtitle_id, result)))
     });
 
     // 3. Check if any internal errors happened
@@ -118,6 +128,7 @@ pub async fn download_subtitles(
 async fn download_subtitle(
     media_path: PathBuf,
     request: SubtitleRequest,
+    language_code: LanguageCode,
     signal_sender: SubtitleSignalSender,
 ) -> axum::response::Result<Result<(), SubtitleDownloadError>> {
     let (result_sender, result_receiver) = tokio::sync::oneshot::channel();
@@ -126,6 +137,7 @@ async fn download_subtitle(
         media_path,
         result_sender,
         request,
+        language_code,
     };
 
     signal_sender

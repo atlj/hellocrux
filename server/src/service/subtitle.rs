@@ -1,8 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use domain::{
-    series::EpisodeIdentifier,
-    subtitles::{SubtitleDownloadError, SubtitleRequest},
+    language::LanguageCode, series::EpisodeIdentifier, subtitles::{SubtitleDownloadError, SubtitleRequest}
 };
 use subtitles::{OpenSubtitlesClient, SubtitleProvider};
 use tokio::io::AsyncWriteExt;
@@ -12,6 +11,7 @@ pub enum SubtitleSignal {
         media_path: PathBuf,
         request: SubtitleRequest,
         result_sender: tokio::sync::oneshot::Sender<Result<(), SubtitleDownloadError>>,
+        language_code: LanguageCode
     },
 }
 
@@ -35,8 +35,9 @@ pub fn spawn(
                     media_path,
                     request,
                     result_sender,
+                    language_code
                 } => {
-                    let result = download_subtitle(&media_path, &subtitle_provider, request).await;
+                    let result = download_subtitle(&media_path, &subtitle_provider, request, language_code).await;
                     // We don't care if the sender is still listening
                     let _ = result_sender.send(result);
                 }
@@ -49,13 +50,14 @@ async fn download_subtitle(
     media_path: &Path,
     subtitle_provider: &OpenSubtitlesClient,
     request: SubtitleRequest,
+    language_code: LanguageCode
 ) -> Result<(), SubtitleDownloadError> {
     let subtitles_folder_path = media_path.with_file_name("subtitles");
     let subtitle_path = match request.episode_identifier {
         Some(EpisodeIdentifier { episode_no, .. }) => {
-            subtitles_folder_path.join(format!("{}-{}.srt", episode_no, request.subtitle_id))
+            subtitles_folder_path.join(format!("{}-{}-{}.srt", episode_no, language_code.to_iso639_2t(), request.subtitle_id))
         }
-        None => subtitles_folder_path.join(format!("{}.srt", request.subtitle_id)),
+        None => subtitles_folder_path.join(format!("{}-{}.srt",language_code.to_iso639_2t(), request.subtitle_id)),
     };
 
     // 1. Check if subtitle already exists early so user doesn't use quota
