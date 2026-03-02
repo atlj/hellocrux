@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use domain::{
     language::LanguageCode, series::EpisodeIdentifier, subtitles::{SubtitleDownloadError, SubtitleRequest}
 };
+use log::{info, warn};
 use subtitles::{OpenSubtitlesClient, SubtitleProvider};
 use tokio::io::AsyncWriteExt;
 
@@ -60,11 +61,14 @@ async fn download_subtitle(
         None => subtitles_folder_path.join(format!("{}-{}.srt",language_code.to_iso639_2t(), request.subtitle_id)),
     };
 
+    info!("Downloading subtitle with id {} to {subtitle_path:#?}", request.subtitle_id);
+
     // 1. Check if subtitle already exists early so user doesn't use quota
     if tokio::fs::try_exists(&subtitle_path)
         .await
         .map_err(|_| SubtitleDownloadError::InternalFileSystemError)?
     {
+        warn!("Subtitle with id {} already exists. Skipping it", request.subtitle_id);
         return Err(SubtitleDownloadError::SubtitleAlreadyExists);
     }
 
@@ -84,7 +88,7 @@ async fn download_subtitle(
             // Prevents time of check vs time of use bug
             .create_new(true)
             .write(true)
-            .open(subtitle_path)
+            .open(&subtitle_path)
             .await
             .map_err(|_| SubtitleDownloadError::SubtitleAlreadyExists)?;
 
@@ -98,6 +102,8 @@ async fn download_subtitle(
             .await
             .map_err(|_| SubtitleDownloadError::InternalFileSystemError)?;
     }
+
+    info!("Added subtitle with id {} to {subtitle_path:#?}", request.subtitle_id);
 
     Ok(())
 }
