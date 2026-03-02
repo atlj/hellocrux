@@ -1,12 +1,15 @@
+use domain::subtitles::Subtitle;
+use log::error;
+
 use super::{Error, Result};
 use std::path::Path;
 
 pub(super) async fn try_extract_movie_paths(
-    path: impl AsRef<Path>,
+    media_path: impl AsRef<Path>,
 ) -> Result<Option<domain::MediaPaths>> {
-    let mut read_dir = crate::dir::fully_read_dir(&path)
+    let mut read_dir = crate::dir::fully_read_dir(&media_path)
         .await
-        .map_err(|_| Error::CantReadDir(path.as_ref().into()))?;
+        .map_err(|_| Error::CantReadDir(media_path.as_ref().into()))?;
 
     let media = read_dir.find_map(|entry| {
         let path = entry.path();
@@ -17,7 +20,16 @@ pub(super) async fn try_extract_movie_paths(
         Some(path.to_string_lossy().to_string())
     });
 
-    let subtitles = { None }.unwrap_or(Box::new([]));
+    let subtitles: Box<[Subtitle]> = super::subtitles::extract_subtitles(&media_path)
+        .await
+        .inspect_err(|err| {
+            error!(
+                "Couldn't extract subtitles at {}. Reason: {err}",
+                media_path.as_ref().display(),
+            )
+        })
+        .map(|iter| iter.collect())
+        .unwrap_or(Box::new([]));
 
     Ok(media.map(|media| {
         let path: &Path = media.as_ref();

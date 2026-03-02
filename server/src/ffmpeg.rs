@@ -52,6 +52,7 @@ pub async fn ffprobe(args: impl IntoIterator<Item = impl AsRef<OsStr>>) -> Resul
 pub enum Error {
     CouldntSpawn(String),
     NonZeroExit(String),
+    MissingOutput,
 }
 
 impl std::fmt::Display for Error {

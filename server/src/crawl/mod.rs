@@ -10,6 +10,7 @@ use tokio::{fs::OpenOptions, io::AsyncReadExt};
 
 mod movie;
 mod series;
+mod subtitles;
 
 pub(crate) async fn crawl_all_folders(
     path: impl AsRef<Path> + Display,
