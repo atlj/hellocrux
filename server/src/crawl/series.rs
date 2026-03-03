@@ -63,12 +63,13 @@ async fn try_extract_season(path: impl AsRef<Path>) -> Result<Option<domain::Sea
             let subtitles = Box::new([]);
 
             let media = current_path.to_string_lossy().into();
+
             let file_stem = current_path
                 .file_stem()
                 .and_then(|stem| stem.to_str())
                 .expect("Media file to have a valid stem");
-            let track_name = domain::encode_decode::decode_url_safe(file_stem)
-                .unwrap_or_else(|_| file_stem.to_string());
+            let track_name =
+                get_episode_track_name(file_stem).unwrap_or_else(|| file_stem.to_string());
 
             let media_paths = domain::MediaPaths {
                 subtitles,
@@ -87,6 +88,16 @@ async fn try_extract_season(path: impl AsRef<Path>) -> Result<Option<domain::Sea
     }
 
     Ok(Some(result))
+}
+
+fn get_episode_track_name(file_stem: &str) -> Option<String> {
+    let (episode_number, encoded_part) = file_stem.split_once('-')?;
+
+    if episode_number.parse::<usize>().is_err() {
+        return None;
+    }
+
+    domain::encode_decode::decode_url_safe(encoded_part).ok()
 }
 
 #[cfg(test)]
