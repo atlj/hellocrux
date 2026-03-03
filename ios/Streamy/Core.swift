@@ -81,7 +81,7 @@ class Core: ObservableObject {
                         }
                         let coreResponse = HttpOutput.success(
                             data: data == nil ? nil : String(data: data!, encoding: .utf8),
-                            status_code: Int32(response.statusCode)
+                            status_code: Int32(response.statusCode),
                         )
                         self?.respond(requestId, response: try! coreResponse.bincodeSerialize())
                     }
@@ -102,7 +102,7 @@ class Core: ObservableObject {
                         }
                         let coreResponse = HttpOutput.success(
                             data: data == nil ? nil : String(data: data!, encoding: .utf8),
-                            status_code: Int32(response.statusCode)
+                            status_code: Int32(response.statusCode),
                         )
                         self?.respond(requestId, response: try! coreResponse.bincodeSerialize())
                     }

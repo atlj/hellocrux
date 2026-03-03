@@ -50,21 +50,24 @@ struct EpisodePicker: View {
         EpisodePicker(
             id: "test", series: [
                 1: [
-                    8: .init(media: "", subtitles: []),
-                    1: .init(media: "", subtitles: []),
-                    2: .init(media: "", subtitles: []),
+                    8: .init(media: "", track_name: "", subtitles: []),
+                    1: .init(media: "", track_name: "", subtitles: []),
+                    2: .init(media: "", track_name: "", subtitles: []),
                 ],
                 2: [:],
-            ]
+            ],
         )
         .environmentObject(Core())
     }
 }
 
 struct Season: Hashable, Identifiable {
-    var id: Self { self }
+    var id: Self {
+        self
+    }
+
     var data: SeasonData
-    var children: [Season]? = nil
+    var children: [Season]?
 
     var number: Int {
         switch data {

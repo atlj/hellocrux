@@ -33,10 +33,10 @@ struct Player: UIViewControllerRepresentable {
         let videoAsset = AVURLAsset(url: url)
         let mixComposition = AVMutableComposition()
         let videoTrack = mixComposition.addMutableTrack(
-            withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid
+            withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid,
         )
         let audioTrack = mixComposition.addMutableTrack(
-            withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid
+            withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid,
         )
 
         // TODO: add a cancellation handler here
@@ -48,14 +48,14 @@ struct Player: UIViewControllerRepresentable {
                 try videoTrack?.insertTimeRange(
                     CMTimeRangeMake(start: .zero, duration: duration),
                     of: videoTrackItem,
-                    at: .zero
+                    at: .zero,
                 )
             }
             if let audioTrackItem = try await videoAsset.loadTracks(withMediaType: .audio).first {
                 try audioTrack?.insertTimeRange(
                     CMTimeRangeMake(start: .zero, duration: duration),
                     of: audioTrackItem,
-                    at: .zero
+                    at: .zero,
                 )
             }
 
@@ -84,14 +84,15 @@ struct Player: UIViewControllerRepresentable {
                 player.seek(
                     to: .init(
                         seconds: Double(data.position.getInitialSeconds()),
-                        preferredTimescale: CMTimeScale(NSEC_PER_SEC)
-                    ))
+                        preferredTimescale: CMTimeScale(NSEC_PER_SEC),
+                    ),
+                )
             }
         }
 
         Player.timeObserver = player.addPeriodicTimeObserver(
             forInterval: .init(seconds: 1, preferredTimescale: CMTimeScale(NSEC_PER_SEC)),
-            queue: .main
+            queue: .main,
         ) { time in
             if time.seconds.rounded(.towardZero) == 0 {
                 return
@@ -113,7 +114,7 @@ struct Player: UIViewControllerRepresentable {
                 case let .seriesEpisode(id: id, episode_identifier: episodeID, position_seconds: _):
                     .seriesEpisode(
                         id: id, episode_identifier: episodeID,
-                        position_seconds: UInt64(time.seconds)
+                        position_seconds: UInt64(time.seconds),
                     )
                 }
 
@@ -143,7 +144,8 @@ struct Player: UIViewControllerRepresentable {
         uiViewController.onNextButton = {
             if let nextEpisode = data.next_episode {
                 Core.shared.update(
-                    .play(.fromCertainEpisode(id: data.position.getId(), episode: nextEpisode)))
+                    .play(.fromCertainEpisode(id: data.position.getId(), episode: nextEpisode)),
+                )
             }
         }
         uiViewController.showNextButton(data.next_episode != nil)
@@ -156,7 +158,7 @@ struct Player: UIViewControllerRepresentable {
     }
 
     static func dismantleUIViewController(
-        _ uiViewController: PlayerViewController, coordinator _: ()
+        _ uiViewController: PlayerViewController, coordinator _: (),
     ) {
         uiViewController.player?.dismantle()
         uiViewController.player = nil
@@ -183,9 +185,9 @@ extension AVPlayer {
     PlayerScreen(
         overrideData: .init(
             position: .movie(id: "1", position_seconds: 0),
-            media_paths: .init(media: "", subtitles: []), title: "",
-            next_episode: EpisodeIdentifier(season_no: 1, episode_no: 1)
-        )
+            media_paths: .init(media: "", track_name: "", subtitles: []), title: "",
+            next_episode: EpisodeIdentifier(season_no: 1, episode_no: 1),
+        ),
     )
     .environmentObject(Core())
 }
@@ -216,14 +218,14 @@ class PlayerViewController: AVPlayerViewController {
 
             NSLayoutConstraint.activate([
                 button.bottomAnchor.constraint(
-                    greaterThanOrEqualTo: overlay.bottomAnchor, constant: -24
+                    greaterThanOrEqualTo: overlay.bottomAnchor, constant: -24,
                 ),
                 button.trailingAnchor.constraint(equalTo: overlay.trailingAnchor, constant: -24),
                 button.bottomAnchor.constraint(
-                    greaterThanOrEqualTo: overlay.safeAreaLayoutGuide.bottomAnchor, constant: -12
+                    greaterThanOrEqualTo: overlay.safeAreaLayoutGuide.bottomAnchor, constant: -12,
                 ),
                 button.trailingAnchor.constraint(
-                    greaterThanOrEqualTo: overlay.safeAreaLayoutGuide.trailingAnchor, constant: -12
+                    greaterThanOrEqualTo: overlay.safeAreaLayoutGuide.trailingAnchor, constant: -12,
                 ),
             ])
         }

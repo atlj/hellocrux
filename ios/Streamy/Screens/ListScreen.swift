@@ -78,7 +78,7 @@ struct ListScreen: View {
                                             .frame(maxWidth: .infinity, alignment: .leading)
                                             .background(
                                                 Rectangle()
-                                                    .fill(.linearGradient(colors: [.black.opacity(0), .black.opacity(0.7), .black], startPoint: .top, endPoint: .bottom))
+                                                    .fill(.linearGradient(colors: [.black.opacity(0), .black.opacity(0.7), .black], startPoint: .top, endPoint: .bottom)),
                                             )
                                     }
                                 }
@@ -103,7 +103,6 @@ struct ListScreen: View {
                 core.update(.updateData(.getMedia))
                 var cancellable: AnyCancellable?
                 await withCheckedContinuation { continuation in
-
                     cancellable = core.$view
                         .sink { value in
                             if case .success = value.media_items {
@@ -163,8 +162,8 @@ struct ListScreen: View {
     NavigationStack {
         ListScreen(
             overrideMediaItems: [
-                Media(id: "1", metadata: MediaMetaData(thumbnail: "https://m.media-amazon.com/images/M/MV5BMTkzMzM3OTM2Ml5BMl5BanBnXkFtZTgwMDM0NDU3MjI@._V1_FMjpg_UY2048_.jpg", title: "Emoji Movie"), content: MediaContent.movie(.init(media: "test", subtitles: []))),
-            ]
+                Media(id: "1", metadata: MediaMetaData(thumbnail: "https://m.media-amazon.com/images/M/MV5BMTkzMzM3OTM2Ml5BMl5BanBnXkFtZTgwMDM0NDU3MjI@._V1_FMjpg_UY2048_.jpg", title: "Emoji Movie"), content: MediaContent.movie(.init(media: "test", track_name: "", subtitles: []))),
+            ],
         )
         .environmentObject(Core())
     }

@@ -1,7 +1,9 @@
 use std::path::{Path, PathBuf};
 
 use domain::{
-    language::LanguageCode, series::EpisodeIdentifier, subtitles::{SubtitleDownloadError, SubtitleRequest}
+    language::LanguageCode,
+    series::EpisodeIdentifier,
+    subtitles::{SubtitleDownloadError, SubtitleRequest},
 };
 use log::{info, warn};
 use subtitles::{OpenSubtitlesClient, SubtitleProvider};
@@ -12,7 +14,7 @@ pub enum SubtitleSignal {
         media_path: PathBuf,
         request: SubtitleRequest,
         result_sender: tokio::sync::oneshot::Sender<Result<(), SubtitleDownloadError>>,
-        language_code: LanguageCode
+        language_code: LanguageCode,
     },
 }
 
@@ -36,9 +38,11 @@ pub fn spawn(
                     media_path,
                     request,
                     result_sender,
-                    language_code
+                    language_code,
                 } => {
-                    let result = download_subtitle(&media_path, &subtitle_provider, request, language_code).await;
+                    let result =
+                        download_subtitle(&media_path, &subtitle_provider, request, language_code)
+                            .await;
                     // We don't care if the sender is still listening
                     let _ = result_sender.send(result);
                 }
@@ -51,24 +55,37 @@ async fn download_subtitle(
     media_path: &Path,
     subtitle_provider: &OpenSubtitlesClient,
     request: SubtitleRequest,
-    language_code: LanguageCode
+    language_code: LanguageCode,
 ) -> Result<(), SubtitleDownloadError> {
     let subtitles_folder_path = media_path.with_file_name("subtitles");
     let subtitle_path = match request.episode_identifier {
-        Some(EpisodeIdentifier { episode_no, .. }) => {
-            subtitles_folder_path.join(format!("{}-{}-{}.srt", episode_no, language_code.to_iso639_2t(), request.subtitle_id))
-        }
-        None => subtitles_folder_path.join(format!("{}-{}.srt",language_code.to_iso639_2t(), request.subtitle_id)),
+        Some(EpisodeIdentifier { episode_no, .. }) => subtitles_folder_path.join(format!(
+            "{}-{}-{}.srt",
+            episode_no,
+            language_code.to_iso639_2t(),
+            request.subtitle_id
+        )),
+        None => subtitles_folder_path.join(format!(
+            "{}-{}.srt",
+            language_code.to_iso639_2t(),
+            request.subtitle_id
+        )),
     };
 
-    info!("Downloading subtitle with id {} to {subtitle_path:#?}", request.subtitle_id);
+    info!(
+        "Downloading subtitle with id {} to {subtitle_path:#?}",
+        request.subtitle_id
+    );
 
     // 1. Check if subtitle already exists early so user doesn't use quota
     if tokio::fs::try_exists(&subtitle_path)
         .await
         .map_err(|_| SubtitleDownloadError::InternalFileSystemError)?
     {
-        warn!("Subtitle with id {} already exists. Skipping it", request.subtitle_id);
+        warn!(
+            "Subtitle with id {} already exists. Skipping it",
+            request.subtitle_id
+        );
         return Err(SubtitleDownloadError::SubtitleAlreadyExists);
     }
 
@@ -76,13 +93,15 @@ async fn download_subtitle(
     let subtitle_string = subtitle_provider
         .download(&request.subtitle_id)
         .await
-        .map_err(|_| 
+        .map_err(|_|
             // TODO: Check other types of errors too
             SubtitleDownloadError::DownloadQuotaReached)?;
 
     // 3. Write the string data
     {
-        tokio::fs::create_dir_all(subtitles_folder_path).await.map_err(|_|SubtitleDownloadError::InternalFileSystemError)?;
+        tokio::fs::create_dir_all(subtitles_folder_path)
+            .await
+            .map_err(|_| SubtitleDownloadError::InternalFileSystemError)?;
 
         let mut subtitle_file = tokio::fs::OpenOptions::new()
             // Prevents time of check vs time of use bug
@@ -103,7 +122,10 @@ async fn download_subtitle(
             .map_err(|_| SubtitleDownloadError::InternalFileSystemError)?;
     }
 
-    info!("Added subtitle with id {} to {subtitle_path:#?}", request.subtitle_id);
+    info!(
+        "Added subtitle with id {} to {subtitle_path:#?}",
+        request.subtitle_id
+    );
 
     Ok(())
 }

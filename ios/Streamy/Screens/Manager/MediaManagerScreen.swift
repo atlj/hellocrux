@@ -76,6 +76,6 @@ struct MediaManagerScreen: View {
             Download(id: "sdlkfjvs", title: "Big Buck Bunny", progress: 0.2, needs_file_mapping: true, state: .inProgress),
             Download(id: "my movie", title: "My Movie", progress: 0.7, needs_file_mapping: true, state: .inProgress),
             Download(id: "skjvlk", title: "Skibbidy Toilet", progress: 0.0, needs_file_mapping: false, state: .paused),
-        ], overrideMediaItems: .success(data: ["Idiocracy": .init(id: "Idiocracy", metadata: .init(thumbnail: "https://www.themoviedb.org/t/p/w1280/k75tEyoPbPlfHSKakJBOR5dx1Dp.jpg", title: "Idiocracy"), content: .movie(.init(media: "", subtitles: [])))])
+        ], overrideMediaItems: .success(data: ["Idiocracy": .init(id: "Idiocracy", metadata: .init(thumbnail: "https://www.themoviedb.org/t/p/w1280/k75tEyoPbPlfHSKakJBOR5dx1Dp.jpg", title: "Idiocracy"), content: .movie(.init(media: "", track_name: "", subtitles: [])))]),
     ).environmentObject(Core.shared)
 }

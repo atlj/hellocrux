@@ -40,7 +40,7 @@ struct ManualAddressEntryScreen: View {
                 Section {
                     TextField(
                         text: $address,
-                        prompt: Text("192.168.1.127:3000")
+                        prompt: Text("192.168.1.127:3000"),
                     ) {
                         Text("Server Address")
                     }
@@ -77,7 +77,7 @@ struct ManualAddressEntryScreen: View {
             }
             .alert(
                 "Can't connect",
-                isPresented: .constant(error)
+                isPresented: .constant(error),
             ) {
                 Button("Ok") { lastSubmittedAddress = nil }
             } message: {

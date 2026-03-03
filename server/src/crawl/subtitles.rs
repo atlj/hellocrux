@@ -4,7 +4,7 @@ use std::{
 };
 
 use domain::subtitles::Subtitle;
-use log::{error, info, warn};
+use log::{debug, error, info, warn};
 
 use super::{Error, Result};
 
@@ -72,6 +72,14 @@ pub(super) async fn extract_subtitles(
 async fn get_srt_mp4_pairs(
     subtitles_path: impl AsRef<Path>,
 ) -> Result<HashMap<String, (Option<PathBuf>, Option<PathBuf>)>> {
+    if !tokio::fs::try_exists(&subtitles_path)
+        .await
+        .map_err(|_| Error::CantReadDir(subtitles_path.as_ref().into()))?
+    {
+        debug!("{} doesn't exist.", subtitles_path.as_ref().display());
+        return Ok(HashMap::new());
+    }
+
     let read_subtitle_dir = crate::dir::fully_read_dir(&subtitles_path)
         .await
         .map_err(|_| Error::CantReadDir(subtitles_path.as_ref().into()))?;

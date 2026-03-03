@@ -82,16 +82,15 @@ struct FileMappingScreen: View {
 
     private func fileMappingForm() -> EditSeriesFileMappingForm {
         let mappings = [String: EpisodeIdentifier].fromTupleArray(
-            tuples: files.compactMap { $0.isNonMedia ? nil : $0.toMapping() })
+            tuples: files.compactMap { $0.isNonMedia ? nil : $0.toMapping() },
+        )
 
         return EditSeriesFileMappingForm(id: id, file_mapping: mappings)
     }
 }
 
 extension Dictionary {
-    static func fromTupleArray<K, V>(tuples: [(K, V)]) -> [K: V]
-        where K: Hashable
-    {
+    static func fromTupleArray<K: Hashable, V>(tuples: [(K, V)]) -> [K: V] {
         tuples.reduce([:]) {
             var dict: [K: V] = $0
             dict[$1.0] = $1.1
@@ -107,9 +106,9 @@ extension Dictionary {
             FileMapping(fileName: "Season1/power-raising-S1E10.mp4", seasonNo: 0, episodeNo: 0),
             FileMapping(
                 fileName: "Season1/suuuuuper-long-title-that-isreaaaallllllyyyyylongS1E20.mp4",
-                seasonNo: 0, episodeNo: 0
+                seasonNo: 0, episodeNo: 0,
             ),
-        ]
+        ],
     )
     .environmentObject(Core())
 }

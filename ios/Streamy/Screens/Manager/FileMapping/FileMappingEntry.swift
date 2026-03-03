@@ -29,7 +29,7 @@ struct FileMappingEntry: View {
     }
 }
 
-struct Selector<T, L>: View where T: BinaryInteger, L: View {
+struct Selector<T: BinaryInteger, L: View>: View {
     var title: String
     @Binding var value: T
     @ViewBuilder var Label: L

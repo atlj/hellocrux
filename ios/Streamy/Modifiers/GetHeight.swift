@@ -10,7 +10,7 @@ private struct GetHeightModifier: ViewModifier {
                     height = geo.size.height
                 }
                 return Color.clear
-            }
+            },
         )
     }
 }

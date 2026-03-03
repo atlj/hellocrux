@@ -11,6 +11,6 @@ struct MediaManagerDetailScreen: View {
 
 #Preview {
     MediaManagerDetailScreen(
-        media: PreviewData.idiocracyMedia
+        media: PreviewData.idiocracyMedia,
     )
 }

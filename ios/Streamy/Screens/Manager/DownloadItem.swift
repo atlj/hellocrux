@@ -80,10 +80,10 @@ struct DownloadStateBadge: View {
 #Preview {
     Form {
         DownloadItem(
-            data: Download(id: "24389729skjl", title: "Big Buck Bunny", progress: 0.6, needs_file_mapping: false, state: .inProgress)
+            data: Download(id: "24389729skjl", title: "Big Buck Bunny", progress: 0.6, needs_file_mapping: false, state: .inProgress),
         )
         DownloadItem(
-            data: Download(id: "24389729skjl", title: "Big Buck Bunny", progress: 1.0, needs_file_mapping: true, state: .complete)
+            data: Download(id: "24389729skjl", title: "Big Buck Bunny", progress: 1.0, needs_file_mapping: true, state: .complete),
         )
     }
 }

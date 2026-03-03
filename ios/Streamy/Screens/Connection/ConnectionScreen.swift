@@ -59,12 +59,12 @@ struct ConnectionScreen: View {
                         }
                     }
                     .foregroundStyle(
-                        errored ? .red : .primary
+                        errored ? .red : .primary,
                     )
                     .disabled(loading)
                     .alert(
                         "Can't connect to server: \"\(discoveredService.name)\"",
-                        isPresented: .constant(errored)
+                        isPresented: .constant(errored),
                     ) {
                         Button("Ok") { lastInteractedService = nil }
                     } message: {
