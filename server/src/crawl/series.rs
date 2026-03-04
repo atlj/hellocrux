@@ -1,4 +1,5 @@
-use domain::SeriesContents;
+use domain::{SeriesContents, subtitles::Subtitle};
+use log::error;
 
 use super::{Error, Result};
 use std::{collections::HashMap, path::Path};
@@ -51,6 +52,40 @@ async fn try_extract_season(path: impl AsRef<Path>) -> Result<Option<domain::Sea
         .await
         .map_err(|_| Error::CantReadDir(path.as_ref().into()))?;
 
+    let mut subtitles_map = super::subtitles::extract_subtitles(&path)
+        .await
+        .inspect_err(|err| {
+            error!(
+                "Couldn't extract subtitles at {}. Reason: {err}",
+                path.as_ref().display()
+            )
+        })
+        .map(|iter| {
+            iter.fold(
+                HashMap::<usize, Vec<Subtitle>>::with_capacity(40),
+                |mut map, subtitle| {
+                    let path: &Path = subtitle.path.as_ref();
+                    let file_stem = path
+                        .file_stem()
+                        .and_then(|stem| stem.to_str())
+                        .expect("Subtitle needs to have a valid file stem");
+                    let Some(episode_number) =
+                        file_stem
+                            .split_once('-')
+                            .and_then(|(episode_number_string, _)| {
+                                episode_number_string.parse::<usize>().ok()
+                            })
+                    else {
+                        return map;
+                    };
+
+                    map.entry(episode_number).or_default().push(subtitle);
+                    map
+                },
+            )
+        })
+        .unwrap_or_default();
+
     let result: domain::SeasonContents = read_dir.fold(HashMap::new(), |mut map, entry| {
         let current_path = entry.path();
         if !domain::format::is_supported_video_file(&current_path) {
@@ -60,7 +95,10 @@ async fn try_extract_season(path: impl AsRef<Path>) -> Result<Option<domain::Sea
         if let Some(episode_no) =
             super::get_numeric_content(entry.file_name().to_string_lossy().as_ref())
         {
-            let subtitles = Box::new([]);
+            let subtitles = subtitles_map
+                .remove(&episode_no.try_into().unwrap())
+                .map(|vec| vec.into_boxed_slice())
+                .unwrap_or_default();
 
             let media = current_path.to_string_lossy().into();
 

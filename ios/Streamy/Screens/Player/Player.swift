@@ -69,8 +69,8 @@ struct Player: UIViewControllerRepresentable {
                         }
 
                         let subtitleTrack = mixComposition.addMutableTrack(withMediaType: .subtitle, preferredTrackID: kCMPersistentTrackID_Invalid)
-                        try? subtitleTrack?.insertTimeRange(.init(start: .zero, duration: duration), of: loadedSubtitleTrack, at: .zero)
                         subtitleTrack?.languageCode = subtitle.language_iso639_2t
+                        try? subtitleTrack?.insertTimeRange(.init(start: .zero, duration: duration), of: loadedSubtitleTrack, at: .zero)
                     }
                 }
             }
