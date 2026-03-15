@@ -6,4 +6,5 @@ pub mod lifetime;
 pub mod playback;
 pub mod query;
 pub mod server_communication;
+pub mod subtitle;
 pub mod utils;

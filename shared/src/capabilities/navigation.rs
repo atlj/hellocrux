@@ -1,5 +1,5 @@
 use crux_core::{Command, Request, capability::Operation, command::RequestBuilder};
-use domain::Media;
+use domain::{Media, SeasonContents, language::LanguageCode};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -20,8 +20,26 @@ pub enum Screen {
     Player,
     MediaManager,
     MediaManagerDetail(Media),
+    // TODO make this smaller
+    MediaManagerSeason {
+        media: Media,
+        season: u32,
+        contents: SeasonContents,
+        show_download_modal: bool,
+    },
     ServerFileMapping(String),
     AddDownload,
+    SubtitleSelection {
+        media: Media,
+        season: u32,
+        pre_selected_episodes: Vec<u32>,
+        pre_selected_language: LanguageCode,
+    },
+    SubtitleSearchResult {
+        media_id: String,
+        language: LanguageCode,
+        episodes: Option<(u32, Vec<u32>)>,
+    },
 }
 
 impl Operation for NavigationOperation {

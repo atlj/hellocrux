@@ -3,7 +3,10 @@ use crate::features;
 use crate::features::data::DataRequest;
 use crate::features::playback::PlaybackModel;
 use crate::features::query::QueryState;
-use crate::features::query::view_model_queries::{ConnectionState, MediaItems, MediaItemsContent};
+use crate::features::query::view_model_queries::{
+    ConnectionState, MediaItems, MediaItemsContent, SubtitleSearchResults, SubtitleSearchState,
+};
+use crate::features::subtitle::SubtitleEvent;
 use crate::features::{
     playback::{PlayEvent, PlaybackPosition},
     server_communication::ServerCommunicationEvent,
@@ -30,6 +33,7 @@ pub enum Event {
     ServerCommunication(ServerCommunicationEvent),
     Play(PlayEvent),
     PlaybackProgress((u64, PlaybackPosition)),
+    Subtitle(SubtitleEvent),
 
     #[serde(skip)]
     UpdateModel(Box<PartialModel>),
@@ -59,6 +63,7 @@ pub struct Model {
     pub torrent_contents: Option<(String, SeriesFileMapping)>,
     pub playback: PlaybackModel,
     pub discovered_services: Vec<DiscoveredService>,
+    pub subtitles_search_results: QueryState<SubtitleSearchResults>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
@@ -69,6 +74,7 @@ pub struct ViewModel {
     playback_detail: PlaybackModel,
     torrent_contents: Option<(String, SeriesFileMapping)>,
     discovered_services: Vec<DiscoveredService>,
+    subtitle_search_results: SubtitleSearchState,
 }
 
 #[derive(Default)]
@@ -88,19 +94,12 @@ impl App for CounterApp {
         _caps: &Self::Capabilities,
     ) -> Command<Self::Effect, Self::Event> {
         match event {
-            // Lifetime
             Event::Startup => features::lifetime::handle_startup(model),
             Event::ScreenChanged(screen) => features::lifetime::handle_screen_change(model, screen),
-
-            // Data
             Event::UpdateData(request) => features::data::update_data(model, request),
-
-            // Server communication
             Event::ServerCommunication(event) => {
                 features::server_communication::handle_server_communication(model, event)
             }
-
-            // Playback
             Event::Play(play_event) => features::playback::handle_play(model, play_event),
             Event::PlaybackProgress((duration_seconds, playback_progress_data)) => {
                 features::playback::handle_playback_progress(
@@ -109,13 +108,14 @@ impl App for CounterApp {
                     playback_progress_data,
                 )
             }
-
-            // Utils
             Event::UpdateModel(partial_model) => {
                 features::utils::handle_update_model(model, partial_model)
             }
             Event::PushIfNecessary(screen) => {
                 features::utils::handle_push_if_necessary(model, screen)
+            }
+            Event::Subtitle(subtitle_event) => {
+                features::subtitle::handle_subtitle_event(model, subtitle_event)
             }
         }
     }
@@ -128,6 +128,7 @@ impl App for CounterApp {
             downloads: model.downloads.clone(),
             torrent_contents: model.torrent_contents.clone(),
             discovered_services: model.discovered_services.clone(),
+            subtitle_search_results: model.subtitles_search_results.clone().into(),
         }
     }
 }

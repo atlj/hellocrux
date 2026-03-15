@@ -5,8 +5,9 @@ use shared::{
     features::{
         data::DataRequest,
         playback::{PlayEvent, PlaybackPosition},
-        query::view_model_queries::{ConnectionState, MediaItems},
+        query::view_model_queries::{ConnectionState, MediaItems, SubtitleSearchState},
         server_communication::ServerCommunicationEvent,
+        subtitle::SubtitleEvent,
     },
 };
 use std::path::PathBuf;
@@ -20,9 +21,11 @@ fn main() -> anyhow::Result<()> {
     typegen.register_type::<ConnectionState>()?;
     typegen.register_type::<MediaItems>()?;
     typegen.register_type::<PlayEvent>()?;
+    typegen.register_type::<SubtitleSearchState>()?;
     typegen.register_type::<ServerCommunicationEvent>()?;
     typegen.register_type::<DataRequest>()?;
     typegen.register_type::<PlaybackPosition>()?;
+    typegen.register_type::<SubtitleEvent>()?;
 
     // Domain
     typegen.register_type::<domain::Media>()?;

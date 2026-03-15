@@ -59,7 +59,7 @@ pub mod view_model_queries {
     // TODO reduce repetition
     use std::collections::HashMap;
 
-    use domain::Media;
+    use domain::{Media, language::LanguageCode};
 
     use crate::features::query::QueryState;
 
@@ -104,6 +104,56 @@ pub mod view_model_queries {
                 QueryState::Loading { data } => MediaItems::Loading { data },
                 QueryState::Success { data } => MediaItems::Success { data },
                 QueryState::Error { message } => MediaItems::Error { message },
+            }
+        }
+    }
+
+    #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+    pub struct SubtitleSearchResults {
+        pub media_id: String,
+        pub language: LanguageCode,
+
+        // TODO reduce invariants by coupling season with episode results
+        pub season: u32,
+        pub episode_results: HashMap<u32, Vec<SubtitleSearchResult>>,
+    }
+
+    #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+    pub struct SubtitleSearchResult {
+        pub id: usize,
+        pub title: String,
+        pub download_count: usize,
+    }
+
+    impl From<subtitles::SubtitleDownloadOption<usize>> for SubtitleSearchResult {
+        fn from(value: subtitles::SubtitleDownloadOption<usize>) -> Self {
+            Self {
+                id: value.id,
+                title: value.title,
+                download_count: value.download_count,
+            }
+        }
+    }
+
+    #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+    pub enum SubtitleSearchState {
+        Loading { data: Option<SubtitleSearchResults> },
+        Success { data: SubtitleSearchResults },
+        Error { message: String },
+    }
+
+    impl Default for SubtitleSearchState {
+        fn default() -> Self {
+            Self::Loading { data: None }
+        }
+    }
+
+    impl From<QueryState<SubtitleSearchResults>> for SubtitleSearchState {
+        fn from(value: QueryState<SubtitleSearchResults>) -> Self {
+            match value {
+                QueryState::Loading { data } => SubtitleSearchState::Loading { data },
+                QueryState::Success { data } => SubtitleSearchState::Success { data },
+                QueryState::Error { message } => SubtitleSearchState::Error { message },
             }
         }
     }

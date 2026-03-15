@@ -78,6 +78,7 @@ pub fn handle_screen_change(model: &mut Model, screen: Screen) -> Command<Effect
         }),
         Screen::MediaManager => Command::done(),
         Screen::MediaManagerDetail(_) => Command::done(),
+        Screen::MediaManagerSeason { .. } => Command::done(),
         Screen::AddDownload => Command::done(),
         Screen::Startup => Command::done(),
         Screen::ServerAddressEntry => {
@@ -92,6 +93,17 @@ pub fn handle_screen_change(model: &mut Model, screen: Screen) -> Command<Effect
         },
         Screen::Settings => Command::done(),
         Screen::Player => Command::done(),
+        Screen::SubtitleSelection {
+            media: _,
+            season: _,
+            pre_selected_episodes: _,
+            pre_selected_language: _,
+        } => todo!(),
+        Screen::SubtitleSearchResult {
+            media_id: _,
+            language: _,
+            episodes: _,
+        } => todo!(),
     };
 
     render().and(command)

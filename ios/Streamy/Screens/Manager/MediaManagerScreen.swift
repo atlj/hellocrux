@@ -45,7 +45,9 @@ struct MediaManagerScreen: View {
             }
             Section {
                 ForEach(mediaValues ?? [], id: \.id) { media in
-                    ManageMediaItem(metadata: media.metadata)
+                    NavigationLink(value: Screen.mediaManagerDetail(media)) {
+                        ManageMediaItem(metadata: media.metadata)
+                    }
                 }
             } header: {
                 HStack {

@@ -40,10 +40,16 @@ struct NavigationContainer: View {
             MediaManagerScreen()
         case let .mediaManagerDetail(media):
             MediaManagerDetailScreen(media: media)
+        case let .mediaManagerSeason(media: media, season: season, contents: episodes, show_download_modal: showDownloadModal):
+            SeasonManagerScreen(media: media, season: season, episodes: episodes)
         case .addDownload:
             NewDownloadScreen()
         case let .serverFileMapping(id):
             FileMappingScreen(id: id)
+        case let .subtitleSelection(media: media, season: season, pre_selected_episodes: pre_selected_episodes, pre_selected_language: pre_selected_language):
+            SearchSubtitles(media: media, season: season, language: pre_selected_language, selectedEpisodes: Set(pre_selected_episodes))
+        case .subtitleSearchResult:
+            #warning("hey 2")
         }
     }
 }

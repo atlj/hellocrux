@@ -12,7 +12,10 @@ use crate::{
         http,
         navigation::{self, Screen},
     },
-    features::query::QueryState,
+    features::query::{
+        QueryState,
+        view_model_queries::{SubtitleSearchResult, SubtitleSearchResults},
+    },
 };
 
 use super::utils::update_model;
@@ -23,10 +26,10 @@ pub enum DataRequest {
     GetDownloads,
     AddDownload(DownloadForm),
     GetContents(String),
-    GetSubtitles {
-        title: String,
+    SearchSubtitles {
+        media_id: String,
         language: domain::language::LanguageCode,
-        episode: Option<EpisodeIdentifier>,
+        episodes: Option<(u32, Vec<u32>)>,
     },
     SetSeriesFileMapping(EditSeriesFileMappingForm<file_mapping_form_state::NeedsValidation>),
 }
@@ -236,11 +239,11 @@ pub fn update_data(model: &mut Model, request: DataRequest) -> Command<Effect, E
                 .into_future(ctx.clone())
                 .await;
         }),
-        DataRequest::GetSubtitles {
-            title: _,
-            language: _,
-            episode: _,
-        } => todo!(),
+        DataRequest::SearchSubtitles {
+            media_id,
+            language,
+            episodes,
+        } => search_subtitles(model, media_id, language, episodes),
     }
 }
 
@@ -252,6 +255,101 @@ fn detect_episode_identifier(path: &str) -> Option<EpisodeIdentifier> {
     Some(EpisodeIdentifier {
         season_no: season_no_str.parse().ok()?,
         episode_no: episode_no_str.parse().ok()?,
+    })
+}
+
+fn search_subtitles(
+    model: &Model,
+    media_id: String,
+    language: domain::language::LanguageCode,
+    episodes: Option<(u32, Vec<u32>)>,
+) -> Command<Effect, Event> {
+    let subtitles_search_endpoint = {
+        // TODO remove expect
+        let mut url = model
+            .base_url
+            .clone()
+            .expect("Base url to be defined at this stage");
+        url.set_path("subtitles/search");
+        url
+    };
+    let previous_search_results = model.subtitles_search_results.get_data().cloned();
+
+    Command::new(|ctx| async move {
+        update_model(
+            &ctx,
+            PartialModel {
+                subtitles_search_results: Some(QueryState::Loading {
+                    data: previous_search_results,
+                }),
+                ..Default::default()
+            },
+        );
+        // TODO remove unwrap here
+        let episodes = episodes.unwrap();
+
+        let urls = episodes.1.into_iter().map(|episode| {
+            let mut url = subtitles_search_endpoint.clone();
+            let query = [
+                format!("media_id={media_id}"),
+                format!(
+                    "language_code={}",
+                    serde_urlencoded::to_string(language.clone()).unwrap()
+                ),
+                format!("season_no={}", episodes.0),
+                format!("episode_no={episode}"),
+            ]
+            .join("&");
+            url.set_query(Some(&query));
+            (episode, url)
+        });
+
+        let futures = urls.map(|(episode, url)| {
+            let ctx = ctx.clone();
+            async move { (episode, http::get(url).into_future(ctx).await) }
+        });
+
+        let results = futures::future::join_all(futures).await;
+        let episode_results: HashMap<u32, Vec<SubtitleSearchResult>> = results
+            .into_iter()
+            .filter_map(|(episode, result)| match result {
+                http::HttpOutput::Success { data, .. } => data.map(|data| (episode, data)),
+                http::HttpOutput::Error => None,
+            })
+            .filter_map(|(episode, result_string)| {
+                serde_json::from_str::<Vec<subtitles::SubtitleDownloadOption<usize>>>(
+                    &result_string,
+                )
+                .ok()
+                .map(|options| (episode, options))
+            })
+            .fold(HashMap::with_capacity(20), |mut map, (episode, options)| {
+                map.insert(
+                    episode,
+                    options
+                        .into_iter()
+                        .map(|download_option| download_option.into())
+                        .collect(),
+                );
+                map
+            });
+
+        let search_results = SubtitleSearchResults {
+            media_id,
+            language,
+            season: episodes.0,
+            episode_results,
+        };
+
+        update_model(
+            &ctx,
+            PartialModel {
+                subtitles_search_results: Some(QueryState::Success {
+                    data: search_results,
+                }),
+                ..Default::default()
+            },
+        );
     })
 }
 
