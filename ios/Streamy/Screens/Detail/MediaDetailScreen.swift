@@ -95,7 +95,7 @@ struct MediaDetailScreen: View {
     if #available(iOS 16.0, *) {
         NavigationStack {
             MediaDetailScreen(
-                media: Media(id: "1", metadata: MediaMetaData(thumbnail: "https://m.media-amazon.com/images/M/MV5BMTkzMzM3OTM2Ml5BMl5BanBnXkFtZTgwMDM0NDU3MjI@._V1_FMjpg_UY2048_.jpg", title: "Emoji Movie"), content: MediaContent.movie(.init(media: "test", track_name: "", subtitles: []))),
+                media: Media(id: "1", metadata: MediaMetaData(thumbnail: "https://m.media-amazon.com/images/M/MV5BMTkzMzM3OTM2Ml5BMl5BanBnXkFtZTgwMDM0NDU3MjI@._V1_FMjpg_UY2048_.jpg", title: "Emoji Movie"), content: MediaContent.movie(.init(media: "test", track_name: "", subtitle_paths: []))),
             )
             .environmentObject(Core())
         }
@@ -109,8 +109,8 @@ struct MediaDetailScreen: View {
         NavigationStack {
             MediaDetailScreen(
                 media: Media(id: "1", metadata: MediaMetaData(thumbnail: "https://m.media-amazon.com/images/M/MV5BMTkzMzM3OTM2Ml5BMl5BanBnXkFtZTgwMDM0NDU3MjI@._V1_FMjpg_UY2048_.jpg", title: "Emoji Movie"), content: MediaContent.series([1: [
-                    1: .init(media: "a", track_name: "", subtitles: []),
-                ], 2: [1: .init(media: "b", track_name: "", subtitles: []), 3: .init(media: "c", track_name: "", subtitles: [])]])),
+                    1: .init(media: "a", track_name: "", subtitle_paths: []),
+                ], 2: [1: .init(media: "b", track_name: "", subtitle_paths: []), 3: .init(media: "c", track_name: "", subtitle_paths: [])]])),
             )
             .environmentObject(Core())
         }

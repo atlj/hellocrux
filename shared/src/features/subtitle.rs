@@ -56,7 +56,7 @@ pub fn handle_subtitle_event(model: &Model, event: SubtitleEvent) -> Command<Eff
                         season_data
                             .iter()
                             .filter(|episode| {
-                                !episode.1.subtitles.iter().any(|subtitle| {
+                                !episode.1.subtitle_paths.iter().any(|subtitle| {
                                     TryInto::<LanguageCode>::try_into(
                                         subtitle.language_iso639_2t.as_str(),
                                     )

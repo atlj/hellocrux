@@ -1,4 +1,4 @@
-use domain::subtitles::Subtitle;
+use domain::subtitles::SubtitlePath;
 use log::error;
 
 use super::{Error, Result};
@@ -20,7 +20,7 @@ pub(super) async fn try_extract_movie_paths(
         Some(path.to_string_lossy().to_string())
     });
 
-    let subtitles: Box<[Subtitle]> = super::subtitles::extract_subtitles(&media_path)
+    let subtitles: Box<[SubtitlePath]> = super::subtitles::extract_subtitles(&media_path)
         .await
         .inspect_err(|err| {
             error!(
@@ -42,7 +42,7 @@ pub(super) async fn try_extract_movie_paths(
 
         domain::MediaPaths {
             media,
-            subtitles,
+            subtitle_paths: subtitles,
             track_name,
         }
     }))
@@ -60,7 +60,7 @@ mod tests {
         let path = test_data_path.join("crawl/example_movie");
         let result = try_extract_movie_paths(&path).await.unwrap().unwrap();
         assert!(result.media.contains("hey.mp4"));
-        let subtitles = result.subtitles.first().unwrap();
+        let subtitles = result.subtitle_paths.first().unwrap();
         assert!(subtitles.path.contains("engSubs.vtt"));
         assert_eq!(subtitles.language_iso639_2t, "eng");
     }

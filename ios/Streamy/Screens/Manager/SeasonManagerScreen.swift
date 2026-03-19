@@ -22,5 +22,5 @@ struct SeasonManagerScreen: View {
 }
 
 #Preview {
-    SeasonManagerScreen(media: PreviewData.idiocracyMedia, season: 2, episodes: [1: .init(media: "", track_name: "", subtitles: [])])
+    SeasonManagerScreen(media: PreviewData.idiocracyMedia, season: 2, episodes: [1: .init(media: "", track_name: "", subtitle_paths: [])])
 }
