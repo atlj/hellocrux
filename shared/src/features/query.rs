@@ -157,4 +157,24 @@ pub mod view_model_queries {
             }
         }
     }
+
+    #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Default)]
+    pub enum SubtitleDownloadResult {
+        #[default]
+        Loading,
+        Success,
+        Error {
+            message: String,
+        },
+    }
+
+    impl From<QueryState<()>> for SubtitleDownloadResult {
+        fn from(value: QueryState<()>) -> Self {
+            match value {
+                QueryState::Loading { .. } => Self::Loading,
+                QueryState::Success { .. } => Self::Success,
+                QueryState::Error { message } => Self::Error { message },
+            }
+        }
+    }
 }

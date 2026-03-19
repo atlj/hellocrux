@@ -93,17 +93,11 @@ pub fn handle_screen_change(model: &mut Model, screen: Screen) -> Command<Effect
         },
         Screen::Settings => Command::done(),
         Screen::Player => Command::done(),
-        Screen::SubtitleSelection {
-            media: _,
-            season: _,
-            pre_selected_episodes: _,
-            pre_selected_language: _,
-        } => todo!(),
-        Screen::SubtitleSearchResult {
-            media_id: _,
-            language: _,
-            episodes: _,
-        } => todo!(),
+        Screen::SubtitleSelection { .. } => Command::done(),
+        Screen::SubtitleSearchResult { .. } => {
+            model.subtitle_download_results = None;
+            Command::done()
+        }
     };
 
     render().and(command)

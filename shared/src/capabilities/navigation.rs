@@ -30,12 +30,14 @@ pub enum Screen {
     ServerFileMapping(String),
     AddDownload,
     SubtitleSelection {
+        // TODO consolidate fields and types
         media: Media,
         season: u32,
         pre_selected_episodes: Vec<u32>,
         pre_selected_language: LanguageCode,
     },
     SubtitleSearchResult {
+        // TODO consolidate fields
         media_id: String,
         language: LanguageCode,
         episodes: Option<(u32, Vec<u32>)>,

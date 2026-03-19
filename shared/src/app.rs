@@ -4,7 +4,8 @@ use crate::features::data::DataRequest;
 use crate::features::playback::PlaybackModel;
 use crate::features::query::QueryState;
 use crate::features::query::view_model_queries::{
-    ConnectionState, MediaItems, MediaItemsContent, SubtitleSearchResults, SubtitleSearchState,
+    ConnectionState, MediaItems, MediaItemsContent, SubtitleDownloadResult, SubtitleSearchResults,
+    SubtitleSearchState,
 };
 use crate::features::subtitle::SubtitleEvent;
 use crate::features::{
@@ -63,7 +64,10 @@ pub struct Model {
     pub torrent_contents: Option<(String, SeriesFileMapping)>,
     pub playback: PlaybackModel,
     pub discovered_services: Vec<DiscoveredService>,
+
+    // TODO consolidate
     pub subtitles_search_results: QueryState<SubtitleSearchResults>,
+    pub subtitle_download_results: Option<QueryState<()>>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
@@ -74,7 +78,10 @@ pub struct ViewModel {
     playback_detail: PlaybackModel,
     torrent_contents: Option<(String, SeriesFileMapping)>,
     discovered_services: Vec<DiscoveredService>,
+
+    // TODO consolidate
     subtitle_search_results: SubtitleSearchState,
+    subtitle_download_results: Option<SubtitleDownloadResult>,
 }
 
 #[derive(Default)]
@@ -129,6 +136,10 @@ impl App for CounterApp {
             torrent_contents: model.torrent_contents.clone(),
             discovered_services: model.discovered_services.clone(),
             subtitle_search_results: model.subtitles_search_results.clone().into(),
+            subtitle_download_results: model
+                .subtitle_download_results
+                .clone()
+                .map(SubtitleDownloadResult::from),
         }
     }
 }

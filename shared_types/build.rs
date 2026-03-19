@@ -5,7 +5,9 @@ use shared::{
     features::{
         data::DataRequest,
         playback::{PlayEvent, PlaybackPosition},
-        query::view_model_queries::{ConnectionState, MediaItems, SubtitleSearchState},
+        query::view_model_queries::{
+            ConnectionState, MediaItems, SubtitleDownloadResult, SubtitleSearchState,
+        },
         server_communication::ServerCommunicationEvent,
         subtitle::SubtitleEvent,
     },
@@ -22,6 +24,7 @@ fn main() -> anyhow::Result<()> {
     typegen.register_type::<MediaItems>()?;
     typegen.register_type::<PlayEvent>()?;
     typegen.register_type::<SubtitleSearchState>()?;
+    typegen.register_type::<SubtitleDownloadResult>()?;
     typegen.register_type::<ServerCommunicationEvent>()?;
     typegen.register_type::<DataRequest>()?;
     typegen.register_type::<PlaybackPosition>()?;
