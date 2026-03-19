@@ -7,7 +7,7 @@ pub mod subtitles;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::Path};
 
-use crate::{series::EpisodeIdentifier, subtitles::Subtitle};
+use crate::{series::EpisodeIdentifier, subtitles::SubtitlePath};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Media {
@@ -48,11 +48,11 @@ pub type SeasonContents = HashMap<u32, MediaPaths>;
 /// Season no -> season contents
 pub type SeriesContents = HashMap<u32, SeasonContents>;
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct MediaPaths {
     pub media: String,
     pub track_name: String,
-    pub subtitles: Box<[Subtitle]>,
+    pub subtitle_paths: Box<[SubtitlePath]>,
 }
 
 impl MediaPaths {
@@ -64,9 +64,9 @@ impl MediaPaths {
             .to_string();
 
         let subtitles = self
-            .subtitles
+            .subtitle_paths
             .iter()
-            .map(|subtitle| Subtitle {
+            .map(|subtitle| SubtitlePath {
                 path: prefix
                     .as_ref()
                     .join(&subtitle.path)
@@ -83,7 +83,7 @@ impl MediaPaths {
 
         Self {
             media,
-            subtitles,
+            subtitle_paths: subtitles,
             track_name: self.track_name.clone(),
         }
     }
@@ -96,10 +96,10 @@ impl MediaPaths {
             .to_string();
 
         let subtitles = self
-            .subtitles
+            .subtitle_paths
             .iter()
             .map(|subtitle| {
-                Some(Subtitle {
+                Some(SubtitlePath {
                     path: subtitle
                         .path
                         .strip_prefix(prefix.as_ref().to_string_lossy().as_ref())?
@@ -116,7 +116,7 @@ impl MediaPaths {
             .collect::<Option<Box<[_]>>>()?;
 
         Some(Self {
-            subtitles,
+            subtitle_paths: subtitles,
             media,
             track_name: self.track_name.clone(),
         })

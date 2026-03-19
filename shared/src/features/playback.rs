@@ -150,7 +150,8 @@ pub fn handle_play(model: &mut Model, play_event: PlayEvent) -> Command<Effect, 
             }
             MediaContent::Series(episodes) => {
                 let defaulted_episode_id = episode.unwrap_or(
-                    EpisodeIdentifier::find_earliest_available_episode(&episodes),
+                    EpisodeIdentifier::find_earliest_available_episode(&episodes)
+                        .expect("Media should have at least one episode."),
                 );
 
                 let season = episodes.get(&defaulted_episode_id.season_no).unwrap();
