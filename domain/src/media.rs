@@ -59,9 +59,9 @@ impl MediaPaths {
             .subtitle_paths
             .iter()
             .map(|subtitle| SubtitlePath {
-                path: prefix
+                srt_path: prefix
                     .as_ref()
-                    .join(&subtitle.path)
+                    .join(&subtitle.srt_path)
                     .to_string_lossy()
                     .to_string(),
                 track_path: prefix
@@ -92,8 +92,8 @@ impl MediaPaths {
             .iter()
             .map(|subtitle| {
                 Some(SubtitlePath {
-                    path: subtitle
-                        .path
+                    srt_path: subtitle
+                        .srt_path
                         .strip_prefix(prefix.as_ref().to_string_lossy().as_ref())?
                         .trim_start_matches('/')
                         .to_string(),

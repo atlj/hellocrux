@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use domain::subtitles::SubtitlePath;
+use domain::{language::LanguageCode, subtitles::SubtitlePath};
 use log::{debug, error, info, warn};
 
 use super::{Error, Result};
@@ -62,8 +62,10 @@ pub(super) async fn extract_subtitles(
             };
 
             Some(SubtitlePath {
-                language_iso639_2t: language.to_string(),
-                path: srt_path.to_string_lossy().to_string(),
+                language: LanguageCode::try_from(language).unwrap_or_else(|_| {
+                    panic!("Unknown ISO 639-2T language code: {language}")
+                }),
+                srt_path: srt_path.to_string_lossy().to_string(),
                 track_path: mp4_path.to_string_lossy().to_string(),
             })
         }))

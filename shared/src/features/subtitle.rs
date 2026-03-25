@@ -1,7 +1,11 @@
 use std::collections::HashMap;
 
 use crux_core::Command;
-use domain::{language::LanguageCode, subtitles::SubtitleDownloadForm};
+use domain::{
+    language::LanguageCode,
+    series::EpisodeIdentifier,
+    subtitles::{SubtitleDownloadForm, SubtitleSearchForm, SubtitleSearchResponse},
+};
 
 use crate::{
     Effect, Event, Model, PartialModel,
@@ -56,13 +60,11 @@ pub fn handle_subtitle_event(model: &Model, event: SubtitleEvent) -> Command<Eff
                         season_data
                             .iter()
                             .filter(|episode| {
-                                !episode.1.subtitle_paths.iter().any(|subtitle| {
-                                    TryInto::<LanguageCode>::try_into(
-                                        subtitle.language_iso639_2t.as_str(),
-                                    )
-                                    .unwrap()
-                                        == language
-                                })
+                                !episode
+                                    .1
+                                    .subtitle_paths
+                                    .iter()
+                                    .any(|subtitle| subtitle.language == language)
                             })
                             .map(|episode| *episode.0)
                             .collect()
@@ -106,7 +108,7 @@ pub fn search_subtitles(
     model: &Model,
     media_id: String,
     language: domain::language::LanguageCode,
-    episodes: Option<(u32, Vec<u32>)>,
+    episode_identifiers: Option<Vec<EpisodeIdentifier>>,
 ) -> Command<Effect, Event> {
     let subtitles_search_endpoint = {
         // TODO remove expect
@@ -119,7 +121,14 @@ pub fn search_subtitles(
     };
     let previous_search_results = model.subtitles_search_results.get_data().cloned();
 
+    let form = SubtitleSearchForm {
+        media_id: media_id.clone(),
+        language_code: language.clone(),
+        episode_identifiers: episode_identifiers.clone(),
+    };
+
     Command::new(|ctx| async move {
+        // 1. Set the state to loading
         update_model(
             &ctx,
             PartialModel {
@@ -129,67 +138,67 @@ pub fn search_subtitles(
                 ..Default::default()
             },
         );
-        // TODO remove unwrap here
-        let episodes = episodes.unwrap();
 
-        let urls = episodes.1.into_iter().map(|episode| {
-            let mut url = subtitles_search_endpoint.clone();
+        // 2. Request from server
+        // TODO remove expect
+        let output = http::post(
+            subtitles_search_endpoint,
+            serde_json::to_string(&form).expect("Form to be valid JSON"),
+        )
+        .into_future(ctx.clone())
+        .await;
 
-            let query = domain::subtitles::SearchSubtitlesQuery {
-                media_id: media_id.clone(),
-                language_code: language.clone(),
-                season_no: Some(episodes.0),
-                episode_no: Some(episode),
-            };
-            let query_string = serde_urlencoded::to_string(query).unwrap();
-
-            url.set_query(Some(&query_string));
-            (episode, url)
-        });
-
-        let futures = urls.map(|(episode, url)| {
-            let ctx = ctx.clone();
-            async move { (episode, http::get(url).into_future(ctx).await) }
-        });
-
-        let results = futures::future::join_all(futures).await;
-        let episode_results: HashMap<u32, Vec<SubtitleSearchResult>> = results
-            .into_iter()
-            .filter_map(|(episode, result)| match result {
-                http::HttpOutput::Success { data, .. } => data.map(|data| (episode, data)),
-                http::HttpOutput::Error => None,
+        // TODO remove nesting and unwraps
+        let result = match output
+            .into_option()
+            .and_then(|result_string| {
+                serde_json::from_str::<SubtitleSearchResponse>(&result_string).ok()
             })
-            .filter_map(|(episode, result_string)| {
-                serde_json::from_str::<Vec<subtitles::SubtitleDownloadOption<usize>>>(
-                    &result_string,
-                )
-                .ok()
-                .map(|options| (episode, options))
-            })
-            .fold(HashMap::with_capacity(20), |mut map, (episode, options)| {
-                map.insert(
-                    episode,
-                    options
-                        .into_iter()
-                        .map(|download_option| download_option.into())
-                        .collect(),
-                );
-                map
-            });
+            .map(|search_response| -> SubtitleSearchResults {
+                let season = episode_identifiers
+                    .clone()
+                    .unwrap()
+                    .first()
+                    .unwrap()
+                    .season_no;
 
-        let search_results = SubtitleSearchResults {
-            media_id,
-            language,
-            season: episodes.0,
-            episode_results,
+                let len = search_response.len();
+                let episode_results = search_response
+                    .into_iter()
+                    .zip(episode_identifiers.clone().unwrap())
+                    // TODO convert all folds into collect for hashmap
+                    .fold(
+                        HashMap::with_capacity(len),
+                        |mut map, (results, episode_identifier)| {
+                            map.insert(
+                                episode_identifier.episode_no,
+                                results
+                                    .into_iter()
+                                    .map(SubtitleSearchResult::from)
+                                    .collect(),
+                            );
+                            map
+                        },
+                    );
+                SubtitleSearchResults {
+                    media_id,
+                    language,
+                    // TODO replace
+                    season,
+                    episode_results,
+                }
+            }) {
+            Some(results) => QueryState::Success { data: results },
+            None => QueryState::Error {
+                message: "Couldn't search subtitles due to server error".to_string(),
+            },
         };
 
+        // 3. Set the data
         update_model(
             &ctx,
             PartialModel {
-                subtitles_search_results: Some(QueryState::Success {
-                    data: search_results,
-                }),
+                subtitles_search_results: Some(result),
                 ..Default::default()
             },
         );

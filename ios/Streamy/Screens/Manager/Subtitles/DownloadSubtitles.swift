@@ -42,11 +42,11 @@ struct DownloadSubtitles: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
-                    let subtitleRequests: [SubtitleRequest] = results!.map { result in
-                        SubtitleRequest(episode_identifier: .init(season_no: season, episode_no: result.0), subtitle_id: result.1.first!.id)
+                    let subtitleSelections: [SubtitleSelection] = results!.map { result in
+                        .series(subtitle_id: result.1.first!.id, episode_identifier: .init(season_no: season, episode_no: result.0))
                     }
 
-                    core.update(.subtitle(.download(form: .init(media_id: mediaId, requests: subtitleRequests, language_code: language))))
+                    core.update(.subtitle(.download(form: .init(media_id: mediaId, language_code: language, selections: subtitleSelections))))
                 }
                 label: {
                     Label("Download", image: "square.and.arrow.down.fill")
@@ -59,7 +59,14 @@ struct DownloadSubtitles: View {
             }
         }
         .onAppear {
-            core.update(.updateData(.searchSubtitles(media_id: mediaId, language: language, episodes: .init(season, episodes))))
+            core.update(
+                .updateData(
+                    .searchSubtitles(media_id: mediaId, language: language, episodes:
+                        episodes.map {
+                            .init(season_no: season, episode_no: $0)
+                        }),
+                ),
+            )
         }
     }
 }

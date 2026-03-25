@@ -112,8 +112,8 @@ pub mod view_model_queries {
         pub download_count: usize,
     }
 
-    impl From<subtitles::SubtitleDownloadOption<usize>> for SubtitleSearchResult {
-        fn from(value: subtitles::SubtitleDownloadOption<usize>) -> Self {
+    impl From<domain::subtitles::SubtitleDownloadOption<usize>> for SubtitleSearchResult {
+        fn from(value: domain::subtitles::SubtitleDownloadOption<usize>) -> Self {
             Self {
                 id: value.id,
                 title: value.title,

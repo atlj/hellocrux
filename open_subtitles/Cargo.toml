@@ -1,5 +1,5 @@
 [package]
-name = "subtitles"
+name = "open_subtitles"
 edition = "2024"
 
 [dependencies]

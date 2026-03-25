@@ -61,7 +61,7 @@ mod tests {
         let result = try_extract_movie_paths(&path).await.unwrap().unwrap();
         assert!(result.media.contains("hey.mp4"));
         let subtitles = result.subtitle_paths.first().unwrap();
-        assert!(subtitles.path.contains("engSubs.vtt"));
-        assert_eq!(subtitles.language_iso639_2t, "eng");
+        assert!(subtitles.srt_path.contains("engSubs.vtt"));
+        assert_eq!(subtitles.language, domain::language::LanguageCode::English);
     }
 }

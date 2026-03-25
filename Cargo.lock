@@ -1285,6 +1285,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4895175b425cb1f87721b59f0f286c2092bd4af812243672510e1ac53e2e0ad"
 
 [[package]]
+name = "open_subtitles"
+version = "0.0.0"
+dependencies = [
+ "domain",
+ "log",
+ "percent-encoding",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
+ "url",
+]
+
+[[package]]
 name = "openssl"
 version = "0.10.74"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1860,10 +1874,10 @@ dependencies = [
  "gethostname",
  "log",
  "mdns-sd",
+ "open_subtitles",
  "regex",
  "serde",
  "serde_json",
- "subtitles",
  "tokio",
  "torrent",
  "tower",
@@ -1882,7 +1896,6 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_urlencoded",
- "subtitles",
  "uniffi",
  "url",
  "wasm-bindgen",
@@ -1994,20 +2007,6 @@ name = "strsim"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
-
-[[package]]
-name = "subtitles"
-version = "0.0.0"
-dependencies = [
- "domain",
- "log",
- "percent-encoding",
- "reqwest",
- "serde",
- "serde_json",
- "tokio",
- "url",
-]
 
 [[package]]
 name = "subtle"

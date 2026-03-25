@@ -1,4 +1,5 @@
 use crux_core::typegen::TypeGen;
+use domain::subtitles::SubtitleSelection;
 use shared::{
     CounterApp,
     capabilities::navigation::Screen,
@@ -22,6 +23,7 @@ fn main() -> anyhow::Result<()> {
     typegen.register_type::<MediaItems>()?;
     typegen.register_type::<PlayEvent>()?;
     typegen.register_type::<SubtitleSearchState>()?;
+    typegen.register_type::<SubtitleSelection>()?;
     typegen.register_type::<ServerCommunicationEvent>()?;
     typegen.register_type::<DataRequest>()?;
     typegen.register_type::<PlaybackPosition>()?;

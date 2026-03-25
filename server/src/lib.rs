@@ -34,7 +34,7 @@ impl Args {
 
 #[derive(Clone)]
 pub struct AppState {
-    pub subtitle_provider: subtitles::OpenSubtitlesClient,
+    pub subtitle_provider: open_subtitles::OpenSubtitlesClient,
     pub media_dir: Arc<Path>,
     pub media_signal_watcher: service::media::MediaSignalWatcher,
     pub download_signal_watcher: service::download::DownloadSignalWatcher,

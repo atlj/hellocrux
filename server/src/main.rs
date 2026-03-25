@@ -7,8 +7,8 @@ use axum::{
 use clap::Parser;
 use domain::Media;
 use log::{error, info};
+use open_subtitles::OpenSubtitlesClient;
 use server::{AppState, Args, State, download_handlers, subtitle_handlers};
-use subtitles::OpenSubtitlesClient;
 use tokio::net::TcpListener;
 use tower_http::services::ServeDir;
 
@@ -102,7 +102,7 @@ async fn main() {
         .route("/download/get", get(download_handlers::get_downloads))
         .route(
             "/subtitles/search",
-            get(subtitle_handlers::search_subtitles),
+            post(subtitle_handlers::search_subtitles),
         )
         .route(
             "/subtitles/download",

@@ -8,6 +8,7 @@ pub enum HttpOperation {
     Post { url: String, body: String },
 }
 
+// TODO convert to result
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum HttpOutput {
     Success {
@@ -15,6 +16,18 @@ pub enum HttpOutput {
         status_code: i32,
     },
     Error,
+}
+
+impl HttpOutput {
+    pub fn into_option(self) -> Option<String> {
+        match self {
+            HttpOutput::Success {
+                data: Some(some_data),
+                ..
+            } => Some(some_data),
+            _ => None,
+        }
+    }
 }
 
 impl Operation for HttpOperation {

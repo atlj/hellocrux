@@ -2,17 +2,15 @@ mod dto;
 
 use std::{str::FromStr, sync::LazyLock};
 
-use domain::series::EpisodeIdentifier;
+use domain::{
+    series::EpisodeIdentifier,
+    subtitles::{SubtitleDownloadOption, SubtitleProvider},
+};
 use log::info;
 
-use crate::{
-    SubtitleProvider,
-    open_subtitles::dto::{
-        DownloadForm, DownloadResponse, OpenSubtitlesError, OpenSubtitlesSubtitleResponse,
-    },
-};
+use dto::{DownloadForm, DownloadResponse, OpenSubtitlesError, OpenSubtitlesSubtitleResponse};
 
-const API_KEY: &str = include_str!("../../../open_subtitles_api_key");
+const API_KEY: &str = include_str!("../../open_subtitles_api_key");
 static OPEN_SUBTITLES_BASE_URL: LazyLock<reqwest::Url> = LazyLock::new(|| {
     reqwest::Url::parse("https://api.opensubtitles.com/api/v1/")
         .expect("Open Subtitles base url should be valid")
@@ -67,7 +65,7 @@ impl SubtitleProvider for OpenSubtitlesClient {
         language: domain::language::LanguageCode,
         episode: Option<domain::series::EpisodeIdentifier>,
     ) -> std::result::Result<
-        impl Iterator<Item = crate::SubtitleDownloadOption<Self::SubtitleId>>,
+        impl Iterator<Item = SubtitleDownloadOption<Self::SubtitleId>>,
         Self::Error,
     > {
         let search_url = {
@@ -224,7 +222,7 @@ impl From<url::ParseError> for Error {
 mod tests {
     use domain::language::LanguageCode;
 
-    use crate::{SubtitleProvider, open_subtitles::OpenSubtitlesClient};
+    use crate::{OpenSubtitlesClient, SubtitleProvider};
 
     #[tokio::test]
     async fn get_movie_subtitles() {

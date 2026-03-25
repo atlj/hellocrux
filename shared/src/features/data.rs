@@ -26,7 +26,7 @@ pub enum DataRequest {
     SearchSubtitles {
         media_id: String,
         language: domain::language::LanguageCode,
-        episodes: Option<(u32, Vec<u32>)>,
+        episodes: Option<Vec<EpisodeIdentifier>>,
     },
     SetSeriesFileMapping(EditSeriesFileMappingForm<file_mapping_form_state::NeedsValidation>),
 }

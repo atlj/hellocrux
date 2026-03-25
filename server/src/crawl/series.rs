@@ -64,7 +64,7 @@ async fn try_extract_season(path: impl AsRef<Path>) -> Result<Option<domain::Sea
             iter.fold(
                 HashMap::<usize, Vec<SubtitlePath>>::with_capacity(40),
                 |mut map, subtitle| {
-                    let path: &Path = subtitle.path.as_ref();
+                    let path: &Path = subtitle.srt_path.as_ref();
                     let file_stem = path
                         .file_stem()
                         .and_then(|stem| stem.to_str())
@@ -192,7 +192,7 @@ mod tests {
         assert!(first_episode.media.contains("1.mp4"));
 
         let subtitles = first_episode.subtitle_paths.first().unwrap();
-        assert!(subtitles.path.contains("turheyyyy.srt"));
-        assert_eq!(subtitles.language_iso639_2t, "tur");
+        assert!(subtitles.srt_path.contains("turheyyyy.srt"));
+        assert_eq!(subtitles.language, domain::language::LanguageCode::Turkish);
     }
 }
