@@ -4,8 +4,7 @@ use crate::features::data::DataRequest;
 use crate::features::playback::PlaybackModel;
 use crate::features::query::QueryState;
 use crate::features::query::view_model_queries::{
-    ConnectionState, MediaItems, MediaItemsContent, SubtitleDownloadResult, SubtitleSearchResults,
-    SubtitleSearchState,
+    ActionState, MediaItems, MediaItemsContent, SubtitleSearchResults, SubtitleSearchState,
 };
 use crate::features::subtitle::SubtitleEvent;
 use crate::features::{
@@ -72,7 +71,7 @@ pub struct Model {
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct ViewModel {
-    connection_state: Option<ConnectionState>,
+    connection_state: Option<ActionState>,
     media_items: MediaItems,
     downloads: Vec<Download>,
     playback_detail: PlaybackModel,
@@ -81,7 +80,7 @@ pub struct ViewModel {
 
     // TODO consolidate
     subtitle_search_results: SubtitleSearchState,
-    subtitle_download_results: Option<SubtitleDownloadResult>,
+    subtitle_download_results: Option<ActionState>,
 }
 
 #[derive(Default)]
@@ -129,7 +128,7 @@ impl App for CounterApp {
 
     fn view(&self, model: &Self::Model) -> Self::ViewModel {
         ViewModel {
-            connection_state: model.connection_state.clone().map(ConnectionState::from),
+            connection_state: model.connection_state.clone().map(ActionState::from),
             media_items: model.media_items.clone().into(),
             playback_detail: model.playback.clone(),
             downloads: model.downloads.clone(),
@@ -139,7 +138,7 @@ impl App for CounterApp {
             subtitle_download_results: model
                 .subtitle_download_results
                 .clone()
-                .map(SubtitleDownloadResult::from),
+                .map(ActionState::from),
         }
     }
 }

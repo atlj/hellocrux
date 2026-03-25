@@ -5,9 +5,7 @@ use shared::{
     features::{
         data::DataRequest,
         playback::{PlayEvent, PlaybackPosition},
-        query::view_model_queries::{
-            ConnectionState, MediaItems, SubtitleDownloadResult, SubtitleSearchState,
-        },
+        query::view_model_queries::{ActionState, MediaItems, SubtitleSearchState},
         server_communication::ServerCommunicationEvent,
         subtitle::SubtitleEvent,
     },
@@ -20,11 +18,10 @@ fn main() -> anyhow::Result<()> {
     let mut typegen = TypeGen::new();
     typegen.register_app::<CounterApp>()?;
     typegen.register_type::<Screen>()?;
-    typegen.register_type::<ConnectionState>()?;
+    typegen.register_type::<ActionState>()?;
     typegen.register_type::<MediaItems>()?;
     typegen.register_type::<PlayEvent>()?;
     typegen.register_type::<SubtitleSearchState>()?;
-    typegen.register_type::<SubtitleDownloadResult>()?;
     typegen.register_type::<ServerCommunicationEvent>()?;
     typegen.register_type::<DataRequest>()?;
     typegen.register_type::<PlaybackPosition>()?;

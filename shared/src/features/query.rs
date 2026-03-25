@@ -55,58 +55,45 @@ where
     }
 }
 
+macro_rules! query_state_type {
+    ($name:ident, $data:ty) => {
+        #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+        pub enum $name {
+            Loading { data: Option<$data> },
+            Success { data: $data },
+            Error { message: String },
+        }
+
+        impl Default for $name {
+            fn default() -> Self {
+                Self::Loading { data: None }
+            }
+        }
+
+        impl From<QueryState<$data>> for $name {
+            fn from(value: QueryState<$data>) -> Self {
+                match value {
+                    QueryState::Loading { data } => $name::Loading { data },
+                    QueryState::Success { data } => $name::Success { data },
+                    QueryState::Error { message } => $name::Error { message },
+                }
+            }
+        }
+    };
+}
+
 pub mod view_model_queries {
-    // TODO reduce repetition
     use std::collections::HashMap;
 
     use domain::{Media, language::LanguageCode};
 
     use crate::features::query::QueryState;
 
-    #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Default)]
-    pub enum ConnectionState {
-        #[default]
-        Loading,
-        Success,
-        Error {
-            message: String,
-        },
-    }
-
-    impl From<QueryState<()>> for ConnectionState {
-        fn from(value: QueryState<()>) -> Self {
-            match value {
-                QueryState::Loading { .. } => Self::Loading,
-                QueryState::Success { .. } => Self::Success,
-                QueryState::Error { message } => Self::Error { message },
-            }
-        }
-    }
-
     pub type MediaItemsContent = HashMap<String, Media>;
 
-    #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
-    pub enum MediaItems {
-        Loading { data: Option<MediaItemsContent> },
-        Success { data: MediaItemsContent },
-        Error { message: String },
-    }
-
-    impl Default for MediaItems {
-        fn default() -> Self {
-            Self::Loading { data: None }
-        }
-    }
-
-    impl From<QueryState<MediaItemsContent>> for MediaItems {
-        fn from(value: QueryState<MediaItemsContent>) -> Self {
-            match value {
-                QueryState::Loading { data } => MediaItems::Loading { data },
-                QueryState::Success { data } => MediaItems::Success { data },
-                QueryState::Error { message } => MediaItems::Error { message },
-            }
-        }
-    }
+    query_state_type!(ActionState, ());
+    query_state_type!(MediaItems, MediaItemsContent);
+    query_state_type!(SubtitleSearchState, SubtitleSearchResults);
 
     #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
     pub struct SubtitleSearchResults {
@@ -131,49 +118,6 @@ pub mod view_model_queries {
                 id: value.id,
                 title: value.title,
                 download_count: value.download_count,
-            }
-        }
-    }
-
-    #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
-    pub enum SubtitleSearchState {
-        Loading { data: Option<SubtitleSearchResults> },
-        Success { data: SubtitleSearchResults },
-        Error { message: String },
-    }
-
-    impl Default for SubtitleSearchState {
-        fn default() -> Self {
-            Self::Loading { data: None }
-        }
-    }
-
-    impl From<QueryState<SubtitleSearchResults>> for SubtitleSearchState {
-        fn from(value: QueryState<SubtitleSearchResults>) -> Self {
-            match value {
-                QueryState::Loading { data } => SubtitleSearchState::Loading { data },
-                QueryState::Success { data } => SubtitleSearchState::Success { data },
-                QueryState::Error { message } => SubtitleSearchState::Error { message },
-            }
-        }
-    }
-
-    #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Default)]
-    pub enum SubtitleDownloadResult {
-        #[default]
-        Loading,
-        Success,
-        Error {
-            message: String,
-        },
-    }
-
-    impl From<QueryState<()>> for SubtitleDownloadResult {
-        fn from(value: QueryState<()>) -> Self {
-            match value {
-                QueryState::Loading { .. } => Self::Loading,
-                QueryState::Success { .. } => Self::Success,
-                QueryState::Error { message } => Self::Error { message },
             }
         }
     }
