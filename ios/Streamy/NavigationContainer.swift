@@ -46,10 +46,15 @@ struct NavigationContainer: View {
             NewDownloadScreen()
         case let .serverFileMapping(id):
             FileMappingScreen(id: id)
-        case let .subtitleSelection(media: media, season: season, pre_selected_episodes: pre_selected_episodes, pre_selected_language: pre_selected_language):
-            SearchSubtitles(media: media, season: season, language: pre_selected_language, selectedEpisodes: Set(pre_selected_episodes))
-        case let .subtitleSearchResult(media_id: mediaId, language: langauge, episodes: episodes):
-            DownloadSubtitles(mediaId: mediaId, language: langauge, season: episodes!.field0, episodes: episodes!.field1)
+        case let .subtitleSelection(media: media, episodes: episodes, pre_selected_language: language):
+            ConfigureSubtitleSearch(
+                media: media,
+                language: language,
+                season: episodes?.field0,
+                selectedEpisodes: episodes.map { Set($0.field1) } ?? Set(),
+            )
+        case let .subtitleSearchResult(media: media, language: language, episodes: episodes):
+            DownloadSubtitles(media: media, language: language, episodes: episodes ?? [])
         }
     }
 }

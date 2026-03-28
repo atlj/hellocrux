@@ -1,25 +1,34 @@
 import SharedTypes
 import SwiftUI
 
-struct SearchSubtitles: View {
+struct ConfigureSubtitleSearch: View {
     @EnvironmentObject var core: Core
     var media: Media
-    var season: UInt32
+
     @State var language: LanguageCode
-    @State var showLanguageSelection = false
-    @State var selectedEpisodes = Set<UInt32>()
+    @State private var showLanguageSelection = false
+
+    @State var season: UInt32?
+    @State var selectedEpisodes: Set<UInt32>
 
     var episodes: [UInt32]? {
-        switch media.content {
-        case .movie:
-            nil
-        case let .series(episodes):
-            Array(episodes[season]!.keys).sorted()
+        guard case let .series(contents) = media.content else {
+            return nil
         }
+
+        guard let season else {
+            return nil
+        }
+
+        return contents[season].map { Array($0.keys) }
     }
 
     var nextButtonDisabled: Bool {
-        selectedEpisodes.isEmpty
+        if season == nil {
+            return false
+        }
+
+        return selectedEpisodes.isEmpty
     }
 
     var body: some View {
@@ -54,7 +63,7 @@ struct SearchSubtitles: View {
                 }
             }
         }
-        .navigationTitle("Search Subtitles for \(media.metadata.title) Season \(season)")
+        .navigationTitle("Search Subtitles for \(media.metadata.title)\(season.map { "Season \($0)" } ?? "")")
         .sheet(isPresented: $showLanguageSelection) {
             LanguageSelectorSheet(selectedLanguage: $language)
         }
@@ -64,9 +73,16 @@ struct SearchSubtitles: View {
                     core.update(
                         .subtitle(
                             .search(
-                                media_id: media.id,
+                                media: media,
                                 language: language,
-                                episodes: .init(season, Array(selectedEpisodes)),
+                                episodes: season.map { season in
+                                    (season, selectedEpisodes)
+                                }
+                                .map { season, episodes in
+                                    episodes.map {
+                                        EpisodeIdentifier(season_no: season, episode_no: $0)
+                                    }
+                                },
                             ),
                         ),
                     )
@@ -80,6 +96,6 @@ struct SearchSubtitles: View {
 }
 
 #Preview {
-    SearchSubtitles(media: PreviewData.idiocracyMedia, season: 1, language: .turkish)
+    ConfigureSubtitleSearch(media: PreviewData.idiocracyMedia, language: .turkish, season: 1, selectedEpisodes: Set())
         .environmentObject(Core())
 }

@@ -3,7 +3,7 @@ use domain::Media;
 use url::Url;
 
 use crate::{
-    Effect, Event, Model, PartialModel,
+    Event, Model, PartialModel,
     capabilities::{
         navigation::{self, Screen},
         service_discovery, storage,
@@ -16,7 +16,7 @@ use super::{
     playback::{PlayEvent, PlaybackModel, PlaybackPosition},
 };
 
-pub fn handle_startup(_: &mut Model) -> Command<Effect, Event> {
+pub fn handle_startup(_: &mut Model) -> crate::Command {
     Command::new(|ctx| async move {
         let server_addres = if let Some(address) = storage::get("server_address")
             .into_future(ctx.clone())
@@ -43,7 +43,7 @@ pub fn handle_startup(_: &mut Model) -> Command<Effect, Event> {
     })
 }
 
-pub fn handle_screen_change(model: &mut Model, screen: Screen) -> Command<Effect, Event> {
+pub fn handle_screen_change(model: &mut Model, screen: Screen) -> crate::Command {
     model.current_screen = screen.clone();
 
     let command = match screen {

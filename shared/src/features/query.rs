@@ -85,7 +85,7 @@ macro_rules! query_state_type {
 pub mod view_model_queries {
     use std::collections::HashMap;
 
-    use domain::{Media, language::LanguageCode};
+    use domain::{Media, language::LanguageCode, series::EpisodeIdentifier};
 
     use crate::features::query::QueryState;
 
@@ -99,10 +99,7 @@ pub mod view_model_queries {
     pub struct SubtitleSearchResults {
         pub media_id: String,
         pub language: LanguageCode,
-
-        // TODO reduce invariants by coupling season with episode results
-        pub season: u32,
-        pub episode_results: HashMap<u32, Vec<SubtitleSearchResult>>,
+        pub episode_results: HashMap<EpisodeIdentifier, Vec<SubtitleSearchResult>>,
     }
 
     #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]

@@ -2,19 +2,16 @@ use crux_core::{Command, render::render};
 use partially::Partial;
 
 use crate::{
-    CruxContext, Effect, Event, Model, PartialModel,
+    CruxContext, Event, Model, PartialModel,
     capabilities::navigation::{self, Screen},
 };
 
-pub fn handle_update_model(
-    model: &mut Model,
-    partial_model: Box<PartialModel>,
-) -> Command<Effect, Event> {
+pub fn handle_update_model(model: &mut Model, partial_model: Box<PartialModel>) -> crate::Command {
     model.apply_some(*partial_model);
     render()
 }
 
-pub fn handle_push_if_necessary(model: &Model, screen: Screen) -> Command<Effect, Event> {
+pub fn handle_push_if_necessary(model: &Model, screen: Screen) -> crate::Command {
     let current_screen = model.current_screen.clone();
     Command::new(|ctx| async move {
         if current_screen != screen {

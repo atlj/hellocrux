@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::{
-    Effect, Event, Model, PartialModel,
+    Model, PartialModel,
     capabilities::{
         http,
         navigation::{self, Screen},
@@ -25,7 +25,7 @@ pub enum ServerCommunicationEvent {
 pub fn handle_server_communication(
     model: &mut Model,
     event: ServerCommunicationEvent,
-) -> Command<Effect, Event> {
+) -> crate::Command {
     match event {
         ServerCommunicationEvent::TryConnecting(mut address) => {
             model.connection_state = Some(QueryState::Loading {

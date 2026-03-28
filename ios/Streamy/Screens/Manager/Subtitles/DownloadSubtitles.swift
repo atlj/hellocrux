@@ -3,21 +3,22 @@ import SwiftUI
 
 struct DownloadSubtitles: View {
     @EnvironmentObject var core: Core
-    var mediaId: String
+    var media: Media
     var language: LanguageCode
-    var season: UInt32
-    var episodes: [UInt32]
+    var episodes: [EpisodeIdentifier]
 
-    var results: [(UInt32, [SubtitleSearchResult])]? {
+    var results: [(EpisodeIdentifier, [SubtitleSearchResult])]? {
         guard case let .success(data: successData) = core.view.subtitle_search_results else {
             return nil
         }
 
-        if successData.season != season || successData.media_id != mediaId || successData.language != language {
+        guard successData.media_id == media.id, successData.language == language else {
             return nil
         }
 
-        return Array(successData.episode_results).sorted { $0.0 > $1.0 }.filter { !$0.1.isEmpty }
+        return successData.episode_results
+            .filter { !$0.value.isEmpty }
+            .sorted { $0.key.episode_no > $1.key.episode_no }
     }
 
     var body: some View {
@@ -27,9 +28,9 @@ struct DownloadSubtitles: View {
             }
 
             Section("Subtitles") {
-                ForEach(results ?? [], id: \.0) { episode, result in
+                ForEach(results ?? [], id: \.0.episode_no) { identifier, result in
                     // TODO: add subtitle selection feature
-                    Button("\(episode): \(result[0].download_count), \(result[0].title)") {}
+                    Button("\(identifier.episode_no): \(result[0].download_count), \(result[0].title)") {}
                 }
             }
         }
@@ -42,11 +43,11 @@ struct DownloadSubtitles: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
-                    let subtitleSelections: [SubtitleSelection] = results!.map { result in
-                        .series(subtitle_id: result.1.first!.id, episode_identifier: .init(season_no: season, episode_no: result.0))
+                    let subtitleSelections: [SubtitleSelection] = results!.map { identifier, result in
+                        .series(subtitle_id: result.first!.id, episode_identifier: identifier)
                     }
 
-                    core.update(.subtitle(.download(form: .init(media_id: mediaId, language_code: language, selections: subtitleSelections))))
+                    core.update(.subtitle(.download(form: .init(media_id: media.id, language_code: language, selections: subtitleSelections))))
                 }
                 label: {
                     Label("Download", image: "square.and.arrow.down.fill")
@@ -60,11 +61,8 @@ struct DownloadSubtitles: View {
         }
         .onAppear {
             core.update(
-                .updateData(
-                    .searchSubtitles(media_id: mediaId, language: language, episodes:
-                        episodes.map {
-                            .init(season_no: season, episode_no: $0)
-                        }),
+                .subtitle(
+                    .fetchSearchResults(media_id: media.id, language: language, episodes: episodes.isEmpty ? nil : episodes),
                 ),
             )
         }
@@ -72,6 +70,6 @@ struct DownloadSubtitles: View {
 }
 
 #Preview {
-    DownloadSubtitles(mediaId: "Rick_and_Morty", language: .turkish, season: 1, episodes: [1])
+    DownloadSubtitles(media: PreviewData.idiocracyMedia, language: .turkish, episodes: [.init(season_no: 1, episode_no: 1)])
         .environmentObject(Core())
 }

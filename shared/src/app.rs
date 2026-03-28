@@ -12,7 +12,7 @@ use crate::features::{
     server_communication::ServerCommunicationEvent,
 };
 use crux_core::command::CommandContext;
-use crux_core::{App, Command, macros::effect, render::RenderOperation};
+use crux_core::{App, macros::effect, render::RenderOperation};
 use domain::Download;
 use domain::series::SeriesFileMapping;
 use partially::Partial;
@@ -49,6 +49,8 @@ pub enum Effect {
     Http(HttpOperation),
     ServiceDiscovery(ServiceDiscoveryOperation),
 }
+
+pub type Command = crux_core::Command<Effect, Event>;
 
 pub type CruxContext = CommandContext<Effect, Event>;
 
@@ -98,7 +100,7 @@ impl App for CounterApp {
         event: Self::Event,
         model: &mut Self::Model,
         _caps: &Self::Capabilities,
-    ) -> Command<Self::Effect, Self::Event> {
+    ) -> Command {
         match event {
             Event::Startup => features::lifetime::handle_startup(model),
             Event::ScreenChanged(screen) => features::lifetime::handle_screen_change(model, screen),

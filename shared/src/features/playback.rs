@@ -5,7 +5,7 @@ use partially::Partial;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    CruxContext, Effect, Event, Model,
+    CruxContext, Event, Model,
     capabilities::{
         navigation::Screen,
         storage::{self, get_with_key_string},
@@ -47,7 +47,7 @@ pub fn handle_playback_progress(
     model: &mut Model,
     duration_seconds: u64,
     playback_progress: PlaybackPosition,
-) -> Command<Effect, Event> {
+) -> crate::Command {
     let command =
         update_next_episode(model, duration_seconds, &playback_progress).unwrap_or(Command::done());
 
@@ -60,7 +60,7 @@ fn update_next_episode(
     model: &mut Model,
     duration_seconds: u64,
     playback_progress: &PlaybackPosition,
-) -> Option<Command<Effect, Event>> {
+) -> Option<crate::Command> {
     let progress_seconds = playback_progress.get_seconds();
 
     if duration_seconds.saturating_sub(progress_seconds) > 30 {
@@ -111,7 +111,7 @@ fn update_next_episode(
     None
 }
 
-pub fn handle_play(model: &mut Model, play_event: PlayEvent) -> Command<Effect, Event> {
+pub fn handle_play(model: &mut Model, play_event: PlayEvent) -> crate::Command {
     let id = play_event.get_id().clone();
     let media_item = if let Some(item) = model
         .media_items

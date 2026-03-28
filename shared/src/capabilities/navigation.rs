@@ -1,5 +1,5 @@
 use crux_core::{Command, Request, capability::Operation, command::RequestBuilder};
-use domain::{Media, SeasonContents, language::LanguageCode};
+use domain::{Media, SeasonContents, language::LanguageCode, series::EpisodeIdentifier};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -30,17 +30,16 @@ pub enum Screen {
     ServerFileMapping(String),
     AddDownload,
     SubtitleSelection {
-        // TODO consolidate fields and types
         media: Media,
-        season: u32,
-        pre_selected_episodes: Vec<u32>,
+        /// (Season, Pre selected episodes). None means this is a movie.
+        episodes: Option<(u32, Vec<u32>)>,
         pre_selected_language: LanguageCode,
     },
     SubtitleSearchResult {
-        // TODO consolidate fields
-        media_id: String,
+        media: Media,
         language: LanguageCode,
-        episodes: Option<(u32, Vec<u32>)>,
+        /// `None` for movies, `Some` with episode identifiers for series
+        episodes: Option<Vec<EpisodeIdentifier>>,
     },
 }
 

@@ -31,7 +31,7 @@
 		20DA34022E352778007A3933 /* Player.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20DA34012E352777007A3933 /* Player.swift */; };
 		20DDF7B02F6557A300B2AD75 /* LanguageSelectorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20DDF7AF2F6557A300B2AD75 /* LanguageSelectorSheet.swift */; };
 		20FAF5672F58CC9100DE8397 /* SeasonManagerScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20FAF5662F58CC9100DE8397 /* SeasonManagerScreen.swift */; };
-		20FAF5692F58CF8200DE8397 /* SearchSubtitles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20FAF5682F58CF8200DE8397 /* SearchSubtitles.swift */; };
+		20FAF5692F58CF8200DE8397 /* ConfigureSubtitleSearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20FAF5682F58CF8200DE8397 /* ConfigureSubtitleSearch.swift */; };
 		2AD69AC61D674BB2BC300FC2 /* uniffi-bindgen in Resources */ = {isa = PBXBuildFile; fileRef = E75E53B837C6A0E03FDCEC5A /* uniffi-bindgen */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		A022BC4B1B16254762ED55B3 /* shared.udl in Sources */ = {isa = PBXBuildFile; fileRef = 8B8EC4C63F3ECC2B26BBAEC2 /* shared.udl */; };
 		C26A1E5DDAB1ED32518E8F2A /* libshared_static.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2EA4D4AAE1A6C4D3400A9A06 /* libshared_static.a */; };
@@ -124,7 +124,7 @@
 		20DA34012E352777007A3933 /* Player.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Player.swift; sourceTree = "<group>"; };
 		20DDF7AF2F6557A300B2AD75 /* LanguageSelectorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguageSelectorSheet.swift; sourceTree = "<group>"; };
 		20FAF5662F58CC9100DE8397 /* SeasonManagerScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonManagerScreen.swift; sourceTree = "<group>"; };
-		20FAF5682F58CF8200DE8397 /* SearchSubtitles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchSubtitles.swift; sourceTree = "<group>"; };
+		20FAF5682F58CF8200DE8397 /* ConfigureSubtitleSearch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigureSubtitleSearch.swift; sourceTree = "<group>"; };
 		642CF26F4B57B0FF7348C6BF /* SharedTypes */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = SharedTypes; path = ../shared_types/generated/swift/SharedTypes; sourceTree = SOURCE_ROOT; };
 		8B8EC4C63F3ECC2B26BBAEC2 /* shared.udl */ = {isa = PBXFileReference; lastKnownFileType = text; path = shared.udl; sourceTree = "<group>"; };
 		8EA6E09EE87596B896068D0E /* Shared */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Shared; path = ../shared/shared.xcodeproj; sourceTree = "<group>"; };
@@ -239,7 +239,7 @@
 		20DDF7AD2F65577F00B2AD75 /* Subtitles */ = {
 			isa = PBXGroup;
 			children = (
-				20FAF5682F58CF8200DE8397 /* SearchSubtitles.swift */,
+				20FAF5682F58CF8200DE8397 /* ConfigureSubtitleSearch.swift */,
 				20DDF7AF2F6557A300B2AD75 /* LanguageSelectorSheet.swift */,
 				201366692F67029C007F3B1E /* DownloadSubtitles.swift */,
 			);
@@ -423,7 +423,7 @@
 				2066D0902F215AB20099E249 /* ServiceDiscovery.swift in Sources */,
 				2023BE122EC34B18002FDDF9 /* MediaManagerScreen.swift in Sources */,
 				206EAC562F22A42600C7DD68 /* ConnectionScreen.swift in Sources */,
-				20FAF5692F58CF8200DE8397 /* SearchSubtitles.swift in Sources */,
+				20FAF5692F58CF8200DE8397 /* ConfigureSubtitleSearch.swift in Sources */,
 				2088401D2F51F83800DB7DEA /* PreviewData.swift in Sources */,
 				DE3600B1A063D422BDA42B19 /* Core.swift in Sources */,
 				A022BC4B1B16254762ED55B3 /* shared.udl in Sources */,
