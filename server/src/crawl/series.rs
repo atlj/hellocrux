@@ -36,13 +36,7 @@ pub(super) async fn try_extract_series(
             Ok(val) => val.map(Ok),
             Err(err) => Some(Err(err)),
         })
-        .try_fold(HashMap::new(), |mut map, val| match val {
-            Ok((season_no, season_contents)) => {
-                map.insert(season_no, season_contents);
-                Ok(map)
-            }
-            Err(err) => Err(err),
-        })?;
+        .collect::<Result<HashMap<_, _>>>()?;
 
     Ok(Some(result))
 }

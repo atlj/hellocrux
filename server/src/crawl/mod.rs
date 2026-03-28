@@ -36,14 +36,11 @@ pub(crate) async fn crawl_all_folders(
             .map(|media| (file_stem, media))
     });
 
-    let result = futures::future::join_all(crawl_futures)
+    let result: HashMap<_, _> = futures::future::join_all(crawl_futures)
         .await
         .into_iter()
         .flatten()
-        .fold(HashMap::new(), |mut map, (path, media)| {
-            map.insert(path, media);
-            map
-        });
+        .collect();
 
     Some(result)
 }

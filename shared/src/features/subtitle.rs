@@ -162,24 +162,19 @@ pub fn search_subtitles(
                     .unwrap()
                     .season_no;
 
-                let len = search_response.len();
-                let episode_results = search_response
+                let episode_results: HashMap<_, _> = search_response
                     .into_iter()
                     .zip(episode_identifiers.clone().unwrap())
-                    // TODO convert all folds into collect for hashmap
-                    .fold(
-                        HashMap::with_capacity(len),
-                        |mut map, (results, episode_identifier)| {
-                            map.insert(
-                                episode_identifier.episode_no,
-                                results
-                                    .into_iter()
-                                    .map(SubtitleSearchResult::from)
-                                    .collect(),
-                            );
-                            map
-                        },
-                    );
+                    .map(|(results, episode_identifier)| {
+                        (
+                            episode_identifier.episode_no,
+                            results
+                                .into_iter()
+                                .map(SubtitleSearchResult::from)
+                                .collect::<Vec<_>>(),
+                        )
+                    })
+                    .collect();
                 SubtitleSearchResults {
                     media_id,
                     language,
