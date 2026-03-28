@@ -23,7 +23,7 @@ struct DownloadSubtitles: View {
         if case .loading = core.view.subtitle_download_results {
             return true
         }
-        
+
         guard let results else {
             return false
         }

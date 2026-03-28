@@ -31,64 +31,14 @@ struct Player: UIViewControllerRepresentable {
         Player.sharedPlayer = player
 
         let videoAsset = AVURLAsset(url: url)
-        let mixComposition = AVMutableComposition()
-        let videoTrack = mixComposition.addMutableTrack(
-            withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid,
+        player.replaceCurrentItem(with: AVPlayerItem(asset: videoAsset))
+
+        player.seek(
+            to: .init(
+                seconds: Double(data.position.getInitialSeconds()),
+                preferredTimescale: CMTimeScale(NSEC_PER_SEC),
+            ),
         )
-        let audioTrack = mixComposition.addMutableTrack(
-            withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid,
-        )
-
-        // TODO: add a cancellation handler here
-        Task { [weak player] in
-            guard let duration = try? await videoAsset.load(.duration) else {
-                return
-            }
-            if let videoTrackItem = try await videoAsset.loadTracks(withMediaType: .video).first {
-                try videoTrack?.insertTimeRange(
-                    CMTimeRangeMake(start: .zero, duration: duration),
-                    of: videoTrackItem,
-                    at: .zero,
-                )
-            }
-            if let audioTrackItem = try await videoAsset.loadTracks(withMediaType: .audio).first {
-                try audioTrack?.insertTimeRange(
-                    CMTimeRangeMake(start: .zero, duration: duration),
-                    of: audioTrackItem,
-                    at: .zero,
-                )
-            }
-
-            await withTaskGroup(of: Void.self) { taskGroup in
-                for subtitle in subtitles {
-                    taskGroup.addTask {
-                        let subtitleAsset = AVURLAsset(url: URL(string: subtitle.track_path)!)
-                        guard let loadedSubtitleTrack = try? await subtitleAsset.loadTracks(withMediaType: .subtitle).first else {
-                            await Self.logger.warning("Couldn't load subtitle track with path \(subtitle.track_path)")
-                            return
-                        }
-
-                        let subtitleTrack = mixComposition.addMutableTrack(withMediaType: .subtitle, preferredTrackID: kCMPersistentTrackID_Invalid)
-                        subtitleTrack?.languageCode = subtitle.language.iso639_2t()
-                        try? subtitleTrack?.insertTimeRange(.init(start: .zero, duration: duration), of: loadedSubtitleTrack, at: .zero)
-                    }
-                }
-            }
-
-            DispatchQueue.main.async { [weak player] in
-                guard let player else {
-                    return
-                }
-                player.replaceCurrentItem(with: AVPlayerItem(asset: mixComposition))
-
-                player.seek(
-                    to: .init(
-                        seconds: Double(data.position.getInitialSeconds()),
-                        preferredTimescale: CMTimeScale(NSEC_PER_SEC),
-                    ),
-                )
-            }
-        }
 
         Player.timeObserver = player.addPeriodicTimeObserver(
             forInterval: .init(seconds: 1, preferredTimescale: CMTimeScale(NSEC_PER_SEC)),
