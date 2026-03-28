@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 pub enum NavigationOperation {
     Push(Screen),
     ReplaceRoot(Screen),
+    Pop(usize),
     Reset(Option<Screen>),
 }
 
@@ -65,6 +66,15 @@ where
     Event: Send + 'static,
 {
     Command::request_from_shell(NavigationOperation::Push(to))
+}
+
+#[must_use]
+pub fn pop<Effect, Event>(count: usize) -> RequestBuilder<Effect, Event, impl Future<Output = ()>>
+where
+    Effect: Send + From<Request<NavigationOperation>> + 'static,
+    Event: Send + 'static,
+{
+    Command::request_from_shell(NavigationOperation::Pop(count))
 }
 
 #[must_use]

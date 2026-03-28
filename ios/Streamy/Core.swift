@@ -61,6 +61,9 @@ class Core: ObservableObject {
             case let .replaceRoot(screen):
                 navigationObserver?.replaceRoot(screen: screen)
                 respond(request, response: [])
+            case let .pop(count):
+                navigationObserver?.pop(count: count)
+                
             case let .reset(screen):
                 navigationObserver?.reset(screen: screen)
                 respond(request, response: [])
@@ -147,7 +150,7 @@ extension Core: @preconcurrency ServiceDiscoveryDelegate {
 }
 
 protocol NavigationObserver {
-    func pop()
+    func pop(count: UInt64)
     func push(screen: Screen)
     func replaceRoot(screen: Screen)
     func reset(screen: Screen?)

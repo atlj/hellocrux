@@ -64,8 +64,8 @@ extension NavigationContainer: NavigationObserver {
         navPath.append(screen)
     }
 
-    func pop() {
-        navPath.removeLast()
+    func pop(count: UInt64) {
+        navPath.removeLast(Int(count))
     }
 
     func replaceRoot(screen: Screen) {

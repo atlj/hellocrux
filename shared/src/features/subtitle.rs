@@ -107,10 +107,8 @@ pub fn handle_subtitle_event(model: &Model, event: SubtitleEvent) -> crate::Comm
         } => fetch_subtitle_results(model, media_id, language, episodes),
 
         SubtitleEvent::Download { form } => download_subtitles(model, form).then(
-            Command::new(async |ctx| {
-                navigation::reset(Some(Screen::List)).into_future(ctx).await;
-            })
-            .and(Command::event(Event::UpdateData(DataRequest::GetMedia))),
+            Command::new(async |ctx| navigation::pop(2).into_future(ctx).await)
+                .and(Command::event(Event::UpdateData(DataRequest::GetMedia))),
         ),
     }
 }
