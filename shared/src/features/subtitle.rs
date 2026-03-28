@@ -175,44 +175,62 @@ fn fetch_subtitle_results(
         .into_future(ctx.clone())
         .await;
 
-        let result = match output
-            .into_option()
-            .and_then(|result_string| {
-                serde_json::from_str::<SubtitleSearchResponse>(&result_string).ok()
-            })
-            .map(|search_response| -> SubtitleSearchResults {
-                let episode_results = match episodes {
-                    Some(ref identifiers) => search_response
-                        .into_iter()
-                        .zip(identifiers.iter().cloned())
-                        .map(|(results, identifier)| {
-                            (
-                                identifier,
-                                results
-                                    .into_iter()
-                                    .map(SubtitleSearchResult::from)
-                                    .collect::<Vec<_>>(),
-                            )
-                        })
-                        .collect(),
-                    None => HashMap::new(),
-                };
-                SubtitleSearchResults {
+        let Some(api_response) = output.into_option().and_then(|result_string| {
+            serde_json::from_str::<SubtitleSearchResponse>(&result_string).ok()
+        }) else {
+            update_model(
+                &ctx,
+                PartialModel {
+                    subtitles_search_results: Some(QueryState::Error {
+                        message: "Couldn't search subtitles.".to_string(),
+                    }),
+                    ..Default::default()
+                },
+            );
+            return;
+        };
+
+        let result: SubtitleSearchResults = match episodes {
+            // Movie
+            None => {
+                // Result should have a least one field
+                let options = api_response
+                    .into_iter()
+                    .next()
+                    .expect("For movies, there should be at least one item");
+                SubtitleSearchResults::Movie {
                     media_id,
                     language,
-                    episode_results,
+                    options: options
+                        .into_iter()
+                        .map(SubtitleSearchResult::from)
+                        .collect(),
                 }
-            }) {
-            Some(results) => QueryState::Success { data: results },
-            None => QueryState::Error {
-                message: "Couldn't search subtitles due to server error".to_string(),
-            },
+            }
+
+            // Series
+            Some(episodes) => {
+                let options: HashMap<_, _> = episodes
+                    .into_iter()
+                    .zip(api_response.into_iter().map(|options| {
+                        options
+                            .into_iter()
+                            .map(SubtitleSearchResult::from)
+                            .collect()
+                    }))
+                    .collect();
+                SubtitleSearchResults::Series {
+                    media_id,
+                    language,
+                    options,
+                }
+            }
         };
 
         update_model(
             &ctx,
             PartialModel {
-                subtitles_search_results: Some(result),
+                subtitles_search_results: Some(QueryState::Success { data: result }),
                 ..Default::default()
             },
         );

@@ -63,7 +63,6 @@ class Core: ObservableObject {
                 respond(request, response: [])
             case let .pop(count):
                 navigationObserver?.pop(count: count)
-                
             case let .reset(screen):
                 navigationObserver?.reset(screen: screen)
                 respond(request, response: [])

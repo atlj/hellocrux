@@ -96,10 +96,18 @@ pub mod view_model_queries {
     query_state_type!(SubtitleSearchState, SubtitleSearchResults);
 
     #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
-    pub struct SubtitleSearchResults {
-        pub media_id: String,
-        pub language: LanguageCode,
-        pub episode_results: HashMap<EpisodeIdentifier, Vec<SubtitleSearchResult>>,
+    pub enum SubtitleSearchResults {
+        Movie {
+            media_id: String,
+            language: LanguageCode,
+            options: Vec<SubtitleSearchResult>,
+        },
+
+        Series {
+            media_id: String,
+            language: LanguageCode,
+            options: HashMap<EpisodeIdentifier, Vec<SubtitleSearchResult>>,
+        },
     }
 
     #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]

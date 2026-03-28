@@ -87,7 +87,7 @@ struct ConfigureSubtitleSearch: View {
                         ),
                     )
                 } label: {
-                    Label("Search", image: "magnifyingglass")
+                    Label("Search", systemImage: "magnifyingglass")
                 }
                 .disabled(nextButtonDisabled)
             }

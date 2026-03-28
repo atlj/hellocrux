@@ -28,7 +28,7 @@ struct NewDownloadScreen: View {
                     // TODO: remove me
                     try? await Task.sleep(for: .seconds(5))
                     showLoading = false
-                    core.navigationObserver?.pop()
+                    core.navigationObserver?.pop(count: 1)
                 }
             } label: {
                 Label("Start Downloading", systemImage: "square.and.arrow.down")

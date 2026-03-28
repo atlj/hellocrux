@@ -42,7 +42,7 @@ struct FileMappingScreen: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Save") {
                     core.update(.updateData(.setSeriesFileMapping(fileMappingForm())))
-                    core.navigationObserver?.pop()
+                    core.navigationObserver?.pop(count: 1)
                 }
                 .disabled(saveDisabled)
             }
