@@ -24,8 +24,3 @@ pub struct DownloadForm {
     pub metadata: MediaMetaData,
     pub is_series: bool,
 }
-
-pub enum MediaStream {
-    Video,
-    Audio,
-}

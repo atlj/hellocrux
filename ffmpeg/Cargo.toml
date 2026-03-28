@@ -3,4 +3,6 @@ name = "ffmpeg"
 edition = "2024"
 
 [dependencies]
+domain = { path = "../domain" }
 tokio = { workspace = true }
+thiserror = { workspace = true }
