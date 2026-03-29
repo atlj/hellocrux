@@ -1,10 +1,10 @@
-use domain::subtitles::SubtitlePath;
+use domain::subtitles::Subtitle;
 use log::error;
 
 use super::{Error, Result};
 use std::path::Path;
 
-pub(super) async fn try_extract_movie_paths(
+pub(super) async fn try_extract_movie(
     media_path: impl AsRef<Path>,
 ) -> Result<Option<domain::MediaPaths>> {
     let mut read_dir = crate::dir::fully_read_dir(&media_path)
@@ -20,16 +20,7 @@ pub(super) async fn try_extract_movie_paths(
         Some(path.to_string_lossy().to_string())
     });
 
-    let subtitles: Box<[SubtitlePath]> = super::subtitles::extract_subtitles(&media_path)
-        .await
-        .inspect_err(|err| {
-            error!(
-                "Couldn't extract subtitles at {}. Reason: {err}",
-                media_path.as_ref().display(),
-            )
-        })
-        .map(|iter| iter.collect())
-        .unwrap_or(Box::new([]));
+    let subtitles: Box<[Subtitle]> = todo!();
 
     Ok(media.map(|media| {
         let path: &Path = media.as_ref();
@@ -42,7 +33,7 @@ pub(super) async fn try_extract_movie_paths(
 
         domain::MediaPaths {
             media,
-            subtitle_paths: subtitles,
+            subtitles,
             track_name,
         }
     }))
@@ -52,16 +43,16 @@ pub(super) async fn try_extract_movie_paths(
 mod tests {
     use std::path::PathBuf;
 
-    use crate::crawl::movie::try_extract_movie_paths;
+    use crate::crawl::movie::try_extract_movie;
 
     #[tokio::test]
     async fn extract_movie_path() {
         let test_data_path: PathBuf = concat!(env!("CARGO_MANIFEST_DIR"), "/test-data").into();
         let path = test_data_path.join("crawl/example_movie");
-        let result = try_extract_movie_paths(&path).await.unwrap().unwrap();
+        let result = try_extract_movie(&path).await.unwrap().unwrap();
         assert!(result.media.contains("hey.mp4"));
-        let subtitles = result.subtitle_paths.first().unwrap();
-        assert!(subtitles.srt_path.contains("engSubs.vtt"));
+        let subtitles = result.subtitles.first().unwrap();
+        assert!(subtitles.path.contains("engSubs.vtt"));
         assert_eq!(subtitles.language, domain::language::LanguageCode::English);
     }
 }

@@ -18,7 +18,6 @@ pub enum Track {
     Subtitle {
         id: usize,
         language: Option<domain::language::LanguageCode>,
-        external_id: Option<String>,
     },
 }
 
@@ -34,7 +33,7 @@ impl Track {
 
 pub async fn get_tracks(
     media_file: impl AsRef<Path>,
-) -> crate::Result<impl Iterator<Item = Result<Track, dto::Error>>> {
+) -> crate::Result<impl Iterator<Item = crate::Result<Track>>> {
     let result_string = ffprobe([
         // Error on empty
         "-v",
@@ -52,10 +51,14 @@ pub async fn get_tracks(
     let parsed = serde_json::from_str::<dto::FfprobeOutput>(&result_string)
         .map_err(|_| crate::Error::UnexpectedOutput(result_string))?;
 
-    Ok(parsed.streams.into_iter().map(dto::FfprobeStream::try_into))
+    Ok(parsed
+        .streams
+        .into_iter()
+        .map(dto::FfprobeStream::try_into)
+        .map(|result| result.map_err(dto::Error::into)))
 }
 
-mod dto {
+pub mod dto {
     use std::time::Duration;
 
     #[derive(Debug, thiserror::Error, PartialEq, Eq)]
@@ -68,6 +71,12 @@ mod dto {
         CouldntParseDuration(FfprobeStream),
         #[error("Track has no duration {0:#?}")]
         NoDuration(FfprobeStream),
+    }
+
+    impl From<Error> for crate::Error {
+        fn from(val: Error) -> Self {
+            crate::Error::CouldntGetTracks(val)
+        }
     }
 
     #[derive(Debug, serde::Deserialize, Clone)]
@@ -127,7 +136,6 @@ mod dto {
                             domain::language::LanguageCode::try_from(tag_string.as_str()).ok()
                         },
                     ),
-                    external_id: self.tags.and_then(|tags| tags.external_id),
                 }),
                 unknown => Err(Error::UnknownCodecType(unknown.to_string())),
             }
@@ -137,8 +145,6 @@ mod dto {
     #[derive(Debug, serde::Deserialize, Clone, PartialEq, Eq)]
     pub struct FfprobeStreamTags {
         pub language: Option<String>,
-        #[serde(rename = "EXTERNAL_ID")]
-        pub external_id: Option<String>,
     }
 }
 
@@ -208,17 +214,14 @@ mod tests {
                     Track::Subtitle {
                         id: 2,
                         language: Some(LanguageCode::English),
-                        external_id: Some("sub_ext_001".to_string())
                     },
                     Track::Subtitle {
                         id: 3,
                         language: Some(LanguageCode::French),
-                        external_id: Some("sub_ext_002".to_string())
                     },
                     Track::Subtitle {
                         id: 4,
                         language: None,
-                        external_id: Some("sub_ext_003".to_string())
                     }
                 ]
             );
@@ -249,7 +252,6 @@ mod tests {
                     Track::Subtitle {
                         id: 2,
                         language: None,
-                        external_id: None
                     }
                 ]
             );

@@ -1,4 +1,4 @@
-use domain::{SeriesContents, subtitles::SubtitlePath};
+use domain::{SeriesContents, subtitles::Subtitle};
 use log::error;
 
 use super::{Error, Result};
@@ -46,39 +46,7 @@ async fn try_extract_season(path: impl AsRef<Path>) -> Result<Option<domain::Sea
         .await
         .map_err(|_| Error::CantReadDir(path.as_ref().into()))?;
 
-    let mut subtitles_map = super::subtitles::extract_subtitles(&path)
-        .await
-        .inspect_err(|err| {
-            error!(
-                "Couldn't extract subtitles at {}. Reason: {err}",
-                path.as_ref().display()
-            )
-        })
-        .map(|iter| {
-            iter.fold(
-                HashMap::<usize, Vec<SubtitlePath>>::with_capacity(40),
-                |mut map, subtitle| {
-                    let path: &Path = subtitle.srt_path.as_ref();
-                    let file_stem = path
-                        .file_stem()
-                        .and_then(|stem| stem.to_str())
-                        .expect("Subtitle needs to have a valid file stem");
-                    let Some(episode_number) =
-                        file_stem
-                            .split_once('-')
-                            .and_then(|(episode_number_string, _)| {
-                                episode_number_string.parse::<usize>().ok()
-                            })
-                    else {
-                        return map;
-                    };
-
-                    map.entry(episode_number).or_default().push(subtitle);
-                    map
-                },
-            )
-        })
-        .unwrap_or_default();
+    let mut subtitles_map: HashMap<u32, Vec<Subtitle>> = todo!();
 
     let result: domain::SeasonContents = read_dir.fold(HashMap::new(), |mut map, entry| {
         let current_path = entry.path();
@@ -104,7 +72,7 @@ async fn try_extract_season(path: impl AsRef<Path>) -> Result<Option<domain::Sea
                 get_episode_track_name(file_stem).unwrap_or_else(|| file_stem.to_string());
 
             let media_paths = domain::MediaPaths {
-                subtitle_paths: subtitles,
+                subtitles,
                 media,
                 track_name,
             };
@@ -185,8 +153,8 @@ mod tests {
         let first_episode = result.get(&1).unwrap();
         assert!(first_episode.media.contains("1.mp4"));
 
-        let subtitles = first_episode.subtitle_paths.first().unwrap();
-        assert!(subtitles.srt_path.contains("turheyyyy.srt"));
+        let subtitles = first_episode.subtitles.first().unwrap();
+        assert!(subtitles.path.contains("turheyyyy.srt"));
         assert_eq!(subtitles.language, domain::language::LanguageCode::Turkish);
     }
 }

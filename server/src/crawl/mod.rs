@@ -86,7 +86,7 @@ async fn try_extract_media(path: impl AsRef<Path>) -> Result<Media> {
 }
 
 async fn try_extract_media_content(path: impl AsRef<Path>) -> Result<MediaContent> {
-    if let Some(movie_path) = movie::try_extract_movie_paths(&path).await? {
+    if let Some(movie_path) = movie::try_extract_movie(&path).await? {
         return Ok(MediaContent::Movie(movie_path));
     }
 

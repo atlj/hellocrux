@@ -1,4 +1,4 @@
-use crate::{series::EpisodeIdentifier, subtitles::SubtitlePath};
+use crate::{series::EpisodeIdentifier, subtitles::Subtitle};
 use std::{collections::HashMap, path::Path};
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
@@ -44,7 +44,7 @@ pub type SeriesContents = HashMap<u32, SeasonContents>;
 pub struct MediaPaths {
     pub media: String,
     pub track_name: String,
-    pub subtitle_paths: Box<[SubtitlePath]>,
+    pub subtitles: Box<[Subtitle]>,
 }
 
 impl MediaPaths {
@@ -56,17 +56,12 @@ impl MediaPaths {
             .to_string();
 
         let subtitles = self
-            .subtitle_paths
+            .subtitles
             .iter()
-            .map(|subtitle| SubtitlePath {
-                srt_path: prefix
+            .map(|subtitle| Subtitle {
+                path: prefix
                     .as_ref()
-                    .join(&subtitle.srt_path)
-                    .to_string_lossy()
-                    .to_string(),
-                track_path: prefix
-                    .as_ref()
-                    .join(&subtitle.track_path)
+                    .join(&subtitle.path)
                     .to_string_lossy()
                     .to_string(),
                 ..subtitle.clone()
@@ -75,7 +70,7 @@ impl MediaPaths {
 
         Self {
             media,
-            subtitle_paths: subtitles,
+            subtitles,
             track_name: self.track_name.clone(),
         }
     }
@@ -88,17 +83,12 @@ impl MediaPaths {
             .to_string();
 
         let subtitles = self
-            .subtitle_paths
+            .subtitles
             .iter()
             .map(|subtitle| {
-                Some(SubtitlePath {
-                    srt_path: subtitle
-                        .srt_path
-                        .strip_prefix(prefix.as_ref().to_string_lossy().as_ref())?
-                        .trim_start_matches('/')
-                        .to_string(),
-                    track_path: subtitle
-                        .track_path
+                Some(Subtitle {
+                    path: subtitle
+                        .path
                         .strip_prefix(prefix.as_ref().to_string_lossy().as_ref())?
                         .trim_start_matches('/')
                         .to_string(),
@@ -108,7 +98,7 @@ impl MediaPaths {
             .collect::<Option<Box<[_]>>>()?;
 
         Some(Self {
-            subtitle_paths: subtitles,
+            subtitles,
             media,
             track_name: self.track_name.clone(),
         })

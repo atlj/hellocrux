@@ -2,7 +2,7 @@ mod encode;
 mod spawn;
 mod track;
 
-pub use encode::{EncodeOptions, TrackSelection, encode_video};
+pub use encode::{TrackSelection, encode_video};
 
 pub use track::{Track, get_tracks};
 
@@ -16,6 +16,8 @@ pub enum Error {
     MissingOutput,
     #[error("ffmpeg/ffprobe produced unexpected output: '{0}'")]
     UnexpectedOutput(String),
+    #[error("Couldn't get tracks: '{0}'")]
+    CouldntGetTracks(track::dto::Error),
 }
 
 pub type Result<T> = core::result::Result<T, Error>;

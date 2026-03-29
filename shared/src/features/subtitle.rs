@@ -126,7 +126,7 @@ fn episodes_without_subtitles(
             .iter()
             .filter(|(_, paths)| {
                 !paths
-                    .subtitle_paths
+                    .subtitles
                     .iter()
                     .any(|subtitle| subtitle.language == *language)
             })
@@ -285,7 +285,7 @@ mod tests {
     use std::collections::HashMap;
 
     use domain::{
-        MediaPaths, SeasonContents, SeriesContents, language::LanguageCode, subtitles::SubtitlePath,
+        MediaPaths, SeasonContents, SeriesContents, language::LanguageCode, subtitles::Subtitle,
     };
 
     use super::episodes_without_subtitles;
@@ -294,9 +294,9 @@ mod tests {
         MediaPaths {
             media: String::new(),
             track_name: String::new(),
-            subtitle_paths: Box::new([SubtitlePath {
+            subtitles: Box::new([Subtitle {
                 language,
-                srt_path: String::new(),
+                path: String::new(),
                 track_path: String::new(),
             }]),
         }

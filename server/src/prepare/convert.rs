@@ -1,6 +1,5 @@
 use std::path::Path;
 
-use domain::MediaStream;
 use log::info;
 
 pub async fn convert_media(input_path: &Path, output_path: &Path) -> super::Result<()> {
@@ -35,7 +34,7 @@ pub async fn convert_media(input_path: &Path, output_path: &Path) -> super::Resu
     }
 
     let override_tag: Option<&str> = {
-        let video_codec = get_codec(input_path, &domain::MediaStream::Video).await?;
+        let video_codec: String = todo!();
         match video_codec.as_ref() {
             // Override the tag for hevc because Apple expects it like that.
             // https://stackoverflow.com/questions/49128084/playing-h-265-video-file-using-avplayer
@@ -73,38 +72,6 @@ pub async fn convert_media(input_path: &Path, output_path: &Path) -> super::Resu
     }
 
     Ok(())
-}
-
-pub async fn get_codec(media_file: &Path, stream_type: &MediaStream) -> super::Result<String> {
-    let stream_identifier = match stream_type {
-        MediaStream::Video => 'v',
-        MediaStream::Audio => 'a',
-    };
-
-    let result = crate::ffmpeg::ffprobe([
-        // Error on empty
-        "-v",
-        "error",
-        // Select the first video stream
-        "-select_streams",
-        &format!("{stream_identifier}:0"),
-        // Show the codec name
-        "-show_entries",
-        "stream=codec_name",
-        // Don't print anything unuseful
-        "-of",
-        "default=noprint_wrappers=1:nokey=1",
-        &media_file.as_os_str().to_string_lossy(),
-    ])
-    .await?;
-
-    Ok(result
-        .chars()
-        .flat_map(|char| match char {
-            '\n' => None,
-            _ => Some(char),
-        })
-        .collect())
 }
 
 /// ## Panics

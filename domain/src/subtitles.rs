@@ -54,11 +54,9 @@ impl SubtitleSelection {
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
-pub struct SubtitlePath {
+pub struct Subtitle {
     pub language: LanguageCode,
-    pub srt_path: String,
-    /// A container such as mp4 that has a subtitle stream
-    pub track_path: String,
+    pub path: String,
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]

@@ -1,126 +1,141 @@
-use std::{collections::HashSet, path::PathBuf};
+use std::{
+    collections::HashSet,
+    path::{Path, PathBuf},
+};
 
 #[derive(Debug, Clone)]
-pub struct EncodeOptions {
-    pub video_tracks: Vec<TrackSelection>,
-    pub audio_tracks: Vec<TrackSelection>,
-    pub subtitle_tracks: Vec<TrackSelection>,
-    pub output_path: PathBuf,
+pub enum TrackSelection {
+    Video {
+        input_path: PathBuf,
+        track_id: usize,
+        codec: String,
+    },
+    Audio {
+        input_path: PathBuf,
+        track_id: usize,
+        codec: String,
+    },
+    Subtitle {
+        input_path: PathBuf,
+        track_id: usize,
+        language: Option<domain::language::LanguageCode>,
+    },
 }
 
-#[derive(Debug, Clone)]
-pub struct TrackSelection {
-    pub input_path: PathBuf,
-    pub track_id: usize,
-    pub codec: String,
+impl TrackSelection {
+    pub fn input_path(&self) -> &PathBuf {
+        match self {
+            TrackSelection::Video { input_path, .. } => input_path,
+            TrackSelection::Audio { input_path, .. } => input_path,
+            TrackSelection::Subtitle { input_path, .. } => input_path,
+        }
+    }
 }
 
 pub async fn encode_video(
-    EncodeOptions {
-        video_tracks,
-        audio_tracks,
-        subtitle_tracks,
-        output_path,
-    }: EncodeOptions,
+    tracks: Vec<TrackSelection>,
+    output_path: impl AsRef<Path>,
 ) -> crate::Result<PathBuf> {
-    let track_iter = video_tracks
-        .iter()
-        .chain(audio_tracks.iter().chain(subtitle_tracks.iter()));
+    let output_path = output_path.as_ref();
 
-    let deduped_tracks = track_iter
-        .map(|track| track.input_path.clone())
+    let deduped_inputs = tracks
+        .iter()
+        .map(|track| track.input_path().clone())
         .collect::<HashSet<_>>()
         .into_iter()
         .collect::<Vec<_>>();
 
-    let input_args = deduped_tracks
+    let input_args = deduped_inputs
         .iter()
         .flat_map(|track| ["-i".to_string(), track.to_string_lossy().to_string()]);
 
-    let video_mapping_args = video_tracks
+    let mapping_args = tracks
         .into_iter()
-        .enumerate()
-        .flat_map(|(index, track)| {
-            let input_id = deduped_tracks
+        .scan(
+            (0_usize, 0_usize, 0_usize),
+            |(video_index, audio_index, subtitle_index),
+             track|
+             -> Option<(usize, crate::TrackSelection)> {
+                match &track {
+                    TrackSelection::Video { .. } => {
+                        *video_index += 1;
+                        Some((*video_index - 1, track))
+                    }
+                    TrackSelection::Audio { .. } => {
+                        *audio_index += 1;
+                        Some((*audio_index - 1, track))
+                    }
+                    TrackSelection::Subtitle { .. } => {
+                        *subtitle_index += 1;
+                        Some((*subtitle_index - 1, track))
+                    }
+                }
+            },
+        )
+        .flat_map(|(index, selection)| {
+            let input_path = selection.input_path();
+            let input_id = deduped_inputs
                 .iter()
                 .enumerate()
-                .find_map(|(index, deduped_path)| {
-                    if deduped_path == &track.input_path {
+                .find_map(|(index, input_param)| {
+                    if input_param == input_path {
                         Some(index)
                     } else {
                         None
                     }
                 })
-                .expect("Input's track should be already included in deduped tracks");
+                .expect("Input path to be a part of deduped inputs");
 
-            [
-                "-map".to_string(),
-                format!("{input_id}:{}", track.track_id),
-                format!("-c:v:{index}"),
-                track.codec,
-            ]
-        });
-
-    let audio_mapping_args = audio_tracks
-        .into_iter()
-        .enumerate()
-        .flat_map(|(index, track)| {
-            let input_id = deduped_tracks
-                .iter()
-                .enumerate()
-                .find_map(|(index, deduped_path)| {
-                    if deduped_path == &track.input_path {
-                        Some(index)
-                    } else {
-                        None
-                    }
-                })
-                .expect("Input's track should be already included in deduped tracks");
-
-            [
-                "-map".to_string(),
-                format!("{input_id}:{}", track.track_id),
-                format!("-c:a:{index}"),
-                track.codec,
-            ]
-        });
-
-    let subtitle_mapping_args =
-        subtitle_tracks
-            .into_iter()
-            .enumerate()
-            .flat_map(|(index, track)| {
-                let input_id = deduped_tracks
-                    .iter()
-                    .enumerate()
-                    .find_map(|(index, deduped_path)| {
-                        if deduped_path == &track.input_path {
-                            Some(index)
-                        } else {
-                            None
-                        }
-                    })
-                    .expect("Input's track should be already included in deduped tracks");
-
-                [
-                    "-map".to_string(),
-                    format!("{input_id}:{}", track.track_id),
-                    format!("-c:s:{index}"),
-                    track.codec,
-                ]
-            });
+            match selection {
+                TrackSelection::Video {
+                    track_id, codec, ..
+                } => [
+                    Some("-map".to_string()),
+                    Some(format!("{input_id}:{track_id}")),
+                    Some(format!("-c:v:{index}")),
+                    Some(codec),
+                ],
+                TrackSelection::Audio {
+                    track_id, codec, ..
+                } => [
+                    Some("-map".to_string()),
+                    Some(format!("{input_id}:{track_id}")),
+                    Some(format!("-c:a:{index}")),
+                    Some(codec),
+                ],
+                TrackSelection::Subtitle {
+                    track_id,
+                    language: Some(lang),
+                    ..
+                } => [
+                    Some("-map".to_string()),
+                    Some(format!("{input_id}:{track_id}")),
+                    Some(format!("-metadata:s:s:{index}")),
+                    Some(format!("language={}", lang.to_iso639_2t())),
+                ],
+                TrackSelection::Subtitle {
+                    track_id,
+                    language: None,
+                    ..
+                } => [
+                    Some("-map".to_string()),
+                    Some(format!("{input_id}:{track_id}")),
+                    None,
+                    None,
+                ],
+            }
+        })
+        .flatten();
 
     let args = input_args
-        .chain(video_mapping_args)
-        .chain(audio_mapping_args)
-        .chain(subtitle_mapping_args)
+        .chain(mapping_args)
         .chain([output_path.to_string_lossy().to_string()]);
 
     crate::spawn::ffmpeg(args).await?;
 
     // Make sure output exists now
-    if let Ok(true) = tokio::fs::try_exists(&output_path).await {
-        return Ok(output_path);
+    if let Ok(true) = tokio::fs::try_exists(output_path).await {
+        return Ok(output_path.to_path_buf());
     }
 
     Err(crate::Error::MissingOutput)
@@ -130,18 +145,34 @@ pub async fn encode_video(
 mod tests {
     use std::path::PathBuf;
 
-    use super::{EncodeOptions, TrackSelection, encode_video};
+    use super::{TrackSelection, encode_video};
     use crate::{Track, get_tracks};
 
     fn fixtures_path() -> PathBuf {
         concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures").into()
     }
 
-    fn copy(input_path: PathBuf, track_id: usize) -> TrackSelection {
-        TrackSelection {
+    fn copy_video(input_path: PathBuf, track_id: usize) -> TrackSelection {
+        TrackSelection::Video {
             input_path,
             track_id,
             codec: "copy".to_string(),
+        }
+    }
+
+    fn copy_audio(input_path: PathBuf, track_id: usize) -> TrackSelection {
+        TrackSelection::Audio {
+            input_path,
+            track_id,
+            codec: "copy".to_string(),
+        }
+    }
+
+    fn copy_subtitle(input_path: PathBuf, track_id: usize) -> TrackSelection {
+        TrackSelection::Subtitle {
+            input_path,
+            track_id,
+            language: None,
         }
     }
 
@@ -162,12 +193,10 @@ mod tests {
         let input = fixtures_path().join("h264_aac_nosub.mkv");
         let output = dir.path().join("out.mkv");
 
-        let result = encode_video(EncodeOptions {
-            video_tracks: vec![copy(input.clone(), 0)],
-            audio_tracks: vec![copy(input.clone(), 1)],
-            subtitle_tracks: vec![],
-            output_path: output.clone(),
-        })
+        let result = encode_video(
+            vec![copy_video(input.clone(), 0), copy_audio(input.clone(), 1)],
+            &output,
+        )
         .await;
 
         assert_eq!(result.unwrap(), output);
@@ -196,12 +225,14 @@ mod tests {
         let input = fixtures_path().join("hevc_aac_1sub.mkv");
         let output = dir.path().join("out.mkv");
 
-        encode_video(EncodeOptions {
-            video_tracks: vec![copy(input.clone(), 0)],
-            audio_tracks: vec![copy(input.clone(), 1)],
-            subtitle_tracks: vec![copy(input.clone(), 2)],
-            output_path: output.clone(),
-        })
+        encode_video(
+            vec![
+                copy_video(input.clone(), 0),
+                copy_audio(input.clone(), 1),
+                copy_subtitle(input.clone(), 2),
+            ],
+            &output,
+        )
         .await
         .unwrap();
 
@@ -222,14 +253,13 @@ mod tests {
                 Track::Subtitle {
                     id: 2,
                     language: None,
-                    external_id: None
                 },
             ]
         );
     }
 
     /// Copy all tracks from a file that carries three subtitle streams.
-    /// Verifies that subtitle language tags and external IDs are preserved.
+    /// Verifies that subtitle language tags are preserved.
     #[tokio::test]
     async fn encode_with_multiple_subtitles() {
         use domain::language::LanguageCode;
@@ -238,16 +268,16 @@ mod tests {
         let input = fixtures_path().join("h265_flac_3subs.mkv");
         let output = dir.path().join("out.mkv");
 
-        encode_video(EncodeOptions {
-            video_tracks: vec![copy(input.clone(), 0)],
-            audio_tracks: vec![copy(input.clone(), 1)],
-            subtitle_tracks: vec![
-                copy(input.clone(), 2),
-                copy(input.clone(), 3),
-                copy(input.clone(), 4),
+        encode_video(
+            vec![
+                copy_video(input.clone(), 0),
+                copy_audio(input.clone(), 1),
+                copy_subtitle(input.clone(), 2),
+                copy_subtitle(input.clone(), 3),
+                copy_subtitle(input.clone(), 4),
             ],
-            output_path: output.clone(),
-        })
+            &output,
+        )
         .await
         .unwrap();
 
@@ -268,17 +298,14 @@ mod tests {
                 Track::Subtitle {
                     id: 2,
                     language: Some(LanguageCode::English),
-                    external_id: Some("sub_ext_001".to_string()),
                 },
                 Track::Subtitle {
                     id: 3,
                     language: Some(LanguageCode::French),
-                    external_id: Some("sub_ext_002".to_string()),
                 },
                 Track::Subtitle {
                     id: 4,
                     language: None,
-                    external_id: Some("sub_ext_003".to_string()),
                 },
             ]
         );
@@ -293,12 +320,13 @@ mod tests {
         let audio_input = fixtures.join("hevc_aac_1sub.mkv");
         let output = dir.path().join("out.mkv");
 
-        encode_video(EncodeOptions {
-            video_tracks: vec![copy(video_input.clone(), 0)],
-            audio_tracks: vec![copy(audio_input.clone(), 1)],
-            subtitle_tracks: vec![],
-            output_path: output.clone(),
-        })
+        encode_video(
+            vec![
+                copy_video(video_input.clone(), 0),
+                copy_audio(audio_input.clone(), 1),
+            ],
+            &output,
+        )
         .await
         .unwrap();
 
@@ -330,13 +358,7 @@ mod tests {
         for (i, track_id) in [2usize, 3, 4].into_iter().enumerate() {
             let output = dir.path().join(format!("sub{i}.srt"));
 
-            let result = encode_video(EncodeOptions {
-                video_tracks: vec![],
-                audio_tracks: vec![],
-                subtitle_tracks: vec![copy(input.clone(), track_id)],
-                output_path: output.clone(),
-            })
-            .await;
+            let result = encode_video(vec![copy_subtitle(input.clone(), track_id)], &output).await;
 
             assert_eq!(
                 result.unwrap(),
@@ -350,14 +372,11 @@ mod tests {
     #[tokio::test]
     async fn encode_fails_with_bad_output_path() {
         let input = fixtures_path().join("h264_aac_nosub.mkv");
-        let output = PathBuf::from("/nonexistent_dir/output.mkv");
 
-        let result = encode_video(EncodeOptions {
-            video_tracks: vec![copy(input.clone(), 0)],
-            audio_tracks: vec![copy(input.clone(), 1)],
-            subtitle_tracks: vec![],
-            output_path: output,
-        })
+        let result = encode_video(
+            vec![copy_video(input.clone(), 0), copy_audio(input.clone(), 1)],
+            PathBuf::from("/nonexistent_dir/output.mkv"),
+        )
         .await;
 
         assert!(matches!(result, Err(crate::Error::NonZeroExit(_))));
