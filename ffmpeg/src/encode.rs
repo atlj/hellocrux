@@ -320,6 +320,32 @@ mod tests {
         );
     }
 
+    /// Extract each of the 3 subtitle tracks from the multi-subtitle fixture
+    /// into individual .srt files.
+    #[tokio::test]
+    async fn extract_subtitles_to_srt() {
+        let dir = tempfile::tempdir().unwrap();
+        let input = fixtures_path().join("h265_flac_3subs.mkv");
+
+        for (i, track_id) in [2usize, 3, 4].into_iter().enumerate() {
+            let output = dir.path().join(format!("sub{i}.srt"));
+
+            let result = encode_video(EncodeOptions {
+                video_tracks: vec![],
+                audio_tracks: vec![],
+                subtitle_tracks: vec![copy(input.clone(), track_id)],
+                output_path: output.clone(),
+            })
+            .await;
+
+            assert_eq!(
+                result.unwrap(),
+                output,
+                "subtitle track {track_id} should be saved to sub{i}.srt"
+            );
+        }
+    }
+
     /// ffmpeg should fail when the output directory does not exist.
     #[tokio::test]
     async fn encode_fails_with_bad_output_path() {
