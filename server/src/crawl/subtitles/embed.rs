@@ -1,6 +1,37 @@
 use std::path::Path;
 
 use domain::subtitles::Subtitle;
+use log::info;
+
+async fn embed_subtitles_if_missing(
+    movie_path: impl AsRef<Path>,
+    subtitles: &[Subtitle],
+) -> ffmpeg::Result<()> {
+    // 1. Get all ids in subtitles
+    let subtitle_ids = subtitles
+        .iter()
+        .flat_map(|subtitle| get_subtitle_id(&subtitle.path))
+        .collect::<Vec<_>>();
+
+    // 2. Get the tracks in movie path
+    let tracks = ffmpeg::get_tracks(&movie_path).await?;
+
+    // 3. Make sure all ids match
+    let missing_a_subtitle = tracks
+        .flat_map(|track| track.map(|track| track.id().to_string()))
+        .any(|id| !subtitle_ids.contains(&id.as_str()));
+
+    if !missing_a_subtitle {
+        return Ok(());
+    }
+
+    info!(
+        "Movie at {} is missing some subtitles. Remuxing it.",
+        movie_path.as_ref().display()
+    );
+
+    embed_subtitles(movie_path, subtitles).await
+}
 
 /// Embed subtitles to a movie track
 ///
@@ -8,19 +39,19 @@ use domain::subtitles::Subtitle;
 /// on top of them. Any existing subtitle track in movie file will be ignored.
 async fn embed_subtitles(
     movie_path: impl AsRef<Path>,
-    subtitles: impl Iterator<Item = Subtitle>,
+    subtitles: &[Subtitle],
 ) -> ffmpeg::Result<()> {
     let tracks_info = ffmpeg::get_tracks(&movie_path)
         .await?
         .collect::<Result<Vec<_>, _>>()?;
 
     let subtitle_tracks =
-        subtitles.map(
+        subtitles.iter().map(
             |Subtitle { language, path }| ffmpeg::TrackSelection::Subtitle {
                 input_path: path.into(),
                 track_id: 0,
-                language: Some(language),
-                external_id: None,
+                language: Some(language.clone()),
+                external_id: get_subtitle_id(&path).map(|str| str.to_string()),
             },
         );
 
@@ -49,4 +80,10 @@ async fn embed_subtitles(
     ffmpeg::encode_video(tracks, movie_path.as_ref().to_path_buf()).await?;
 
     Ok(())
+}
+
+fn get_subtitle_id(path: &impl AsRef<Path>) -> Option<&str> {
+    let file_name = path.as_ref().file_name()?.to_str()?;
+    let (_, id) = file_name.rsplit_once('-')?;
+    Some(id)
 }
