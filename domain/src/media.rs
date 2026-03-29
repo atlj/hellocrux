@@ -44,7 +44,7 @@ pub type SeriesContents = HashMap<u32, SeasonContents>;
 pub struct MediaPaths {
     pub media: String,
     pub track_name: String,
-    pub subtitles: Box<[Subtitle]>,
+    pub subtitles: Vec<Subtitle>,
 }
 
 impl MediaPaths {
@@ -95,7 +95,7 @@ impl MediaPaths {
                     ..subtitle.clone()
                 })
             })
-            .collect::<Option<Box<[_]>>>()?;
+            .collect::<Option<Vec<_>>>()?;
 
         Some(Self {
             subtitles,

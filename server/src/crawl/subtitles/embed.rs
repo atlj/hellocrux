@@ -20,6 +20,7 @@ async fn embed_subtitles(
                 input_path: path.into(),
                 track_id: 0,
                 language: Some(language),
+                external_id: None,
             },
         );
 

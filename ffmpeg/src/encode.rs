@@ -19,6 +19,7 @@ pub enum TrackSelection {
         input_path: PathBuf,
         track_id: usize,
         language: Option<domain::language::LanguageCode>,
+        external_id: Option<String>,
     },
 }
 
@@ -86,7 +87,7 @@ pub async fn encode_video(
                 })
                 .expect("Input path to be a part of deduped inputs");
 
-            match selection {
+            let args: [Option<String>; 6] = match selection {
                 TrackSelection::Video {
                     track_id, codec, ..
                 } => [
@@ -94,6 +95,8 @@ pub async fn encode_video(
                     Some(format!("{input_id}:{track_id}")),
                     Some(format!("-c:v:{index}")),
                     Some(codec),
+                    None,
+                    None,
                 ],
                 TrackSelection::Audio {
                     track_id, codec, ..
@@ -102,30 +105,25 @@ pub async fn encode_video(
                     Some(format!("{input_id}:{track_id}")),
                     Some(format!("-c:a:{index}")),
                     Some(codec),
+                    None,
+                    None,
                 ],
                 TrackSelection::Subtitle {
                     track_id,
-                    language: Some(lang),
+                    language,
+                    external_id,
                     ..
                 } => [
                     Some("-map".to_string()),
                     Some(format!("{input_id}:{track_id}")),
-                    Some(format!("-metadata:s:s:{index}")),
-                    Some(format!("language={}", lang.to_iso639_2t())),
+                    language.as_ref().map(|_| format!("-metadata:s:s:{index}")),
+                    language.map(|lang| format!("language={}", lang.to_iso639_2t())),
+                    external_id.as_ref().map(|_| format!("-metadata:s:s:{index}")),
+                    external_id.map(|ext_id| format!("EXTERNAL_ID={ext_id}")),
                 ],
-                TrackSelection::Subtitle {
-                    track_id,
-                    language: None,
-                    ..
-                } => [
-                    Some("-map".to_string()),
-                    Some(format!("{input_id}:{track_id}")),
-                    None,
-                    None,
-                ],
-            }
-        })
-        .flatten();
+            };
+            args.into_iter().flatten()
+        });
 
     let args = input_args
         .chain(mapping_args)
@@ -173,6 +171,7 @@ mod tests {
             input_path,
             track_id,
             language: None,
+            external_id: None,
         }
     }
 
@@ -253,6 +252,7 @@ mod tests {
                 Track::Subtitle {
                     id: 2,
                     language: None,
+                    external_id: None,
                 },
             ]
         );
@@ -298,14 +298,17 @@ mod tests {
                 Track::Subtitle {
                     id: 2,
                     language: Some(LanguageCode::English),
+                    external_id: Some("sub_ext_001".to_string()),
                 },
                 Track::Subtitle {
                     id: 3,
                     language: Some(LanguageCode::French),
+                    external_id: Some("sub_ext_002".to_string()),
                 },
                 Track::Subtitle {
                     id: 4,
                     language: None,
+                    external_id: Some("sub_ext_003".to_string()),
                 },
             ]
         );

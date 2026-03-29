@@ -41,12 +41,35 @@ pub(super) async fn try_extract_series(
     Ok(Some(result))
 }
 
-async fn try_extract_season(path: impl AsRef<Path>) -> Result<Option<domain::SeasonContents>> {
-    let read_dir = crate::dir::fully_read_dir(&path)
+async fn try_extract_season(
+    season_path: impl AsRef<Path>,
+) -> Result<Option<domain::SeasonContents>> {
+    let read_dir = crate::dir::fully_read_dir(&season_path)
         .await
-        .map_err(|_| Error::CantReadDir(path.as_ref().into()))?;
+        .map_err(|_| Error::CantReadDir(season_path.as_ref().into()))?;
 
-    let mut subtitles_map: HashMap<u32, Vec<Subtitle>> = todo!();
+    let all_subtitles = crate::crawl::subtitles::extract_subtitles(&season_path).await?;
+    let len = all_subtitles.len();
+    let mut subtitles_map: HashMap<u32, Vec<Subtitle>> = all_subtitles
+        .into_iter()
+        .flat_map(|subtitle| {
+            let Some(episode_no) = get_episode_no(&subtitle.path) else {
+                error!(
+                    "Subtitle at {} has no episode no. Ignoring it.",
+                    &subtitle.path
+                );
+                return None;
+            };
+            Some((episode_no, subtitle))
+        })
+        .fold(
+            HashMap::with_capacity(len),
+            |mut map, (episode_no, subtitle)| {
+                let entry = map.entry(episode_no).or_insert(Vec::new());
+                entry.push(subtitle);
+                map
+            },
+        );
 
     let result: domain::SeasonContents = read_dir.fold(HashMap::new(), |mut map, entry| {
         let current_path = entry.path();
@@ -59,7 +82,6 @@ async fn try_extract_season(path: impl AsRef<Path>) -> Result<Option<domain::Sea
         {
             let subtitles = subtitles_map
                 .remove(&episode_no.try_into().unwrap())
-                .map(|vec| vec.into_boxed_slice())
                 .unwrap_or_default();
 
             let media = current_path.to_string_lossy().into();
@@ -98,6 +120,17 @@ fn get_episode_track_name(file_stem: &str) -> Option<String> {
     }
 
     domain::encode_decode::decode_url_safe(encoded_part).ok()
+}
+
+fn get_episode_no(srt_path: impl AsRef<Path>) -> Option<u32> {
+    let file_stem = srt_path
+        .as_ref()
+        .file_stem()
+        .and_then(|file_stem| file_stem.to_str())
+        .expect("Subtitle to have valid stem");
+
+    let (episode_candidate, _) = file_stem.split_once('-')?;
+    episode_candidate.parse().ok()
 }
 
 #[cfg(test)]

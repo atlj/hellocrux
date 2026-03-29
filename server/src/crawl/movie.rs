@@ -1,5 +1,4 @@
 use domain::subtitles::Subtitle;
-use log::error;
 
 use super::{Error, Result};
 use std::path::Path;
@@ -20,7 +19,7 @@ pub(super) async fn try_extract_movie(
         Some(path.to_string_lossy().to_string())
     });
 
-    let subtitles: Box<[Subtitle]> = todo!();
+    let subtitles: Vec<Subtitle> = crate::crawl::subtitles::extract_subtitles(&media_path).await?;
 
     Ok(media.map(|media| {
         let path: &Path = media.as_ref();

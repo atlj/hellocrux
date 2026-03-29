@@ -1,6 +1,4 @@
-use std::path::Path;
-
 mod embed;
 mod extract;
 
-use domain::subtitles::Subtitle;
+pub use extract::extract_subtitles;

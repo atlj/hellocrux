@@ -18,6 +18,7 @@ pub enum Track {
     Subtitle {
         id: usize,
         language: Option<domain::language::LanguageCode>,
+        external_id: Option<String>,
     },
 }
 
@@ -136,6 +137,7 @@ pub mod dto {
                             domain::language::LanguageCode::try_from(tag_string.as_str()).ok()
                         },
                     ),
+                    external_id: self.tags.clone().and_then(|tags| tags.external_id),
                 }),
                 unknown => Err(Error::UnknownCodecType(unknown.to_string())),
             }
@@ -145,6 +147,8 @@ pub mod dto {
     #[derive(Debug, serde::Deserialize, Clone, PartialEq, Eq)]
     pub struct FfprobeStreamTags {
         pub language: Option<String>,
+        #[serde(rename = "EXTERNAL_ID")]
+        pub external_id: Option<String>,
     }
 }
 
@@ -214,14 +218,17 @@ mod tests {
                     Track::Subtitle {
                         id: 2,
                         language: Some(LanguageCode::English),
+                        external_id: Some("sub_ext_001".to_string()),
                     },
                     Track::Subtitle {
                         id: 3,
                         language: Some(LanguageCode::French),
+                        external_id: Some("sub_ext_002".to_string()),
                     },
                     Track::Subtitle {
                         id: 4,
                         language: None,
+                        external_id: Some("sub_ext_003".to_string()),
                     }
                 ]
             );
@@ -252,6 +259,7 @@ mod tests {
                     Track::Subtitle {
                         id: 2,
                         language: None,
+                        external_id: None,
                     }
                 ]
             );
