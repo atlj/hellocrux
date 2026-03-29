@@ -1,5 +1,8 @@
+mod encode;
 mod spawn;
 mod track;
+
+pub use encode::{EncodeOptions, TrackSelection, encode_video};
 
 pub use track::{Track, get_tracks};
 
