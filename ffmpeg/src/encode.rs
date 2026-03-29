@@ -2,17 +2,17 @@ use std::{collections::HashSet, path::PathBuf};
 
 #[derive(Debug, Clone)]
 pub struct EncodeOptions {
-    video_tracks: Vec<TrackSelection>,
-    audio_tracks: Vec<TrackSelection>,
-    subtitle_tracks: Vec<TrackSelection>,
-    output_path: PathBuf,
+    pub video_tracks: Vec<TrackSelection>,
+    pub audio_tracks: Vec<TrackSelection>,
+    pub subtitle_tracks: Vec<TrackSelection>,
+    pub output_path: PathBuf,
 }
 
 #[derive(Debug, Clone)]
 pub struct TrackSelection {
-    input_path: PathBuf,
-    track_id: usize,
-    codec: String,
+    pub input_path: PathBuf,
+    pub track_id: usize,
+    pub codec: String,
 }
 
 pub async fn encode_video(
@@ -131,6 +131,7 @@ mod tests {
     use std::path::PathBuf;
 
     use super::{EncodeOptions, TrackSelection, encode_video};
+    use crate::{Track, get_tracks};
 
     fn fixtures_path() -> PathBuf {
         concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures").into()
@@ -142,6 +143,16 @@ mod tests {
             track_id,
             codec: "copy".to_string(),
         }
+    }
+
+    async fn tracks_of(path: &PathBuf) -> Vec<Track> {
+        let mut tracks = get_tracks(path)
+            .await
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+        tracks.sort_by_key(|t| *t.id());
+        tracks
     }
 
     /// Copy video + audio from a simple file with no subtitles.
@@ -159,9 +170,23 @@ mod tests {
         })
         .await;
 
-        assert!(result.is_ok());
         assert_eq!(result.unwrap(), output);
-        assert!(output.exists());
+        assert_eq!(
+            tracks_of(&output).await,
+            vec![
+                Track::Video {
+                    id: 0,
+                    codec: "h264".to_string(),
+                    duration: None
+                },
+                Track::Audio {
+                    id: 1,
+                    codec: "aac".to_string(),
+                    duration: None,
+                    language: None
+                },
+            ]
+        );
     }
 
     /// Copy all tracks from a file that has a single subtitle track.
@@ -171,26 +196,49 @@ mod tests {
         let input = fixtures_path().join("hevc_aac_1sub.mkv");
         let output = dir.path().join("out.mkv");
 
-        let result = encode_video(EncodeOptions {
+        encode_video(EncodeOptions {
             video_tracks: vec![copy(input.clone(), 0)],
             audio_tracks: vec![copy(input.clone(), 1)],
             subtitle_tracks: vec![copy(input.clone(), 2)],
             output_path: output.clone(),
         })
-        .await;
+        .await
+        .unwrap();
 
-        assert!(result.is_ok());
-        assert!(output.exists());
+        assert_eq!(
+            tracks_of(&output).await,
+            vec![
+                Track::Video {
+                    id: 0,
+                    codec: "hevc".to_string(),
+                    duration: None
+                },
+                Track::Audio {
+                    id: 1,
+                    codec: "aac".to_string(),
+                    duration: None,
+                    language: None
+                },
+                Track::Subtitle {
+                    id: 2,
+                    language: None,
+                    external_id: None
+                },
+            ]
+        );
     }
 
     /// Copy all tracks from a file that carries three subtitle streams.
+    /// Verifies that subtitle language tags and external IDs are preserved.
     #[tokio::test]
     async fn encode_with_multiple_subtitles() {
+        use domain::language::LanguageCode;
+
         let dir = tempfile::tempdir().unwrap();
         let input = fixtures_path().join("h265_flac_3subs.mkv");
         let output = dir.path().join("out.mkv");
 
-        let result = encode_video(EncodeOptions {
+        encode_video(EncodeOptions {
             video_tracks: vec![copy(input.clone(), 0)],
             audio_tracks: vec![copy(input.clone(), 1)],
             subtitle_tracks: vec![
@@ -200,10 +248,40 @@ mod tests {
             ],
             output_path: output.clone(),
         })
-        .await;
+        .await
+        .unwrap();
 
-        assert!(result.is_ok());
-        assert!(output.exists());
+        assert_eq!(
+            tracks_of(&output).await,
+            vec![
+                Track::Video {
+                    id: 0,
+                    codec: "hevc".to_string(),
+                    duration: None
+                },
+                Track::Audio {
+                    id: 1,
+                    codec: "flac".to_string(),
+                    duration: None,
+                    language: None
+                },
+                Track::Subtitle {
+                    id: 2,
+                    language: Some(LanguageCode::English),
+                    external_id: Some("sub_ext_001".to_string()),
+                },
+                Track::Subtitle {
+                    id: 3,
+                    language: Some(LanguageCode::French),
+                    external_id: Some("sub_ext_002".to_string()),
+                },
+                Track::Subtitle {
+                    id: 4,
+                    language: None,
+                    external_id: Some("sub_ext_003".to_string()),
+                },
+            ]
+        );
     }
 
     /// Mix video from one file and audio from another (two distinct -i inputs).
@@ -215,16 +293,31 @@ mod tests {
         let audio_input = fixtures.join("hevc_aac_1sub.mkv");
         let output = dir.path().join("out.mkv");
 
-        let result = encode_video(EncodeOptions {
+        encode_video(EncodeOptions {
             video_tracks: vec![copy(video_input.clone(), 0)],
             audio_tracks: vec![copy(audio_input.clone(), 1)],
             subtitle_tracks: vec![],
             output_path: output.clone(),
         })
-        .await;
+        .await
+        .unwrap();
 
-        assert!(result.is_ok());
-        assert!(output.exists());
+        assert_eq!(
+            tracks_of(&output).await,
+            vec![
+                Track::Video {
+                    id: 0,
+                    codec: "h264".to_string(),
+                    duration: None
+                },
+                Track::Audio {
+                    id: 1,
+                    codec: "aac".to_string(),
+                    duration: None,
+                    language: None
+                },
+            ]
+        );
     }
 
     /// ffmpeg should fail when the output directory does not exist.
