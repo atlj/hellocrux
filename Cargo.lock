@@ -543,6 +543,8 @@ name = "ffmpeg"
 version = "0.0.0"
 dependencies = [
  "domain",
+ "serde",
+ "serde_json",
  "thiserror 2.0.18",
  "tokio",
 ]
