@@ -18,27 +18,29 @@ pub async fn embed_subtitles_if_missing(
     let tracks = ffmpeg::get_tracks(&movie_path).await?.collect::<Vec<_>>();
 
     // 3. Make sure all ids match
-    let missing_a_subtitle = tracks
+    let missing_id = tracks
         .iter()
         .flat_map(|track| match track.as_ref().ok() {
             Some(ffmpeg::Track::Subtitle { external_id, .. }) => external_id.as_ref(),
             _ => None,
         })
-        .any(|id| !subtitle_ids.contains(&id.as_str()));
+        .find(|id| !subtitle_ids.contains(&id.as_str()));
 
     let sub_track_count = tracks
         .iter()
         .filter(|track| matches!(track, Ok(ffmpeg::Track::Subtitle { .. })))
         .count();
-    let sub_count = subtitles.len();
 
-    if !missing_a_subtitle && sub_track_count == sub_count {
+    let sub_file_count = subtitles.len();
+    let same_count = sub_file_count == sub_track_count;
+
+    if missing_id.is_none() && sub_track_count == sub_file_count {
         return Ok(false);
     }
 
     info!(
-        "Movie at {} is missing some subtitles. Remuxing it.",
-        movie_path.as_ref().display()
+        "Movie at {} is missing a subtitles. Missing id: {missing_id:#?}. Sub file count: {sub_file_count}. Sub track count: {sub_track_count}.Remuxing it.",
+        movie_path.as_ref().display(),
     );
 
     embed_subtitles(movie_path, output_path, subtitles).await?;
