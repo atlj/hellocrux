@@ -1,3 +1,4 @@
+use log::debug;
 use std::{ffi::OsStr, process::Stdio};
 
 /// Run `ffmpeg`
@@ -8,8 +9,10 @@ use std::{ffi::OsStr, process::Stdio};
 /// Spawning a process can cause a lot of issues such as command not existing, status code being a
 /// non-zero value etc.
 pub(super) async fn ffmpeg(
-    args: impl IntoIterator<Item = impl AsRef<OsStr>>,
+    args: impl IntoIterator<Item = impl AsRef<OsStr>> + std::fmt::Debug,
 ) -> crate::Result<String> {
+    debug!("Calling ffmpeg with: {args:#?}");
+
     let result = tokio::process::Command::new("ffmpeg")
         .args(args)
         .stdout(Stdio::piped())
@@ -41,8 +44,10 @@ pub(super) async fn ffmpeg(
 /// Spawning a process can cause a lot of issues such as command not existing, status code being a
 /// non-zero value etc.
 pub(super) async fn ffprobe(
-    args: impl IntoIterator<Item = impl AsRef<OsStr>>,
+    args: impl IntoIterator<Item = impl AsRef<OsStr>> + std::fmt::Debug,
 ) -> crate::Result<String> {
+    debug!("Calling ffprobe with: {args:#?}");
+
     let result = tokio::process::Command::new("ffprobe")
         .args(args)
         .stdout(Stdio::piped())

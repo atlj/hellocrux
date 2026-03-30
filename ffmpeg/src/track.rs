@@ -44,7 +44,7 @@ pub async fn get_tracks(
         "json",
         // Only show relevant entries
         "-show_entries",
-        "stream=index,codec_name,codec_type,duration:stream_tags=language,EXTERNAL_ID",
+        "stream=index,codec_name,codec_type,duration:stream_tags=language,handler_name",
         &media_file.as_ref().as_os_str().to_string_lossy(),
     ])
     .await?;
@@ -137,7 +137,12 @@ pub mod dto {
                             domain::language::LanguageCode::try_from(tag_string.as_str()).ok()
                         },
                     ),
-                    external_id: self.tags.clone().and_then(|tags| tags.external_id),
+                    // handler_name is the EXTERNAL_ID carrier. The default "SubtitleHandler"
+                    // value set by ffmpeg is filtered out.
+                    external_id: self
+                        .tags
+                        .and_then(|tags| tags.handler_name)
+                        .filter(|h| h != "SubtitleHandler"),
                 }),
                 unknown => Err(Error::UnknownCodecType(unknown.to_string())),
             }
@@ -147,14 +152,13 @@ pub mod dto {
     #[derive(Debug, serde::Deserialize, Clone, PartialEq, Eq)]
     pub struct FfprobeStreamTags {
         pub language: Option<String>,
-        #[serde(rename = "EXTERNAL_ID")]
-        pub external_id: Option<String>,
+        pub handler_name: Option<String>,
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
+    use std::{path::PathBuf, time::Duration};
 
     use domain::language::LanguageCode;
 
@@ -164,9 +168,9 @@ mod tests {
     async fn test_get_tracks() {
         let fixtures_path: PathBuf = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures").into();
 
-        let h264_aac_nosub = fixtures_path.join("h264_aac_nosub.mkv");
-        let h265_flac_3subs = fixtures_path.join("h265_flac_3subs.mkv");
-        let hevc_aac_1sub = fixtures_path.join("hevc_aac_1sub.mkv");
+        let h264_aac_nosub = fixtures_path.join("h264_aac_nosub.mp4");
+        let h264_aac_1sub = fixtures_path.join("h264_aac_1sub.mp4");
+        let h264_aac_3subs = fixtures_path.join("h264_aac_3subs.mp4");
 
         async {
             let mut result = get_tracks(&h264_aac_nosub)
@@ -174,45 +178,76 @@ mod tests {
                 .unwrap()
                 .collect::<Result<Vec<_>, _>>()
                 .unwrap();
-            result.sort_by(|a, b| a.id().cmp(&b.id()));
+            result.sort_by_key(|t| *t.id());
             assert_eq!(
                 result,
                 vec![
                     Track::Video {
                         id: 0,
                         codec: "h264".to_string(),
-                        duration: None
+                        duration: Some(Duration::from_secs(2))
                     },
                     Track::Audio {
                         id: 1,
                         codec: "aac".to_string(),
-                        duration: None,
+                        duration: Some(Duration::from_secs(2)),
                         language: None
-                    }
+                    },
                 ]
             );
         }
         .await;
 
         async {
-            let mut result = get_tracks(&h265_flac_3subs)
+            let mut result = get_tracks(&h264_aac_1sub)
                 .await
                 .unwrap()
                 .collect::<Result<Vec<_>, _>>()
                 .unwrap();
-            result.sort_by(|a, b| a.id().cmp(&b.id()));
+            result.sort_by_key(|t| *t.id());
             assert_eq!(
                 result,
                 vec![
                     Track::Video {
                         id: 0,
-                        codec: "hevc".to_string(),
-                        duration: None
+                        codec: "h264".to_string(),
+                        duration: Some(Duration::from_secs(2))
                     },
                     Track::Audio {
                         id: 1,
-                        codec: "flac".to_string(),
-                        duration: None,
+                        codec: "aac".to_string(),
+                        duration: Some(Duration::from_secs(2)),
+                        language: None
+                    },
+                    Track::Subtitle {
+                        id: 2,
+                        language: Some(LanguageCode::English),
+                        external_id: None,
+                    },
+                ]
+            );
+        }
+        .await;
+
+        async {
+            let mut result = get_tracks(&h264_aac_3subs)
+                .await
+                .unwrap()
+                .collect::<Result<Vec<_>, _>>()
+                .unwrap();
+            result.sort_by_key(|t| *t.id());
+            assert_eq!(
+                result,
+                vec![
+                    Track::Video {
+                        id: 0,
+                        codec: "h264".to_string(),
+                        duration: Some(Duration::from_secs(2))
+                    },
+                    Track::Audio {
+                        id: 1,
+                        codec: "aac".to_string(),
+                        duration: Some(Duration::from_secs(2)),
                         language: None
                     },
                     Track::Subtitle {
@@ -229,38 +264,7 @@ mod tests {
                         id: 4,
                         language: None,
                         external_id: Some("sub_ext_003".to_string()),
-                    }
-                ]
-            );
-        }
-        .await;
-
-        async {
-            let mut result = get_tracks(&hevc_aac_1sub)
-                .await
-                .unwrap()
-                .collect::<Result<Vec<_>, _>>()
-                .unwrap();
-            result.sort_by(|a, b| a.id().cmp(&b.id()));
-            assert_eq!(
-                result,
-                vec![
-                    Track::Video {
-                        id: 0,
-                        codec: "hevc".to_string(),
-                        duration: None
                     },
-                    Track::Audio {
-                        id: 1,
-                        codec: "aac".to_string(),
-                        duration: None,
-                        language: None
-                    },
-                    Track::Subtitle {
-                        id: 2,
-                        language: None,
-                        external_id: None,
-                    }
                 ]
             );
         }

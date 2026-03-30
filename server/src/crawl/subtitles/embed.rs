@@ -3,10 +3,11 @@ use std::path::Path;
 use domain::subtitles::Subtitle;
 use log::info;
 
-async fn embed_subtitles_if_missing(
+pub async fn embed_subtitles_if_missing(
     movie_path: impl AsRef<Path>,
+    output_path: impl AsRef<Path>,
     subtitles: &[Subtitle],
-) -> ffmpeg::Result<()> {
+) -> ffmpeg::Result<bool> {
     // 1. Get all ids in subtitles
     let subtitle_ids = subtitles
         .iter()
@@ -14,15 +15,25 @@ async fn embed_subtitles_if_missing(
         .collect::<Vec<_>>();
 
     // 2. Get the tracks in movie path
-    let tracks = ffmpeg::get_tracks(&movie_path).await?;
+    let tracks = ffmpeg::get_tracks(&movie_path).await?.collect::<Vec<_>>();
 
     // 3. Make sure all ids match
     let missing_a_subtitle = tracks
-        .flat_map(|track| track.map(|track| track.id().to_string()))
+        .iter()
+        .flat_map(|track| match track.as_ref().ok() {
+            Some(ffmpeg::Track::Subtitle { external_id, .. }) => external_id.as_ref(),
+            _ => None,
+        })
         .any(|id| !subtitle_ids.contains(&id.as_str()));
 
-    if !missing_a_subtitle {
-        return Ok(());
+    let sub_track_count = tracks
+        .iter()
+        .filter(|track| matches!(track, Ok(ffmpeg::Track::Subtitle { .. })))
+        .count();
+    let sub_count = subtitles.len();
+
+    if !missing_a_subtitle && sub_track_count == sub_count {
+        return Ok(false);
     }
 
     info!(
@@ -30,7 +41,9 @@ async fn embed_subtitles_if_missing(
         movie_path.as_ref().display()
     );
 
-    embed_subtitles(movie_path, subtitles).await
+    embed_subtitles(movie_path, output_path, subtitles).await?;
+
+    Ok(true)
 }
 
 /// Embed subtitles to a movie track
@@ -39,6 +52,7 @@ async fn embed_subtitles_if_missing(
 /// on top of them. Any existing subtitle track in movie file will be ignored.
 async fn embed_subtitles(
     movie_path: impl AsRef<Path>,
+    output_path: impl AsRef<Path>,
     subtitles: &[Subtitle],
 ) -> ffmpeg::Result<()> {
     let tracks_info = ffmpeg::get_tracks(&movie_path)
@@ -77,13 +91,13 @@ async fn embed_subtitles(
         .chain(subtitle_tracks)
         .collect();
 
-    ffmpeg::encode_video(tracks, movie_path.as_ref().to_path_buf()).await?;
+    ffmpeg::encode_video(tracks, output_path.as_ref().to_path_buf()).await?;
 
     Ok(())
 }
 
 fn get_subtitle_id(path: &impl AsRef<Path>) -> Option<&str> {
-    let file_name = path.as_ref().file_name()?.to_str()?;
+    let file_name = path.as_ref().file_stem()?.to_str()?;
     let (_, id) = file_name.rsplit_once('-')?;
     Some(id)
 }

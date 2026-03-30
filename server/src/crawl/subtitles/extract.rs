@@ -70,3 +70,16 @@ fn get_language_str(srt_path: &impl AsRef<Path>) -> Option<&str> {
 
     Some(language_candidate)
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::crawl::subtitles::extract::get_language_str;
+
+    #[test]
+    fn test_get_language_str() {
+        assert_eq!(get_language_str(&"3-eng-281971938.srt"), Some("eng"));
+        assert_eq!(get_language_str(&"tur-281971938.srt"), Some("tur"));
+        assert_eq!(get_language_str(&"3-eng-281971938.srt"), Some("eng"));
+        assert_eq!(get_language_str(&"3-eng-281971938.srt"), Some("eng"));
+    }
+}

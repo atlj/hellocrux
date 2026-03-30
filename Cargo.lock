@@ -543,6 +543,7 @@ name = "ffmpeg"
 version = "0.0.0"
 dependencies = [
  "domain",
+ "log",
  "serde",
  "serde_json",
  "tempfile",

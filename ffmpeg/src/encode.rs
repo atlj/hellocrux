@@ -33,11 +33,25 @@ impl TrackSelection {
     }
 }
 
+fn subtitle_codec_for(output_path: &Path) -> &'static str {
+    match output_path
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| e.to_ascii_lowercase())
+        .as_deref()
+    {
+        Some("mp4") | Some("m4v") | Some("mov") => "mov_text",
+        Some("webm") => "webvtt",
+        _ => "copy",
+    }
+}
+
 pub async fn encode_video(
     tracks: Vec<TrackSelection>,
     output_path: impl AsRef<Path>,
 ) -> crate::Result<PathBuf> {
     let output_path = output_path.as_ref();
+    let subtitle_codec = subtitle_codec_for(output_path);
 
     let deduped_inputs = tracks
         .iter()
@@ -87,7 +101,7 @@ pub async fn encode_video(
                 })
                 .expect("Input path to be a part of deduped inputs");
 
-            let args: [Option<String>; 6] = match selection {
+            let args: [Option<String>; 8] = match selection {
                 TrackSelection::Video {
                     track_id, codec, ..
                 } => [
@@ -95,6 +109,8 @@ pub async fn encode_video(
                     Some(format!("{input_id}:{track_id}")),
                     Some(format!("-c:v:{index}")),
                     Some(codec),
+                    None,
+                    None,
                     None,
                     None,
                 ],
@@ -107,6 +123,8 @@ pub async fn encode_video(
                     Some(codec),
                     None,
                     None,
+                    None,
+                    None,
                 ],
                 TrackSelection::Subtitle {
                     track_id,
@@ -116,10 +134,12 @@ pub async fn encode_video(
                 } => [
                     Some("-map".to_string()),
                     Some(format!("{input_id}:{track_id}")),
+                    Some(format!("-c:s:{index}")),
+                    Some(subtitle_codec.to_string()),
                     language.as_ref().map(|_| format!("-metadata:s:s:{index}")),
                     language.map(|lang| format!("language={}", lang.to_iso639_2t())),
                     external_id.as_ref().map(|_| format!("-metadata:s:s:{index}")),
-                    external_id.map(|ext_id| format!("EXTERNAL_ID={ext_id}")),
+                    external_id.map(|ext_id| format!("handler_name={ext_id}")),
                 ],
             };
             args.into_iter().flatten()
@@ -141,7 +161,9 @@ pub async fn encode_video(
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
+    use std::{path::PathBuf, time::Duration};
+
+    use domain::language::LanguageCode;
 
     use super::{TrackSelection, encode_video};
     use crate::{Track, get_tracks};
@@ -185,12 +207,12 @@ mod tests {
         tracks
     }
 
-    /// Copy video + audio from a simple file with no subtitles.
+    /// Copy video + audio from an MP4 with no subtitles.
     #[tokio::test]
     async fn encode_no_subtitles() {
         let dir = tempfile::tempdir().unwrap();
-        let input = fixtures_path().join("h264_aac_nosub.mkv");
-        let output = dir.path().join("out.mkv");
+        let input = fixtures_path().join("h264_aac_nosub.mp4");
+        let output = dir.path().join("out.mp4");
 
         let result = encode_video(
             vec![copy_video(input.clone(), 0), copy_audio(input.clone(), 1)],
@@ -205,24 +227,24 @@ mod tests {
                 Track::Video {
                     id: 0,
                     codec: "h264".to_string(),
-                    duration: None
+                    duration: Some(Duration::from_secs(2))
                 },
                 Track::Audio {
                     id: 1,
                     codec: "aac".to_string(),
-                    duration: None,
+                    duration: Some(Duration::from_secs(2)),
                     language: None
                 },
             ]
         );
     }
 
-    /// Copy all tracks from a file that has a single subtitle track.
+    /// Copy all tracks from an MP4 with one subtitle track.
     #[tokio::test]
     async fn encode_with_one_subtitle() {
         let dir = tempfile::tempdir().unwrap();
-        let input = fixtures_path().join("hevc_aac_1sub.mkv");
-        let output = dir.path().join("out.mkv");
+        let input = fixtures_path().join("h264_aac_1sub.mp4");
+        let output = dir.path().join("out.mp4");
 
         encode_video(
             vec![
@@ -240,33 +262,31 @@ mod tests {
             vec![
                 Track::Video {
                     id: 0,
-                    codec: "hevc".to_string(),
-                    duration: None
+                    codec: "h264".to_string(),
+                    duration: Some(Duration::from_secs(2))
                 },
                 Track::Audio {
                     id: 1,
                     codec: "aac".to_string(),
-                    duration: None,
+                    duration: Some(Duration::from_secs(2)),
                     language: None
                 },
                 Track::Subtitle {
                     id: 2,
-                    language: None,
+                    language: Some(LanguageCode::English),
                     external_id: None,
                 },
             ]
         );
     }
 
-    /// Copy all tracks from a file that carries three subtitle streams.
-    /// Verifies that subtitle language tags are preserved.
+    /// Copy all tracks from an MP4 with three subtitle streams.
+    /// Verifies language tags and handler_name-based external_id are preserved.
     #[tokio::test]
     async fn encode_with_multiple_subtitles() {
-        use domain::language::LanguageCode;
-
         let dir = tempfile::tempdir().unwrap();
-        let input = fixtures_path().join("h265_flac_3subs.mkv");
-        let output = dir.path().join("out.mkv");
+        let input = fixtures_path().join("h264_aac_3subs.mp4");
+        let output = dir.path().join("out.mp4");
 
         encode_video(
             vec![
@@ -286,13 +306,13 @@ mod tests {
             vec![
                 Track::Video {
                     id: 0,
-                    codec: "hevc".to_string(),
-                    duration: None
+                    codec: "h264".to_string(),
+                    duration: Some(Duration::from_secs(2))
                 },
                 Track::Audio {
                     id: 1,
-                    codec: "flac".to_string(),
-                    duration: None,
+                    codec: "aac".to_string(),
+                    duration: Some(Duration::from_secs(2)),
                     language: None
                 },
                 Track::Subtitle {
@@ -319,9 +339,9 @@ mod tests {
     async fn encode_multi_input() {
         let dir = tempfile::tempdir().unwrap();
         let fixtures = fixtures_path();
-        let video_input = fixtures.join("h264_aac_nosub.mkv");
-        let audio_input = fixtures.join("hevc_aac_1sub.mkv");
-        let output = dir.path().join("out.mkv");
+        let video_input = fixtures.join("h264_aac_nosub.mp4");
+        let audio_input = fixtures.join("h264_aac_1sub.mp4");
+        let output = dir.path().join("out.mp4");
 
         encode_video(
             vec![
@@ -339,49 +359,97 @@ mod tests {
                 Track::Video {
                     id: 0,
                     codec: "h264".to_string(),
-                    duration: None
+                    duration: Some(Duration::from_secs(2))
                 },
                 Track::Audio {
                     id: 1,
                     codec: "aac".to_string(),
-                    duration: None,
+                    duration: Some(Duration::from_secs(2)),
                     language: None
                 },
             ]
         );
     }
 
-    /// Extract each of the 3 subtitle tracks from the multi-subtitle fixture
-    /// into individual .srt files.
+    /// Embed external SRT subtitles with language and external_id into an MP4.
+    /// Verifies the subrip→mov_text transcode path and handler_name round-trip.
     #[tokio::test]
-    async fn extract_subtitles_to_srt() {
+    async fn encode_external_subtitles() {
         let dir = tempfile::tempdir().unwrap();
-        let input = fixtures_path().join("h265_flac_3subs.mkv");
+        let input = fixtures_path().join("h264_aac_nosub.mp4");
+        let output = dir.path().join("out.mp4");
 
-        for (i, track_id) in [2usize, 3, 4].into_iter().enumerate() {
-            let output = dir.path().join(format!("sub{i}.srt"));
+        let sub_eng = dir.path().join("sub_eng.srt");
+        let sub_fra = dir.path().join("sub_fra.srt");
+        tokio::fs::write(&sub_eng, b"1\n00:00:00,000 --> 00:00:02,000\nHello\n")
+            .await
+            .unwrap();
+        tokio::fs::write(&sub_fra, b"1\n00:00:00,000 --> 00:00:02,000\nBonjour\n")
+            .await
+            .unwrap();
 
-            let result = encode_video(vec![copy_subtitle(input.clone(), track_id)], &output).await;
+        encode_video(
+            vec![
+                copy_video(input.clone(), 0),
+                copy_audio(input.clone(), 1),
+                TrackSelection::Subtitle {
+                    input_path: sub_eng.clone(),
+                    track_id: 0,
+                    language: Some(LanguageCode::English),
+                    external_id: Some("ext_eng_001".to_string()),
+                },
+                TrackSelection::Subtitle {
+                    input_path: sub_fra.clone(),
+                    track_id: 0,
+                    language: Some(LanguageCode::French),
+                    external_id: Some("ext_fra_002".to_string()),
+                },
+            ],
+            &output,
+        )
+        .await
+        .unwrap();
 
-            assert_eq!(
-                result.unwrap(),
-                output,
-                "subtitle track {track_id} should be saved to sub{i}.srt"
-            );
-        }
+        assert_eq!(
+            tracks_of(&output).await,
+            vec![
+                Track::Video {
+                    id: 0,
+                    codec: "h264".to_string(),
+                    duration: Some(Duration::from_secs(2))
+                },
+                Track::Audio {
+                    id: 1,
+                    codec: "aac".to_string(),
+                    duration: Some(Duration::from_secs(2)),
+                    language: None
+                },
+                Track::Subtitle {
+                    id: 2,
+                    language: Some(LanguageCode::English),
+                    external_id: Some("ext_eng_001".to_string()),
+                },
+                Track::Subtitle {
+                    id: 3,
+                    language: Some(LanguageCode::French),
+                    external_id: Some("ext_fra_002".to_string()),
+                },
+            ]
+        );
     }
 
     /// ffmpeg should fail when the output directory does not exist.
     #[tokio::test]
     async fn encode_fails_with_bad_output_path() {
-        let input = fixtures_path().join("h264_aac_nosub.mkv");
+        let input = fixtures_path().join("h264_aac_nosub.mp4");
 
         let result = encode_video(
             vec![copy_video(input.clone(), 0), copy_audio(input.clone(), 1)],
-            PathBuf::from("/nonexistent_dir/output.mkv"),
+            PathBuf::from("/nonexistent_dir/output.mp4"),
         )
         .await;
 
         assert!(matches!(result, Err(crate::Error::NonZeroExit(_))));
     }
 }
+
