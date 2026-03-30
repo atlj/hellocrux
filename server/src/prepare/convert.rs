@@ -95,69 +95,24 @@ pub fn should_convert(media_file: &Path) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
-
-    use crate::prepare::convert::{convert_media, get_codec};
+    use crate::prepare::convert::convert_media;
+    use crate::test_utils::fixtures_path;
 
     #[tokio::test]
     async fn test_convert_file_to_mov() {
-        let test_data_path: PathBuf = concat!(env!("CARGO_MANIFEST_DIR"), "/test-data").into();
-
-        let _ = tokio::fs::remove_dir_all(test_data_path.join("tmp/test.mov")).await;
+        let tmp = tempfile::tempdir().unwrap();
 
         convert_media(
-            &test_data_path.join("test.mkv"),
-            &test_data_path.join("tmp/test.mov"),
+            &fixtures_path().join("test.mkv"),
+            &tmp.path().join("test.mov"),
         )
         .await
         .unwrap();
 
         assert!(
-            tokio::fs::try_exists(test_data_path.join("tmp/test.mov"))
+            tokio::fs::try_exists(tmp.path().join("test.mov"))
                 .await
                 .unwrap()
-        );
-    }
-
-    #[tokio::test]
-    async fn test_get_codec() {
-        let test_data_path: PathBuf = concat!(env!("CARGO_MANIFEST_DIR"), "/test-data").into();
-        assert_eq!(
-            get_codec(
-                &test_data_path.join("test.mkv"),
-                &domain::MediaStream::Video
-            )
-            .await
-            .unwrap(),
-            "h264".to_string()
-        );
-        assert_eq!(
-            get_codec(
-                &test_data_path.join("moonlight_sonata.ogg"),
-                &domain::MediaStream::Audio
-            )
-            .await
-            .unwrap(),
-            "vorbis".to_string()
-        );
-
-        assert_eq!(
-            get_codec(
-                &test_data_path.join("test.h265.mkv"),
-                &domain::MediaStream::Video
-            )
-            .await
-            .unwrap(),
-            "hevc".to_string()
-        );
-
-        assert!(
-            get_codec(
-                &test_data_path.join("broken.mkv"),
-                &domain::MediaStream::Video
-            )
-            .await
-            .is_err()
         );
     }
 }

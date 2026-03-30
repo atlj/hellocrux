@@ -6,6 +6,8 @@ pub mod prepare;
 pub mod service;
 pub mod signal;
 pub mod subtitle_handlers;
+#[cfg(test)]
+pub mod test_utils;
 use std::{
     path::{Path, PathBuf},
     sync::Arc,

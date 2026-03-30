@@ -20,3 +20,6 @@ regex = { workspace = true }
 mdns-sd = "0.17.2"
 gethostname = "1.1.0"
 ffmpeg = { path = "../ffmpeg" }
+
+[dev-dependencies]
+tempfile = { workspace = true }

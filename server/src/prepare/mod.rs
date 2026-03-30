@@ -171,51 +171,37 @@ async fn find_movie_file(source_dir: &Path) -> Result<Option<PathBuf>> {
 #[cfg(test)]
 mod tests {
     use std::{
-        collections::HashMap,
-        fs::{self, OpenOptions},
-        io::{self, Read},
-        marker::PhantomData,
-        path::{Path, PathBuf},
+        fs::OpenOptions,
+        io::Read,
     };
 
-    use domain::{
-        MediaMetaData,
-        series::{EditSeriesFileMappingForm, EpisodeIdentifier},
-    };
+    use domain::MediaMetaData;
 
     use crate::prepare::{find_movie_file, prepare_movie, prepare_series};
+    use crate::test_utils::{Fixture, episode_mapping, fixture_sandbox, fixtures_path};
 
     #[tokio::test]
     async fn test_prepare_movie() {
-        let test_data_path: PathBuf = concat!(env!("CARGO_MANIFEST_DIR"), "/test-data").into();
-
-        copy_dir_all(
-            test_data_path.join("prepare"),
-            test_data_path.join("tmp/prepare_source"),
-        )
-        .unwrap();
+        let (sandbox, source) = fixture_sandbox(Fixture::Prepare);
+        let output_dir = sandbox.path().join("output");
 
         let metadata = MediaMetaData {
             title: "Jellyfish".to_string(),
             thumbnail: "https://some-link".to_string(),
         };
 
-        prepare_movie(
-            &test_data_path.join("tmp/prepare"),
-            &test_data_path.join("tmp/prepare_source"),
-            &metadata,
-        )
-        .await
-        .unwrap();
+        prepare_movie(&output_dir, &source, &metadata)
+            .await
+            .unwrap();
 
-        tokio::fs::try_exists(&test_data_path.join("tmp/prepare/Jellyfish/movie.mov"))
+        tokio::fs::try_exists(output_dir.join("Jellyfish/movie.mov"))
             .await
             .unwrap();
 
         let meta_file_contents = {
             let mut meta_file = OpenOptions::new()
                 .read(true)
-                .open(test_data_path.join("tmp/prepare/Jellyfish/meta.json"))
+                .open(output_dir.join("Jellyfish/meta.json"))
                 .unwrap();
             let mut string = String::new();
             meta_file.read_to_string(&mut string).unwrap();
@@ -229,67 +215,28 @@ mod tests {
 
     #[tokio::test]
     async fn test_prepare_series() {
-        let test_data_path: PathBuf = concat!(env!("CARGO_MANIFEST_DIR"), "/test-data").into();
-
-        let _ = tokio::fs::remove_dir_all(test_data_path.join("tmp/prepare_series_2")).await;
-        let _ = tokio::fs::remove_dir_all(test_data_path.join("tmp/prepared_series")).await;
-
-        copy_dir_all(
-            test_data_path.join("prepare_series"),
-            test_data_path.join("tmp/prepare_series_2"),
-        )
-        .unwrap();
+        let (sandbox, source) = fixture_sandbox(Fixture::PrepareSeries);
+        let output_dir = sandbox.path().join("output");
 
         let metadata = MediaMetaData {
             title: "Amazing Series".to_string(),
             thumbnail: "https://some-link".to_string(),
         };
 
-        let mapping = {
-            let mut file_mapping = HashMap::new();
-            file_mapping.insert(
-                "season1/the-looks-S1E1.mkv".to_string(),
-                EpisodeIdentifier {
-                    season_no: 1,
-                    episode_no: 1,
-                },
-            );
-            file_mapping.insert(
-                "season1/the-looks-S1E2.mkv".to_string(),
-                EpisodeIdentifier {
-                    season_no: 1,
-                    episode_no: 2,
-                },
-            );
-            file_mapping.insert(
-                "season2/the-looks-S2E1.mkv".to_string(),
-                EpisodeIdentifier {
-                    season_no: 2,
-                    episode_no: 1,
-                },
-            );
+        let mapping = episode_mapping("hey", &[
+            ("season1/the-looks-S1E1.mkv", 1, 1),
+            ("season1/the-looks-S1E2.mkv", 1, 2),
+            ("season2/the-looks-S2E1.mkv", 2, 1),
+        ]);
 
-            EditSeriesFileMappingForm {
-                id: "hey".into(),
-                file_mapping,
-                phantom: PhantomData,
-            }
-        };
-
-        // TODO tidy up the names for test folders
-        prepare_series(
-            &test_data_path.join("tmp/prepared_series"),
-            &test_data_path.join("tmp/prepare_series_2"),
-            &metadata,
-            mapping,
-        )
-        .await
-        .unwrap();
+        prepare_series(&output_dir, &source, &metadata, mapping)
+            .await
+            .unwrap();
 
         let meta_file_contents = {
             let mut meta_file = OpenOptions::new()
                 .read(true)
-                .open(test_data_path.join("tmp/prepared_series/Amazing_Series/meta.json"))
+                .open(output_dir.join("Amazing_Series/meta.json"))
                 .unwrap();
             let mut string = String::new();
             meta_file.read_to_string(&mut string).unwrap();
@@ -302,8 +249,7 @@ mod tests {
 
         assert!(
             tokio::fs::try_exists(
-                test_data_path
-                    .join("tmp/prepared_series/Amazing_Series/1/1-dGhlLWxvb2tzLVMxRTE=.mp4")
+                output_dir.join("Amazing_Series/1/1-dGhlLWxvb2tzLVMxRTE=.mp4")
             )
             .await
             .unwrap()
@@ -312,10 +258,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_find_movie_file() {
-        let test_data_path: PathBuf = concat!(env!("CARGO_MANIFEST_DIR"), "/test-data").into();
+        let fixtures = fixtures_path();
 
         assert_eq!(
-            find_movie_file(&test_data_path.join("check_video_file/mkv"))
+            find_movie_file(&fixtures.join("check_video_file/mkv"))
                 .await
                 .unwrap()
                 .unwrap()
@@ -325,7 +271,7 @@ mod tests {
         );
 
         assert_eq!(
-            find_movie_file(&test_data_path.join("check_video_file/mov"))
+            find_movie_file(&fixtures.join("check_video_file/mov"))
                 .await
                 .unwrap()
                 .unwrap()
@@ -335,7 +281,7 @@ mod tests {
         );
 
         assert_eq!(
-            find_movie_file(&test_data_path.join("check_video_file/mp4"))
+            find_movie_file(&fixtures.join("check_video_file/mp4"))
                 .await
                 .unwrap()
                 .unwrap()
@@ -345,7 +291,7 @@ mod tests {
         );
 
         assert_eq!(
-            find_movie_file(&test_data_path.join("check_video_file/nested"))
+            find_movie_file(&fixtures.join("check_video_file/nested"))
                 .await
                 .unwrap()
                 .unwrap()
@@ -355,25 +301,11 @@ mod tests {
         );
 
         assert!(
-            find_movie_file(&test_data_path.join("check_video_file/none"))
+            find_movie_file(&fixtures.join("check_video_file/none"))
                 .await
                 .unwrap()
                 .is_none()
         );
-    }
-
-    fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> io::Result<()> {
-        fs::create_dir_all(&dst)?;
-        for entry in fs::read_dir(src)? {
-            let entry = entry?;
-            let ty = entry.file_type()?;
-            if ty.is_dir() {
-                copy_dir_all(entry.path(), dst.as_ref().join(entry.file_name()))?;
-            } else {
-                fs::copy(entry.path(), dst.as_ref().join(entry.file_name()))?;
-            }
-        }
-        Ok(())
     }
 }
 

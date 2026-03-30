@@ -126,14 +126,13 @@ fn get_numeric_content(string: &str) -> Option<u32> {
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
-
     use super::{get_numeric_content, try_extract_metadata};
+
+    use crate::test_utils::fixtures_path;
 
     #[tokio::test]
     async fn test_extract_metadata() {
-        let test_data_path: PathBuf = concat!(env!("CARGO_MANIFEST_DIR"), "/test-data").into();
-        let path = test_data_path.join("crawl/example_movie");
+        let path = fixtures_path().join("crawl/example_movie");
         try_extract_metadata(path).await.unwrap();
     }
 

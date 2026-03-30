@@ -181,69 +181,25 @@ pub async fn generate_series_media(
 
 #[cfg(test)]
 mod tests {
-    use std::{
-        collections::HashMap,
-        fs, io,
-        marker::PhantomData,
-        path::{Path, PathBuf},
-    };
-
-    use domain::{
-        MediaMetaData,
-        series::{EditSeriesFileMappingForm, EpisodeIdentifier},
-    };
+    use domain::MediaMetaData;
 
     use crate::prepare::moving::series::generate_series_media;
+    use crate::test_utils::{Fixture, episode_mapping, fixture_sandbox};
 
     #[tokio::test]
     async fn test_generate_series_media() {
-        let test_data_path: PathBuf = concat!(env!("CARGO_MANIFEST_DIR"), "/test-data").into();
+        let (sandbox, source) = fixture_sandbox(Fixture::PrepareSeries);
 
-        let _ = tokio::fs::remove_dir_all(test_data_path.join("tmp/prepare_seris")).await;
-        tokio::fs::create_dir_all(test_data_path.join("tmp/prepare_series"))
-            .await
-            .unwrap();
+        let mapping = episode_mapping("hey", &[
+            ("season1/the-looks-S1E1.mkv", 1, 1),
+            ("season1/the-looks-S1E2.mkv", 1, 2),
+            ("season2/the-looks-S2E1.mkv", 2, 1),
+        ]);
 
-        copy_dir_all(
-            test_data_path.join("prepare_series"),
-            test_data_path.join("tmp/prepare_series"),
-        )
-        .unwrap();
-
-        let mapping = {
-            let mut file_mapping = HashMap::new();
-            file_mapping.insert(
-                "season1/the-looks-S1E1.mkv".to_string(),
-                EpisodeIdentifier {
-                    season_no: 1,
-                    episode_no: 1,
-                },
-            );
-            file_mapping.insert(
-                "season1/the-looks-S1E2.mkv".to_string(),
-                EpisodeIdentifier {
-                    season_no: 1,
-                    episode_no: 2,
-                },
-            );
-            file_mapping.insert(
-                "season2/the-looks-S2E1.mkv".to_string(),
-                EpisodeIdentifier {
-                    season_no: 2,
-                    episode_no: 1,
-                },
-            );
-
-            EditSeriesFileMappingForm {
-                id: "hey".into(),
-                file_mapping,
-                phantom: PhantomData,
-            }
-        };
-
+        let output_dir = sandbox.path().join("series_media");
         let resulting_paths = generate_series_media(
-            &test_data_path.join("tmp/series_media"),
-            &test_data_path.join("tmp/prepare_series"),
+            &output_dir,
+            &source,
             mapping,
             &MediaMetaData {
                 title: "My Series".to_string(),
@@ -253,61 +209,20 @@ mod tests {
         .await
         .unwrap();
 
-        dbg!(&resulting_paths);
+        let ep1 = output_dir.join("My_Series/1/1-dGhlLWxvb2tzLVMxRTE=-tbd.mkv");
+        let ep2 = output_dir.join("My_Series/1/2-dGhlLWxvb2tzLVMxRTI=-tbd.mkv");
+        let ep3 = output_dir.join("My_Series/2/1-dGhlLWxvb2tzLVMyRTE=-tbd.mkv");
 
-        assert!(resulting_paths.into_iter().any(|path| {
-            path.to_str().unwrap().contains(
-                test_data_path
-                    .join("tmp/series_media/My_Series/1/1-dGhlLWxvb2tzLVMxRTE=-tbd.mkv")
-                    .to_str()
-                    .unwrap(),
-            )
-        }));
+        assert!(resulting_paths.iter().any(|p| p == &ep1));
 
-        assert!(
-            tokio::fs::try_exists(
-                test_data_path.join("tmp/series_media/My_Series/1/1-dGhlLWxvb2tzLVMxRTE=-tbd.mkv")
-            )
-            .await
-            .unwrap()
-        );
+        assert!(tokio::fs::try_exists(&ep1).await.unwrap());
+        assert!(tokio::fs::try_exists(&ep2).await.unwrap());
+        assert!(tokio::fs::try_exists(&ep3).await.unwrap());
 
         assert!(
-            tokio::fs::try_exists(
-                test_data_path.join("tmp/series_media/My_Series/1/2-dGhlLWxvb2tzLVMxRTI=-tbd.mkv")
-            )
-            .await
-            .unwrap()
+            !tokio::fs::try_exists(output_dir.join("My_Series/1/random-file.txt"))
+                .await
+                .unwrap()
         );
-
-        assert!(
-            tokio::fs::try_exists(
-                test_data_path.join("tmp/series_media/My_Series/2/1-dGhlLWxvb2tzLVMyRTE=-tbd.mkv")
-            )
-            .await
-            .unwrap()
-        );
-
-        assert!(
-            !tokio::fs::try_exists(
-                test_data_path.join("tmp/series_media/My_Series/1/random-file.txt")
-            )
-            .await
-            .unwrap()
-        );
-    }
-
-    fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> io::Result<()> {
-        fs::create_dir_all(&dst)?;
-        for entry in fs::read_dir(src)? {
-            let entry = entry?;
-            let ty = entry.file_type()?;
-            if ty.is_dir() {
-                copy_dir_all(entry.path(), dst.as_ref().join(entry.file_name()))?;
-            } else {
-                fs::copy(entry.path(), dst.as_ref().join(entry.file_name()))?;
-            }
-        }
-        Ok(())
     }
 }

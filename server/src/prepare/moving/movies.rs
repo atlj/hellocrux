@@ -97,37 +97,29 @@ pub async fn generate_movie_media(
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
-
     use domain::MediaMetaData;
 
     use crate::prepare::moving::generate_movie_media;
+    use crate::test_utils::fixtures_path;
 
     #[tokio::test]
     async fn test_generate_movie_media() {
-        let test_data_path: PathBuf = concat!(env!("CARGO_MANIFEST_DIR"), "/test-data").into();
+        let tmp = tempfile::tempdir().unwrap();
 
-        tokio::fs::copy(
-            test_data_path.join("test.mkv"),
-            test_data_path.join("test_copy.mkv"),
-        )
-        .await
-        .unwrap();
+        let src = fixtures_path().join("test.mkv");
+        let working_copy = tmp.path().join("test_copy.mkv");
+        tokio::fs::copy(&src, &working_copy).await.unwrap();
 
         let metadata = MediaMetaData {
             title: "My Movie".to_string(),
             thumbnail: "http://path.to/image".to_string(),
         };
 
-        let _ = tokio::fs::remove_dir_all(test_data_path.join("tmp/generate_movie_media")).await;
-
-        let movie_file_path = generate_movie_media(
-            &test_data_path.join("tmp/generate_movie_media"),
-            &test_data_path.join("test_copy.mkv"),
-            &metadata,
-        )
-        .await
-        .unwrap();
+        let output_dir = tmp.path().join("generate_movie_media");
+        let movie_file_path =
+            generate_movie_media(&output_dir, &working_copy, &metadata)
+                .await
+                .unwrap();
 
         dbg!(&movie_file_path);
 

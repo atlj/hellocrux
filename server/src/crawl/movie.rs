@@ -40,14 +40,12 @@ pub(super) async fn try_extract_movie(
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
-
     use crate::crawl::movie::try_extract_movie;
+    use crate::test_utils::fixtures_path;
 
     #[tokio::test]
     async fn extract_movie_path() {
-        let test_data_path: PathBuf = concat!(env!("CARGO_MANIFEST_DIR"), "/test-data").into();
-        let path = test_data_path.join("crawl/example_movie");
+        let path = fixtures_path().join("crawl/example_movie");
         let result = try_extract_movie(&path).await.unwrap().unwrap();
         assert!(result.media.contains("hey.mp4"));
         let subtitles = result.subtitles.first().unwrap();

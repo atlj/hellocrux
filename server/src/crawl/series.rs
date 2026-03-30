@@ -135,14 +135,12 @@ fn get_episode_no(srt_path: impl AsRef<Path>) -> Option<u32> {
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
-
     use crate::crawl::series::{try_extract_season, try_extract_series};
+    use crate::test_utils::fixtures_path;
 
     #[tokio::test]
     async fn extract_series() {
-        let test_data_path: PathBuf = concat!(env!("CARGO_MANIFEST_DIR"), "/test-data").into();
-        let path = test_data_path.join("crawl/example_series");
+        let path = fixtures_path().join("crawl/example_series");
         let result = try_extract_series(&path).await.unwrap().unwrap();
 
         assert!(
@@ -180,8 +178,7 @@ mod tests {
 
     #[tokio::test]
     async fn extract_season() {
-        let test_data_path: PathBuf = concat!(env!("CARGO_MANIFEST_DIR"), "/test-data").into();
-        let path = test_data_path.join("crawl/example_series");
+        let path = fixtures_path().join("crawl/example_series");
         let result = try_extract_season(path.join("1")).await.unwrap().unwrap();
         let first_episode = result.get(&1).unwrap();
         assert!(first_episode.media.contains("1.mp4"));
