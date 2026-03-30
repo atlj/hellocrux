@@ -50,9 +50,9 @@ struct EpisodePicker: View {
         EpisodePicker(
             id: "test", series: [
                 1: [
-                    8: .init(media: "", track_name: "", subtitle_paths: []),
-                    1: .init(media: "", track_name: "", subtitle_paths: []),
-                    2: .init(media: "", track_name: "", subtitle_paths: []),
+                    8: .init(media: "", track_name: "", subtitles: []),
+                    1: .init(media: "", track_name: "", subtitles: []),
+                    2: .init(media: "", track_name: "", subtitles: []),
                 ],
                 2: [:],
             ],

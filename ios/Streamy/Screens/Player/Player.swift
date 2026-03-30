@@ -12,8 +12,8 @@ struct Player: UIViewControllerRepresentable {
         URL(string: data.media_paths.media)!
     }
 
-    var subtitles: [SubtitlePath] {
-        data.media_paths.subtitle_paths
+    var subtitles: [Subtitle] {
+        data.media_paths.subtitles
     }
 
     static var sharedPlayer: AVPlayer?
@@ -135,7 +135,7 @@ extension AVPlayer {
     PlayerScreen(
         overrideData: .init(
             position: .movie(id: "1", position_seconds: 0),
-            media_paths: .init(media: "", track_name: "", subtitle_paths: []), title: "",
+            media_paths: .init(media: "", track_name: "", subtitles: []), title: "",
             next_episode: EpisodeIdentifier(season_no: 1, episode_no: 1),
         ),
     )
