@@ -1,9 +1,66 @@
 use std::path::Path;
 
 use domain::subtitles::Subtitle;
-use log::info;
+use log::{error, info};
 
-pub async fn embed_subtitles_if_missing(
+/// Ensure subtitles are embedded, remux if not
+///
+/// Checks the available subtitles at the media_path, if there is a mismatch, remuxes the media file
+/// with given subtitles.
+/// There can be a mismatch if:
+/// 1. There are subtitles present in slice but not in media
+/// 2. There are subtitles present in media but not in subtitles
+/// Both of this cases will lead to remuxing.
+pub async fn remux_with_subtitles_if_missing(
+    media_path: impl AsRef<Path> + std::fmt::Debug,
+    subtitles: &[Subtitle],
+) {
+    let Some(file_name) = media_path
+        .as_ref()
+        .file_stem()
+        .and_then(|stem| stem.to_str())
+    else {
+        error!("Media path has no file stem: {media_path:#?}",);
+        return;
+    };
+
+    let Some(extension) = media_path
+        .as_ref()
+        .extension()
+        .and_then(|stem| stem.to_str())
+    else {
+        error!("Media path has no extension: {media_path:#?}",);
+        return;
+    };
+
+    let Ok(temp_dir) = tempfile::tempdir() else {
+        error!("Couldn't create a temp dir to embed subs for {media_path:#?}. Skipping this step.",);
+        return;
+    };
+
+    let temp_file_name = format!("{file_name}-tmp.{extension}");
+    let temp_file = temp_dir.path().join(temp_file_name);
+
+    match embed_subtitles_if_missing(&media_path, &temp_file, &subtitles).await {
+        Ok(did_embed) => {
+            if !did_embed {
+                return;
+            }
+
+            if let Err(error) = tokio::fs::copy(&temp_file, &media_path).await {
+                error!(
+                    "Couldn't move subtitle embedded file from {temp_file:#?} to {media_path:#?}. Reason: {error}"
+                );
+            }
+        }
+        Err(error) => {
+            error!("Couldn't embed subtitles for {media_path:#?}. Reason: {error}")
+        }
+    }
+}
+
+/// Embed subtitles only if they are different
+async fn embed_subtitles_if_missing(
     movie_path: impl AsRef<Path>,
     output_path: impl AsRef<Path>,
     subtitles: &[Subtitle],
@@ -32,7 +89,6 @@ pub async fn embed_subtitles_if_missing(
         .count();
 
     let sub_file_count = subtitles.len();
-    let same_count = sub_file_count == sub_track_count;
 
     if missing_id.is_none() && sub_track_count == sub_file_count {
         return Ok(false);

@@ -1,5 +1,7 @@
 use domain::subtitles::Subtitle;
 
+use crate::crawl::subtitles::remux_with_subtitles_if_missing;
+
 use super::{Error, Result};
 use log::error;
 use std::path::Path;
@@ -26,7 +28,7 @@ pub(super) async fn try_extract_movie(
 
     let movie_file_path: &Path = media.as_ref();
 
-    embed_movie_subtitles(&movie_file_path, &subtitles).await;
+    remux_with_subtitles_if_missing(&movie_file_path, &subtitles).await;
 
     let file_stem = movie_file_path
         .file_stem()
@@ -40,56 +42,6 @@ pub(super) async fn try_extract_movie(
         subtitles,
         track_name,
     }))
-}
-
-async fn embed_movie_subtitles(
-    media_path: impl AsRef<Path> + std::fmt::Debug,
-    subtitles: &[Subtitle],
-) {
-    let Some(file_name) = media_path
-        .as_ref()
-        .file_stem()
-        .and_then(|stem| stem.to_str())
-    else {
-        error!("Media path has no file stem: {media_path:#?}",);
-        return;
-    };
-
-    let Some(extension) = media_path
-        .as_ref()
-        .extension()
-        .and_then(|stem| stem.to_str())
-    else {
-        error!("Media path has no extension: {media_path:#?}",);
-        return;
-    };
-
-    let Ok(temp_dir) = tempfile::tempdir() else {
-        error!("Couldn't create a temp dir to embed subs for {media_path:#?}. Skipping this step.",);
-        return;
-    };
-
-    let temp_file_name = format!("{file_name}-tmp.{extension}");
-    let temp_file = temp_dir.path().join(temp_file_name);
-
-    match crate::crawl::subtitles::embed_subtitles_if_missing(&media_path, &temp_file, &subtitles)
-        .await
-    {
-        Ok(did_embed) => {
-            if !did_embed {
-                return;
-            }
-
-            if let Err(error) = tokio::fs::copy(&temp_file, &media_path).await {
-                error!(
-                    "Couldn't move subtitle embedded file from {temp_file:#?} to {media_path:#?}. Reason: {error}"
-                );
-            }
-        }
-        Err(error) => {
-            error!("Couldn't embed subtitles for {media_path:#?}. Reason: {error}")
-        }
-    }
 }
 
 #[cfg(test)]

@@ -6,11 +6,7 @@ pub fn is_subtitle_file(path: impl AsRef<Path>) -> bool {
     path.as_ref()
         .extension()
         .and_then(|extension| extension.to_str())
-        .map(|extension| match extension {
-            "srt" => true,
-            "vtt" => true,
-            _ => false,
-        })
+        .map(|extension| matches!(extension, "srt" | "vtt"))
         .unwrap_or(false)
 }
 

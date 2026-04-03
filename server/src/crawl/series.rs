@@ -1,6 +1,8 @@
 use domain::{SeriesContents, subtitles::Subtitle};
 use log::error;
 
+use crate::crawl::subtitles::remux_with_subtitles_if_missing;
+
 use super::{Error, Result};
 use std::{collections::HashMap, path::Path};
 
@@ -104,6 +106,12 @@ async fn try_extract_season(
 
         map
     });
+
+    let remux_futures = result
+        .values()
+        .map(|episode| remux_with_subtitles_if_missing(&episode.media, &episode.subtitles));
+
+    futures::future::join_all(remux_futures).await;
 
     if result.is_empty() {
         return Ok(None);
