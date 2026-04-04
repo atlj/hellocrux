@@ -141,6 +141,22 @@ impl MediaContent {
     }
 }
 
+pub const DEFAULT_CONTAINER_FORMAT: &str = "mp4";
+pub const DEFAULT_VIDEO_CODEC: &str = "hevc";
+pub const DEFAULT_AUDIO_CODEC: &str = "aac";
+
+pub fn is_container_compatible(container: &str) -> bool {
+    matches!(container, "mp4")
+}
+
+pub fn is_video_codec_compatible(video_codec: &str) -> bool {
+    matches!(video_codec, "hevc" | "hvc1" | "h264")
+}
+
+pub fn is_audio_codec_compatible(audio_codec: &str) -> bool {
+    matches!(audio_codec, "aac" | "eac3")
+}
+
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub struct MediaMetaData {
     pub thumbnail: String,
