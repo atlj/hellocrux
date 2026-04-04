@@ -30,6 +30,35 @@ impl Media {
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+pub enum MediaIdentifier {
+    Movie {
+        id: String,
+        path: MediaPaths,
+    },
+    Series {
+        id: String,
+        episode: EpisodeIdentifier,
+        path: MediaPaths,
+    },
+}
+
+impl MediaIdentifier {
+    pub fn id(&self) -> &str {
+        match self {
+            MediaIdentifier::Movie { id, .. } => id,
+            MediaIdentifier::Series { id, .. } => id,
+        }
+    }
+
+    pub fn path(&self) -> &MediaPaths {
+        match self {
+            MediaIdentifier::Movie { path, .. } => path,
+            MediaIdentifier::Series { path, .. } => path,
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub enum MediaContent {
     Movie(MediaPaths),
     Series(SeriesContents),

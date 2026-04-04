@@ -42,6 +42,7 @@ pub struct AppState {
     pub download_signal_watcher: service::download::DownloadSignalWatcher,
     pub processing_list_watcher: service::process::ProcessingListWatcher,
     pub subtitle_signal_sender: service::subtitle::SubtitleSignalSender,
+    pub preparing_list_watcher: service::prepare::PreparingListWatcher,
 }
 
 pub type State = axum::extract::State<AppState>;
