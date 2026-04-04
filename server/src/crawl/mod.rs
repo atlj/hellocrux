@@ -14,61 +14,91 @@ mod subtitles;
 
 pub(crate) async fn crawl_all_folders(
     path: impl AsRef<Path> + Display,
-) -> Option<HashMap<String, Media>> {
-    let read_dir = crate::dir::fully_read_dir(&path)
+) -> (HashMap<String, Media>, Vec<domain::MediaIdentifier>) {
+    let Some(read_dir) = crate::dir::fully_read_dir(&path)
         .await
         .inspect_err(|err| error!("Media library at {path} isn't readable. Reason: {err}"))
-        .ok()?;
+        .ok()
+    else {
+        return (HashMap::new(), Vec::new());
+    };
 
-    let crawl_futures = read_dir.map(|entry| async move {
+    let crawl_futures = read_dir.flat_map(|entry| {
         let path = entry.path();
         if path.is_file() {
-            let result: Option<(String, Media)> = None;
-            return result;
+            return None;
         }
 
         let file_stem = path
             .file_stem()
             .map(|stem| stem.to_string_lossy().to_string())?;
 
-        crawl_folder(path.to_string_lossy().as_ref())
-            .await
-            .map(|media| (file_stem, media))
+        Some(async move {
+            crawl_folder(path.to_string_lossy().as_ref())
+                .await
+                .map(|media| (file_stem, media))
+        })
     });
 
-    let result: HashMap<_, _> = futures::future::join_all(crawl_futures)
-        .await
-        .into_iter()
-        .flatten()
-        .collect();
+    let media = futures::future::join_all(crawl_futures).await;
+    let len = media.len();
 
-    Some(result)
+    let result = media.into_iter().fold(
+        (HashMap::with_capacity(len), Vec::with_capacity(len)),
+        |(mut media, mut to_prepare), result| {
+            let Some((id, (current_media, current_to_prepare))) = result else {
+                return (media, to_prepare);
+            };
+
+            if let Some(current_media) = current_media {
+                media.insert(id, current_media);
+            }
+
+            to_prepare.extend(current_to_prepare);
+
+            (media, to_prepare)
+        },
+    );
+
+    result
 }
 
-pub(crate) async fn crawl_folder(path: impl AsRef<Path> + Display) -> Option<Media> {
-    let mut result = try_extract_media(&path)
+pub(crate) async fn crawl_folder(
+    path: impl AsRef<Path> + Display,
+) -> Option<(
+    Option<Media>,
+    // Movies that need to be prepared
+    Vec<domain::MediaIdentifier>,
+)> {
+    let (media, to_prepare) = try_extract_media(&path)
         .await
         .inspect_err(|err| warn!("Couldn't extract media content from {path}. Reason: {err}"))
         .ok()?;
 
-    let stripped_content = path
-        .as_ref()
-        .parent()
-        .and_then(|parent| result.content.strip_prefix(parent));
+    let media = media.and_then(|mut media| {
+        let stripped_content = path
+            .as_ref()
+            .parent()
+            .and_then(|parent| media.content.strip_prefix(parent));
 
-    if stripped_content.is_none() {
-        warn!(
-            "Couldn't strip prefix of media named {}. Ignoring it.",
-            &result.metadata.title
-        );
-    }
+        if stripped_content.is_none() {
+            warn!(
+                "Couldn't strip prefix of media named {}. Ignoring it.",
+                &media.metadata.title
+            );
+        }
 
-    result.content = stripped_content?;
+        media.content = stripped_content?;
 
-    Some(result)
+        Some(media)
+    });
+
+    Some((media, to_prepare))
 }
 
-async fn try_extract_media(path: impl AsRef<Path>) -> Result<Media> {
+async fn try_extract_media(
+    path: impl AsRef<Path>,
+) -> Result<(Option<Media>, Vec<domain::MediaIdentifier>)> {
     let id: String = path
         .as_ref()
         .components()
@@ -76,22 +106,41 @@ async fn try_extract_media(path: impl AsRef<Path>) -> Result<Media> {
         .map(|last| last.as_os_str().to_string_lossy().into())
         .ok_or_else(|| Error::CantReadDir(path.as_ref().into()))?;
     let metadata = try_extract_metadata(&path).await?;
-    let content = try_extract_media_content(&path).await?;
+    let (content, to_prepare_improper_ids) = try_extract_media_content(&path).await?;
+    let to_prepare = to_prepare_improper_ids
+        .into_iter()
+        .map(|identifier| identifier.with_id(id.clone()))
+        .collect();
 
-    Ok(Media {
-        id,
-        metadata,
-        content,
-    })
+    let result = (
+        content.map(|content| Media {
+            id,
+            metadata,
+            content,
+        }),
+        to_prepare,
+    );
+
+    Ok(result)
 }
 
-async fn try_extract_media_content(path: impl AsRef<Path>) -> Result<MediaContent> {
-    if let Some(movie_path) = movie::try_extract_movie(&path).await? {
-        return Ok(MediaContent::Movie(movie_path));
+async fn try_extract_media_content(
+    path: impl AsRef<Path>,
+) -> Result<(Option<MediaContent>, Vec<domain::MediaIdentifier>)> {
+    if let Some(movie) = movie::try_extract_movie(&path).await? {
+        let result = match movie {
+            either::Either::Left(movie_path) => (Some(MediaContent::Movie(movie_path)), Vec::new()),
+            either::Either::Right(to_prepare) => (None, vec![to_prepare]),
+        };
+
+        return Ok(result);
     }
 
-    if let Some(series) = series::try_extract_series(&path).await? {
-        return Ok(MediaContent::Series(series));
+    if let Some((seasons, to_prepare)) = series::try_extract_series(&path).await? {
+        return Ok((
+            (seasons.map(|seasons| MediaContent::Series(seasons))),
+            to_prepare,
+        ));
     }
 
     Err(Error::NoMediaContent)
@@ -150,14 +199,22 @@ mod tests {
 
 pub type Result<T> = core::result::Result<T, Error>;
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum Error {
+    #[error("No metadata found")]
     NoMetadata,
+    #[error("Metadata was corrupted")]
     CorruptedMetadata,
+    #[error("Couldn't read metadata file")]
     CantReadMetadata,
+    #[error("No media content")]
     NoMediaContent,
+    #[error("Couldn't read dir {0:#?}")]
     CantReadDir(PathBuf),
+    #[error("Couldn't convert subtitle to .mp4 file. Reason: {0}")]
     CantConvertSubtitle(crate::ffmpeg::Error),
+    #[error("Can't check compatibility of media file. {0}")]
+    CantCheckCompatibility(crate::prepare::Error),
 }
 
 impl From<serde_json::Error> for Error {
@@ -165,24 +222,6 @@ impl From<serde_json::Error> for Error {
         Self::CorruptedMetadata
     }
 }
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Error::NoMetadata => f.write_str("No metadata found"),
-            Error::CorruptedMetadata => f.write_str("Metadata was corrupted"),
-            Error::CantReadMetadata => f.write_str("Couldn't read metadata"),
-            Error::NoMediaContent => f.write_str("No media content"),
-            Error::CantReadDir(path_buf) => write!(f, "Couldn't read {:#?}", path_buf),
-            Error::CantConvertSubtitle(ffmpeg_error) => write!(
-                f,
-                "Couldn't convert subtitle to .mp4 file. Reason: {ffmpeg_error}"
-            ),
-        }
-    }
-}
-
-impl std::error::Error for Error {}
 
 impl From<crate::ffmpeg::Error> for Error {
     fn from(value: crate::ffmpeg::Error) -> Self {

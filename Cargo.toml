@@ -11,6 +11,7 @@ members = [
 resolver = "1"
 
 [workspace.dependencies]
+either = "1.15.0"
 serde = { version = "1.0.219", features = ["derive"] }
 anyhow = "1.0.98"
 crux_core = "0.15.0"

@@ -3,6 +3,7 @@ pub mod dir;
 pub mod download_handlers;
 pub mod ffmpeg;
 pub mod prepare;
+pub mod process;
 pub mod service;
 pub mod signal;
 pub mod subtitle_handlers;

@@ -23,12 +23,70 @@ pub enum TrackSelection {
     },
 }
 
+pub trait TrackExt
+where
+    Self: Sized,
+{
+    fn into_selection(self, path: PathBuf) -> TrackSelection;
+}
+
+impl TrackExt for domain::Track {
+    fn into_selection(self, path: PathBuf) -> TrackSelection {
+        match self {
+            domain::Track::Video { id, codec, .. } => TrackSelection::Video {
+                input_path: path,
+                track_id: id,
+                codec,
+            },
+            domain::Track::Audio { id, codec, .. } => TrackSelection::Audio {
+                input_path: path,
+                track_id: id,
+                codec,
+            },
+            domain::Track::Subtitle {
+                id,
+                language,
+                external_id,
+            } => TrackSelection::Subtitle {
+                input_path: path,
+                track_id: id,
+                language,
+                external_id,
+            },
+        }
+    }
+}
+
 impl TrackSelection {
     pub fn input_path(&self) -> &PathBuf {
         match self {
             TrackSelection::Video { input_path, .. } => input_path,
             TrackSelection::Audio { input_path, .. } => input_path,
             TrackSelection::Subtitle { input_path, .. } => input_path,
+        }
+    }
+
+    pub fn with_codec(self, codec: String) -> Self {
+        match self {
+            TrackSelection::Video {
+                input_path,
+                track_id,
+                ..
+            } => TrackSelection::Video {
+                codec,
+                input_path,
+                track_id,
+            },
+            TrackSelection::Audio {
+                input_path,
+                track_id,
+                ..
+            } => TrackSelection::Audio {
+                input_path,
+                track_id,
+                codec,
+            },
+            _ => self,
         }
     }
 }
@@ -138,7 +196,9 @@ pub async fn encode_video(
                     Some(subtitle_codec.to_string()),
                     language.as_ref().map(|_| format!("-metadata:s:s:{index}")),
                     language.map(|lang| format!("language={}", lang.to_iso639_2t())),
-                    external_id.as_ref().map(|_| format!("-metadata:s:s:{index}")),
+                    external_id
+                        .as_ref()
+                        .map(|_| format!("-metadata:s:s:{index}")),
                     external_id.map(|ext_id| format!("handler_name={ext_id}")),
                 ],
             };
@@ -166,7 +226,8 @@ mod tests {
     use domain::language::LanguageCode;
 
     use super::{TrackSelection, encode_video};
-    use crate::{Track, get_tracks};
+    use crate::get_tracks;
+    use domain::Track;
 
     fn fixtures_path() -> PathBuf {
         concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures").into()
@@ -452,4 +513,3 @@ mod tests {
         assert!(matches!(result, Err(crate::Error::NonZeroExit(_))));
     }
 }
-

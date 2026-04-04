@@ -150,10 +150,7 @@ pub fn spawn(
 #[derive(Debug)]
 enum ProcessError {
     CantGetExtra,
-    CantPrepare(
-        // this is used when we log the error
-        #[allow(dead_code)] crate::prepare::Error,
-    ),
+    CantPrepare(crate::prepare::Error),
 }
 
 impl From<crate::prepare::Error> for ProcessError {

@@ -39,7 +39,12 @@ async fn main() {
         _,
     ) = tokio::sync::mpsc::channel(100);
 
+    let (preparing_list_watcher, preparing_list_receiver): (
+        server::service::prepare::PreparingListWatcher,
+    ) = server::signal::new_watcher_receiver_pair(Vec::new());
+
     let shared_state = AppState {
+        preparing_list_watcher,
         subtitle_provider,
         subtitle_signal_sender,
         media_signal_watcher,
@@ -76,11 +81,14 @@ async fn main() {
             shared_state.subtitle_provider.clone(),
         );
 
+        let prepare_handle = server::service::prepare::spawn(preparing_list_receiver, app_state);
+
         move || {
             media_watcher_join_handler.abort();
             bittorrent_client_join_handle.abort();
             torrent_watcher_handle.abort();
             subtitle_handle.abort();
+            prepare_handle.abort();
             let _ = mdns_handle.map(|handle| handle.shutdown());
         }
     };

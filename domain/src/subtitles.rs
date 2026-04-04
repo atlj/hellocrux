@@ -1,14 +1,6 @@
-use std::{collections::HashMap, path::Path};
+use std::collections::HashMap;
 
 use crate::{language::LanguageCode, series::EpisodeIdentifier};
-
-pub fn is_subtitle_file(path: impl AsRef<Path>) -> bool {
-    path.as_ref()
-        .extension()
-        .and_then(|extension| extension.to_str())
-        .map(|extension| matches!(extension, "srt" | "vtt"))
-        .unwrap_or(false)
-}
 
 /// The server expects this form for subtitle search requests
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]

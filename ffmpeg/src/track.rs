@@ -2,39 +2,9 @@ use std::path::Path;
 
 use crate::spawn::ffprobe;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Track {
-    Video {
-        id: usize,
-        codec: String,
-        duration: Option<std::time::Duration>,
-    },
-    Audio {
-        id: usize,
-        codec: String,
-        duration: Option<std::time::Duration>,
-        language: Option<domain::language::LanguageCode>,
-    },
-    Subtitle {
-        id: usize,
-        language: Option<domain::language::LanguageCode>,
-        external_id: Option<String>,
-    },
-}
-
-impl Track {
-    pub fn id(&self) -> &usize {
-        match self {
-            Track::Video { id, .. } => id,
-            Track::Audio { id, .. } => id,
-            Track::Subtitle { id, .. } => id,
-        }
-    }
-}
-
 pub async fn get_tracks(
     media_file: impl AsRef<Path>,
-) -> crate::Result<impl Iterator<Item = crate::Result<Track>>> {
+) -> crate::Result<impl Iterator<Item = crate::Result<domain::Track>>> {
     let result_string = ffprobe([
         // Error on empty
         "-v",
@@ -94,10 +64,10 @@ pub mod dto {
         pub tags: Option<FfprobeStreamTags>,
     }
 
-    impl TryInto<crate::Track> for FfprobeStream {
+    impl TryInto<domain::Track> for FfprobeStream {
         type Error = Error;
 
-        fn try_into(self) -> Result<crate::Track, Self::Error> {
+        fn try_into(self) -> Result<domain::Track, Self::Error> {
             let duration = match self.duration.as_ref() {
                 Some(duration_string) => {
                     let seconds = duration_string
@@ -108,7 +78,7 @@ pub mod dto {
                 None => None,
             };
             match self.codec_type.as_str() {
-                "video" => Ok(crate::Track::Video {
+                "video" => Ok(domain::Track::Video {
                     id: self.index,
                     codec: self
                         .codec_name
@@ -116,7 +86,7 @@ pub mod dto {
                         .ok_or_else(|| Error::NoCodec(self.clone()))?,
                     duration,
                 }),
-                "audio" => Ok(crate::Track::Audio {
+                "audio" => Ok(domain::Track::Audio {
                     id: self.index,
                     codec: self
                         .codec_name
@@ -130,7 +100,7 @@ pub mod dto {
                             domain::language::LanguageCode::try_from(tag_string.as_str()).ok()
                         }),
                 }),
-                "subtitle" => Ok(crate::Track::Subtitle {
+                "subtitle" => Ok(domain::Track::Subtitle {
                     id: self.index,
                     language: self.tags.clone().and_then(|tags| tags.language).and_then(
                         |tag_string| {
@@ -158,11 +128,12 @@ pub mod dto {
 
 #[cfg(test)]
 mod tests {
+    use domain::Track;
     use std::{path::PathBuf, time::Duration};
 
     use domain::language::LanguageCode;
 
-    use crate::{Track, get_tracks};
+    use crate::get_tracks;
 
     #[tokio::test]
     async fn test_get_tracks() {

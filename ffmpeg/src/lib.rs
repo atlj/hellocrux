@@ -2,9 +2,9 @@ mod encode;
 mod spawn;
 mod track;
 
-pub use encode::{TrackSelection, encode_video};
+pub use encode::{TrackExt, TrackSelection, encode_video};
 
-pub use track::{Track, get_tracks};
+pub use track::get_tracks;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {

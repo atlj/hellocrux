@@ -56,6 +56,15 @@ impl MediaIdentifier {
             MediaIdentifier::Series { path, .. } => path,
         }
     }
+
+    pub fn with_id(self, id: String) -> Self {
+        match self {
+            MediaIdentifier::Movie { path, .. } => MediaIdentifier::Movie { id, path },
+            MediaIdentifier::Series { episode, path, .. } => {
+                MediaIdentifier::Series { id, episode, path }
+            }
+        }
+    }
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
@@ -190,4 +199,42 @@ pub fn is_audio_codec_compatible(audio_codec: &str) -> bool {
 pub struct MediaMetaData {
     pub thumbnail: String,
     pub title: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Track {
+    Video {
+        id: usize,
+        codec: String,
+        duration: Option<std::time::Duration>,
+    },
+    Audio {
+        id: usize,
+        codec: String,
+        duration: Option<std::time::Duration>,
+        language: Option<crate::language::LanguageCode>,
+    },
+    Subtitle {
+        id: usize,
+        language: Option<crate::language::LanguageCode>,
+        external_id: Option<String>,
+    },
+}
+
+impl Track {
+    pub fn id(&self) -> &usize {
+        match self {
+            Track::Video { id, .. } => id,
+            Track::Audio { id, .. } => id,
+            Track::Subtitle { id, .. } => id,
+        }
+    }
+
+    pub fn is_codec_compatible(&self) -> bool {
+        match self {
+            Track::Video { codec, .. } => is_video_codec_compatible(codec),
+            Track::Audio { codec, .. } => is_audio_codec_compatible(codec),
+            Track::Subtitle { .. } => true,
+        }
+    }
 }

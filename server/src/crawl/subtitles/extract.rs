@@ -20,7 +20,7 @@ pub async fn extract_subtitles(
     };
 
     let result = read_dir
-        .filter(|path| domain::subtitles::is_subtitle_file(path.path()))
+        .filter(|path| domain::format::is_subtitle_file(path.path()))
         .filter_map(|subtitle_file| {
             let subtitle_path = subtitle_file.path();
             let Some(language_str) = get_language_str(&subtitle_path) else {

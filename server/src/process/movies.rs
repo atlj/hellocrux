@@ -116,10 +116,9 @@ mod tests {
         };
 
         let output_dir = tmp.path().join("generate_movie_media");
-        let movie_file_path =
-            generate_movie_media(&output_dir, &working_copy, &metadata)
-                .await
-                .unwrap();
+        let movie_file_path = generate_movie_media(&output_dir, &working_copy, &metadata)
+            .await
+            .unwrap();
 
         dbg!(&movie_file_path);
 

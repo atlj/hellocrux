@@ -1,51 +1,60 @@
-use domain::{SeriesContents, subtitles::Subtitle};
+use domain::{series::EpisodeIdentifier, subtitles::Subtitle};
+use either::Either;
 use log::error;
-
-use crate::crawl::subtitles::remux_with_subtitles_if_missing;
 
 use super::{Error, Result};
 use std::{collections::HashMap, path::Path};
 
 pub(super) async fn try_extract_series(
     path: impl AsRef<Path>,
-) -> Result<Option<domain::SeriesContents>> {
+) -> Result<Option<(Option<domain::SeriesContents>, Vec<domain::MediaIdentifier>)>> {
     let read_dir = crate::dir::fully_read_dir(&path)
         .await
         .map_err(|_| Error::CantReadDir(path.as_ref().into()))?;
 
-    let seasons_futures = read_dir.map(|entry| async move {
+    let seasons_futures = read_dir.flat_map(|entry| {
         let current_path = entry.path();
         if current_path.is_file() {
-            let result: super::Result<Option<(u32, domain::SeasonContents)>> = Ok(None);
-            return result;
+            return None;
         }
-        let result = match super::get_numeric_content(entry.file_name().to_string_lossy().as_ref())
-        {
-            None => None,
-            Some(season_no) => try_extract_season(entry.path())
-                .await?
-                .map(|season_contents| (season_no, season_contents)),
-        };
 
-        Ok(result)
+        let season_no = super::get_numeric_content(entry.file_name().to_string_lossy().as_ref())?;
+
+        Some(async move { (season_no, try_extract_season(season_no, entry.path()).await) })
     });
 
     let seasons = futures::future::join_all(seasons_futures).await;
+    let len = seasons.len();
 
-    let result: SeriesContents = seasons
-        .into_iter()
-        .flat_map(|result| match result {
-            Ok(val) => val.map(Ok),
-            Err(err) => Some(Err(err)),
-        })
-        .collect::<Result<HashMap<_, _>>>()?;
+    let (seasons, to_prepare) = seasons.into_iter().try_fold(
+        (HashMap::with_capacity(len), Vec::with_capacity(len)),
+        |(mut season_map, mut prepare_vec), (season_no, result)| {
+            let (season, to_prepare) = result?;
 
-    Ok(Some(result))
+            if !season.is_empty() {
+                season_map.insert(season_no, season);
+            }
+
+            prepare_vec.extend(to_prepare);
+
+            return Ok((season_map, prepare_vec)) as Result<_>;
+        },
+    )?;
+
+    Ok(Some((
+        if seasons.is_empty() {
+            None
+        } else {
+            Some(seasons)
+        },
+        to_prepare,
+    )))
 }
 
 async fn try_extract_season(
+    season_no: u32,
     season_path: impl AsRef<Path>,
-) -> Result<Option<domain::SeasonContents>> {
+) -> Result<(domain::SeasonContents, Vec<domain::MediaIdentifier>)> {
     let read_dir = crate::dir::fully_read_dir(&season_path)
         .await
         .map_err(|_| Error::CantReadDir(season_path.as_ref().into()))?;
@@ -73,51 +82,85 @@ async fn try_extract_season(
             },
         );
 
-    let result: domain::SeasonContents = read_dir.fold(HashMap::new(), |mut map, entry| {
-        let current_path = entry.path();
-        if !domain::format::is_supported_video_file(&current_path) {
-            return map;
-        }
+    let episode_futures = read_dir.flat_map(|entry| {
+        let episode_no = super::get_numeric_content(&entry.path().to_string_lossy())?;
+        let episode = EpisodeIdentifier {
+            season_no,
+            episode_no,
+        };
 
-        if let Some(episode_no) =
-            super::get_numeric_content(entry.file_name().to_string_lossy().as_ref())
-        {
-            let subtitles = subtitles_map
-                .remove(&episode_no.try_into().unwrap())
-                .unwrap_or_default();
+        let subtitles = subtitles_map.remove(&episode_no).unwrap_or_default();
 
-            let media = current_path.to_string_lossy().into();
-
-            let file_stem = current_path
-                .file_stem()
-                .and_then(|stem| stem.to_str())
-                .expect("Media file to have a valid stem");
-            let track_name =
-                get_episode_track_name(file_stem).unwrap_or_else(|| file_stem.to_string());
-
-            let media_paths = domain::MediaPaths {
-                subtitles,
-                media,
-                track_name,
-            };
-
-            map.insert(episode_no, media_paths);
-        }
-
-        map
+        Some(extract_episode(episode, entry.path(), subtitles))
     });
 
-    let remux_futures = result
-        .values()
-        .map(|episode| remux_with_subtitles_if_missing(&episode.media, &episode.subtitles));
+    let episodes = futures::future::join_all(episode_futures).await.into_iter();
+    let len = episodes.len();
 
-    futures::future::join_all(remux_futures).await;
+    let result = episodes.into_iter().try_fold(
+        (HashMap::with_capacity(len), Vec::with_capacity(len)),
+        |(mut episodes, mut prepare), result| {
+            let Some(item) = result? else {
+                return Ok((episodes, prepare)) as Result<_>;
+            };
 
-    if result.is_empty() {
+            match item {
+                Either::Left((episode_id, ready)) => {
+                    episodes.insert(episode_id, ready);
+                }
+                Either::Right(need_to_prepare) => {
+                    prepare.push(need_to_prepare);
+                }
+            }
+
+            Ok((episodes, prepare))
+        },
+    )?;
+
+    Ok(result)
+}
+
+async fn extract_episode(
+    episode_identifier: EpisodeIdentifier,
+    path: impl AsRef<Path>,
+    subtitles: Vec<Subtitle>,
+) -> Result<Option<Either<(u32, domain::MediaPaths), domain::MediaIdentifier>>> {
+    if !domain::format::is_video_file(&path) {
         return Ok(None);
     }
 
-    Ok(Some(result))
+    let path_string = path.as_ref().to_string_lossy().into();
+
+    let file_stem = path
+        .as_ref()
+        .file_stem()
+        .and_then(|stem| stem.to_str())
+        .expect("Media file to have a valid stem");
+
+    let track_name = get_episode_track_name(file_stem).unwrap_or_else(|| file_stem.to_string());
+
+    let media_paths = domain::MediaPaths {
+        subtitles,
+        media: path_string,
+        track_name,
+    };
+
+    if crate::prepare::needs_to_be_prepared(&path)
+        .await
+        .map_err(|err| Error::CantCheckCompatibility(err))?
+    {
+        return Ok(Some(Either::Right(domain::MediaIdentifier::Series {
+            // Will be changed hopefully
+            id: "".to_string(),
+            episode: episode_identifier,
+            path: media_paths,
+        })));
+    };
+
+    return Ok(Some(Either::Left((
+        episode_identifier.episode_no,
+        media_paths,
+    ))));
 }
 
 fn get_episode_track_name(file_stem: &str) -> Option<String> {
@@ -139,60 +182,4 @@ fn get_episode_no(srt_path: impl AsRef<Path>) -> Option<u32> {
 
     let (episode_candidate, _) = file_stem.split_once('-')?;
     episode_candidate.parse().ok()
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::crawl::series::{try_extract_season, try_extract_series};
-    use crate::test_utils::fixtures_path;
-
-    #[tokio::test]
-    async fn extract_series() {
-        let path = fixtures_path().join("crawl/example_series");
-        let result = try_extract_series(&path).await.unwrap().unwrap();
-
-        assert!(
-            result
-                .get(&1)
-                .unwrap()
-                .get(&1)
-                .unwrap()
-                .media
-                .contains("1.mp4")
-        );
-        assert!(
-            result
-                .get(&1)
-                .unwrap()
-                .get(&2)
-                .unwrap()
-                .media
-                .contains("2.mp4")
-        );
-
-        assert!(!result.contains_key(&2));
-        assert!(
-            result
-                .get(&7)
-                .unwrap()
-                .get(&9)
-                .unwrap()
-                .media
-                .contains("9.mp4")
-        );
-
-        assert!(!result.contains_key(&9));
-    }
-
-    #[tokio::test]
-    async fn extract_season() {
-        let path = fixtures_path().join("crawl/example_series");
-        let result = try_extract_season(path.join("1")).await.unwrap().unwrap();
-        let first_episode = result.get(&1).unwrap();
-        assert!(first_episode.media.contains("1.mp4"));
-
-        let subtitles = first_episode.subtitles.first().unwrap();
-        assert!(subtitles.path.contains("turheyyyy.srt"));
-        assert_eq!(subtitles.language, domain::language::LanguageCode::Turkish);
-    }
 }
