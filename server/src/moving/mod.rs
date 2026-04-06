@@ -1,3 +1,4 @@
+mod metadata;
 mod movies;
 mod series;
 

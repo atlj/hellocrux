@@ -2,7 +2,6 @@ use std::path::{Path, PathBuf};
 
 use super::{Error, Result};
 use domain::MediaMetaData;
-use tokio::io::AsyncWriteExt;
 
 use super::sanitize_name_for_url;
 
@@ -26,55 +25,25 @@ pub async fn generate_movie_media(
     };
 
     // 1. Create destination dir
-    {
-        tokio::fs::create_dir_all(&target_dir)
-            .await
-            .map_err(|err| Error::CantCreateDir {
-                path: target_dir.to_path_buf(),
-                inner: err,
-            })?;
-    }
+    tokio::fs::create_dir_all(&target_dir)
+        .await
+        .map_err(|err| Error::CantCreateDir {
+            path: target_dir.to_path_buf(),
+            inner: err,
+        })?;
 
     // 2. Move movie file to destination
-    {
-        let destination = target_dir.join(&file_name);
-        tokio::fs::rename(movie_file, &destination)
-            .await
-            .map_err(|err| Error::CantMove {
-                from: movie_file.to_path_buf(),
-                to: destination,
-                inner: err,
-            })?;
-    }
+    let destination = target_dir.join(&file_name);
+    tokio::fs::rename(movie_file, &destination)
+        .await
+        .map_err(|err| Error::CantMove {
+            from: movie_file.to_path_buf(),
+            to: destination,
+            inner: err,
+        })?;
 
     // 3. Save metadata
-    {
-        let destination = target_dir.join("meta.json");
-        let mut metadata_file = tokio::fs::OpenOptions::new()
-            .create(true)
-            .write(true)
-            .truncate(true)
-            .open(&destination)
-            .await
-            .map_err(|err| Error::CantCreateMetaData {
-                at: destination.clone(),
-                inner: err,
-            })?;
-
-        let metadata_string =
-            serde_json::to_string_pretty(metadata).map_err(|err| Error::CantSerializeMetadata {
-                metadata: metadata.clone(),
-                inner: err,
-            })?;
-
-        metadata_file
-            .write(metadata_string.as_bytes())
-            .await
-            .map_err(|err| Error::CantWriteMetadata {
-                at: destination,
-                inner: err,
-            })?;
-    }
+    super::metadata::save_metadata(&target_dir, metadata.clone()).await?;
 
     Ok(target_dir.join(&file_name))
 }

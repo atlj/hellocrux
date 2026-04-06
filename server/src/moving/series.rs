@@ -8,7 +8,6 @@ use domain::{
     MediaMetaData,
     series::{EditSeriesFileMappingForm, file_mapping_form_state},
 };
-use tokio::io::AsyncWriteExt;
 
 use super::sanitize_name_for_url;
 
@@ -21,7 +20,6 @@ pub async fn generate_series_media(
     let target_dir = media_dir.join(sanitize_name_for_url(&metadata.title));
 
     // 1. Create destination dir
-    // TODO consider extracting this
     {
         tokio::fs::create_dir_all(&target_dir)
             .await
@@ -99,34 +97,7 @@ pub async fn generate_series_media(
     }
 
     // 3. Save metadata
-    // TODO extract this
-    {
-        let destination = target_dir.join("meta.json");
-        let mut metadata_file = tokio::fs::OpenOptions::new()
-            .create(true)
-            .write(true)
-            .truncate(true)
-            .open(&destination)
-            .await
-            .map_err(|err| Error::CantCreateMetaData {
-                at: destination.clone(),
-                inner: err,
-            })?;
-
-        let metadata_string =
-            serde_json::to_string_pretty(metadata).map_err(|err| Error::CantSerializeMetadata {
-                metadata: metadata.clone(),
-                inner: err,
-            })?;
-
-        metadata_file
-            .write(metadata_string.as_bytes())
-            .await
-            .map_err(|err| Error::CantWriteMetadata {
-                at: destination,
-                inner: err,
-            })?;
-    }
+    super::metadata::save_metadata(&target_dir, metadata.clone()).await?;
 
     Ok(resolved_mapping.into_values().collect())
 }
