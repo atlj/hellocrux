@@ -37,8 +37,8 @@ pub enum MediaIdentifier {
     },
     Series {
         id: String,
-        episode: EpisodeIdentifier,
         path: MediaPaths,
+        episode: EpisodeIdentifier,
     },
 }
 
@@ -57,6 +57,15 @@ impl MediaIdentifier {
         }
     }
 
+    pub fn with_path(self, path: MediaPaths) -> Self {
+        match self {
+            MediaIdentifier::Movie { id, .. } => MediaIdentifier::Movie { id, path },
+            MediaIdentifier::Series { id, episode, .. } => {
+                MediaIdentifier::Series { id, episode, path }
+            }
+        }
+    }
+
     pub fn with_id(self, id: String) -> Self {
         match self {
             MediaIdentifier::Movie { path, .. } => MediaIdentifier::Movie { id, path },
@@ -64,6 +73,12 @@ impl MediaIdentifier {
                 MediaIdentifier::Series { id, episode, path }
             }
         }
+    }
+
+    pub fn strip_prefix(self, prefix: impl AsRef<Path>) -> Option<Self> {
+        let path = self.path();
+        let stripped_path = path.strip_prefix(&prefix)?;
+        Some(self.with_path(stripped_path))
     }
 }
 
@@ -201,7 +216,7 @@ pub struct MediaMetaData {
     pub title: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub enum Track {
     Video {
         id: usize,
@@ -236,5 +251,22 @@ impl Track {
             Track::Audio { codec, .. } => is_audio_codec_compatible(codec),
             Track::Subtitle { .. } => true,
         }
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+pub struct TrackSelectionItem {
+    pub media: MediaIdentifier,
+    pub tracks: Vec<Track>,
+}
+
+impl TrackSelectionItem {
+    fn with_media(self, media: MediaIdentifier) -> Self {
+        Self { media, ..self }
+    }
+
+    pub fn strip_prefix(self, prefix: impl AsRef<Path>) -> Option<Self> {
+        let stripped_media = self.media.clone().strip_prefix(prefix)?;
+        Some(self.with_media(stripped_media))
     }
 }

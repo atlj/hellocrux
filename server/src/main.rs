@@ -8,7 +8,7 @@ use clap::Parser;
 use domain::Media;
 use log::{error, info};
 use open_subtitles::OpenSubtitlesClient;
-use server::{AppState, Args, State, download_handlers, subtitle_handlers};
+use server::{AppState, Args, State, download_handlers, prepare, subtitle_handlers};
 use tokio::net::TcpListener;
 use tower_http::services::ServeDir;
 
@@ -118,6 +118,14 @@ async fn main() {
         .route(
             "/subtitles/download",
             post(subtitle_handlers::download_subtitles),
+        )
+        .route(
+            "/prepare/get",
+            get(prepare::handlers::handle_get_preparing_items),
+        )
+        .route(
+            "/prepare/select-tracks",
+            post(prepare::handlers::handle_track_selection),
         )
         .with_state(shared_state);
 

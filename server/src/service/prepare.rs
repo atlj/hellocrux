@@ -4,23 +4,31 @@ use log::{error, info};
 
 pub enum PrepareMessage {
     Prepare(domain::MediaIdentifier),
-    SelectTracks((domain::MediaIdentifier, Vec<domain::Track>)),
+    SelectTracks(domain::TrackSelectionItem),
     Done(domain::MediaIdentifier),
 }
 
 pub type PreparingListWatcher = crate::signal::SignalWatcher<
     PrepareMessage,
-    (Vec<domain::MediaIdentifier>, Vec<domain::MediaIdentifier>),
+    (
+        Vec<domain::MediaIdentifier>,
+        Vec<domain::TrackSelectionItem>,
+    ),
 >;
 pub type PreparingListReceiver = crate::signal::SignalReceiver<
     PrepareMessage,
-    (Vec<domain::MediaIdentifier>, Vec<domain::MediaIdentifier>),
+    (
+        Vec<domain::MediaIdentifier>,
+        Vec<domain::TrackSelectionItem>,
+    ),
 >;
 
 /// Makes media files compatible
+// TODO refactor whole func
 pub fn spawn(
     mut signal_receiver: PreparingListReceiver,
     crate::AppState {
+        media_dir,
         media_signal_watcher,
         preparing_list_watcher,
         ..
@@ -31,8 +39,6 @@ pub fn spawn(
     let mut track_selection_wait_queue = VecDeque::with_capacity(50);
 
     let mut task: Option<tokio::task::JoinHandle<()>> = None;
-
-    
 
     tokio::spawn(async move {
         while let Some(signal) = signal_receiver.signal_receiver.recv().await {
@@ -58,27 +64,34 @@ pub fn spawn(
                             preparing_queue.push_back((media_identifier, track_selections));
                         }
                         None => {
-                            track_selection_wait_queue.push_back(media_identifier);
+                            let tracks = match ffmpeg::get_tracks(&media_identifier.path().media)
+                                .await
+                                .and_then(|tracks| tracks.collect::<Result<Vec<_>, _>>())
+                            {
+                                Ok(tracks) => tracks,
+                                Err(err) => {
+                                    error!(
+                                        "Couldn't determine tracks for media {media_identifier:#?}. Ignoring it. {err}"
+                                    );
+                                    continue;
+                                }
+                            };
+
+                            info!("Awaiting track selection to prepare {media_identifier:#?}.");
+                            track_selection_wait_queue.push_back(domain::TrackSelectionItem {
+                                media: media_identifier,
+                                tracks,
+                            });
                         }
                     }
                 }
-                PrepareMessage::SelectTracks((media_identifier, tracks)) => {
-                    let selections = tracks
-                        .into_iter()
-                        .map(|track| {
-                            ffmpeg::TrackExt::into_selection(
-                                track,
-                                media_identifier.path().media.clone().into(),
-                            )
-                        })
-                        .collect::<Vec<_>>();
-
+                PrepareMessage::SelectTracks(domain::TrackSelectionItem { media, tracks }) => {
                     let Some(index) =
                         track_selection_wait_queue
                             .iter()
                             .enumerate()
                             .find_map(|(idx, current)| {
-                                if current.id() == media_identifier.id() {
+                                if current.media.id() == media.id() {
                                     Some(idx)
                                 } else {
                                     None
@@ -86,14 +99,29 @@ pub fn spawn(
                             })
                     else {
                         error!(
-                            "Provided track selection for {media_identifier:#?} but looks like tracks were already provided. Ignoring it."
+                            "Provided track selection for {media:#?} but looks like tracks were already provided. Ignoring it."
                         );
                         continue;
                     };
 
-                    track_selection_wait_queue.remove(index);
+                    let media = &track_selection_wait_queue
+                        .get(index)
+                        .expect("We already found the index")
+                        .media;
+
+                    let selections = tracks
+                        .into_iter()
+                        .map(|track| {
+                            ffmpeg::TrackExt::into_selection(
+                                track,
+                                media.path().media.clone().into(),
+                            )
+                        })
+                        .collect::<Vec<_>>();
+
                     // TODO: dedupe
-                    preparing_queue.push_back((media_identifier, selections));
+                    preparing_queue.push_back((media.clone(), selections));
+                    track_selection_wait_queue.remove(index);
                 }
                 PrepareMessage::Done(media_identifier) => {
                     // 1c. Last task was done, update task list
@@ -112,7 +140,8 @@ pub fn spawn(
                         );
                     }
 
-                    match preparing_queue.front()
+                    match preparing_queue
+                        .front()
                         .map(|(first_id, _)| first_id == &media_identifier)
                     {
                         Some(true) => {
@@ -131,8 +160,17 @@ pub fn spawn(
             if signal_receiver
                 .updater
                 .send((
-                    preparing_queue.iter().cloned().map(|(id, _)| id).collect(),
-                    track_selection_wait_queue.clone().into(),
+                    preparing_queue
+                        .iter()
+                        .cloned()
+                        .map(|(id, _)| id)
+                        .flat_map(|id| id.strip_prefix(&media_dir))
+                        .collect(),
+                    track_selection_wait_queue
+                        .iter()
+                        .cloned()
+                        .flat_map(|item| item.strip_prefix(&media_dir))
+                        .collect(),
                 ))
                 .is_err()
             {
@@ -141,12 +179,13 @@ pub fn spawn(
 
             // 3. Start working on a task if none present
             if task.is_none()
-                && let Some((head_id, head_track_selections)) = preparing_queue.front().cloned() {
-                    let sender = preparing_list_watcher.signal_sender.clone();
-                    task = Some(tokio::spawn(async move {
-                        prepare(sender, head_id, head_track_selections).await;
-                    }))
-                }
+                && let Some((head_id, head_track_selections)) = preparing_queue.front().cloned()
+            {
+                let sender = preparing_list_watcher.signal_sender.clone();
+                task = Some(tokio::spawn(async move {
+                    prepare(sender, head_id, head_track_selections).await;
+                }))
+            }
         }
     })
 }

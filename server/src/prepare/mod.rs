@@ -3,6 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+pub mod handlers;
 use log::info;
 
 pub async fn prepare_media(
