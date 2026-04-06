@@ -33,9 +33,10 @@ pub async fn spawn(
                     let (media_library, prepare_list) =
                         crate::crawl::crawl_all_folders(media_dir.to_string_lossy().as_ref()).await;
 
-                    info!("Found {:#?} media items", media_library.len());
+                    info!("Found {} media items", media_library.len());
 
-                    {
+                    if !prepare_list.is_empty() {
+                        info!("{} media items need to be prepared", prepare_list.len());
                         let prepare_futures = prepare_list.into_iter().map(|identifier| {
                             prepare_signal_watcher
                                 .signal_sender
@@ -60,12 +61,17 @@ pub async fn spawn(
                                 media_library.insert(media_id, new_media);
                             }
 
-                            let prepare_futures = prepare_list.into_iter().map(|identifier| {
-                                prepare_signal_watcher.signal_sender.send(
-                                    crate::service::prepare::PrepareMessage::Prepare(identifier),
-                                )
-                            });
-                            futures::future::join_all(prepare_futures).await;
+                            if !prepare_list.is_empty() {
+                                info!("{} media items need to be prepared", prepare_list.len());
+                                let prepare_futures = prepare_list.into_iter().map(|identifier| {
+                                    prepare_signal_watcher.signal_sender.send(
+                                        crate::service::prepare::PrepareMessage::Prepare(
+                                            identifier,
+                                        ),
+                                    )
+                                });
+                                futures::future::join_all(prepare_futures).await;
+                            }
                         }
                         None => {
                             media_library.remove(&media_id);

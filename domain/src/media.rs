@@ -192,7 +192,7 @@ pub fn is_video_codec_compatible(video_codec: &str) -> bool {
 }
 
 pub fn is_audio_codec_compatible(audio_codec: &str) -> bool {
-    matches!(audio_codec, "aac" | "eac3")
+    matches!(audio_codec, "ac3" | "aac" | "eac3")
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]

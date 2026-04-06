@@ -1,5 +1,7 @@
 use std::path::{Path, PathBuf};
 
+use log::info;
+
 pub async fn prepare_media(
     media_identifier: &domain::MediaIdentifier,
     track_selections: impl IntoIterator<Item = ffmpeg::TrackSelection>,
@@ -89,13 +91,22 @@ pub async fn needs_to_be_prepared(path: impl AsRef<Path>) -> Result<bool> {
         .unwrap_or(false);
 
     if !is_container_compatible {
+        info!(
+            "Media at {} needs to be prepared because its container isn't compatible",
+            path.as_ref().display()
+        );
         return Ok(true);
     }
 
     // 2. Check tracks
     let tracks = ffmpeg::get_tracks(&path).await?;
     for track in tracks {
-        if !track?.is_codec_compatible() {
+        let track = track?;
+        if !track.is_codec_compatible() {
+            info!(
+                "Media at {} needs to be prepared because one of its tracks ({track:#?}) isn't compatible.",
+                path.as_ref().display()
+            );
             return Ok(true);
         }
     }
