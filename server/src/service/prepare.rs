@@ -24,7 +24,6 @@ pub type PreparingListReceiver = crate::signal::SignalReceiver<
 >;
 
 /// Makes media files compatible
-// TODO refactor whole func
 pub fn spawn(
     mut signal_receiver: PreparingListReceiver,
     crate::AppState {
@@ -42,8 +41,10 @@ pub fn spawn(
 
     tokio::spawn(async move {
         while let Some(signal) = signal_receiver.signal_receiver.recv().await {
+            // 1. Handle Message
             match signal {
                 PrepareMessage::Prepare(media_identifier) => {
+                    // 1. See if we can queue the item immediately
                     let default_track_selections = match crate::prepare::default_track_selections(
                         &media_identifier.path().media,
                     )
@@ -61,9 +62,11 @@ pub fn spawn(
                     // TODO: dedupe
                     match default_track_selections {
                         Some(track_selections) => {
+                            // 2a. Media is good to go, enqueue it
                             preparing_queue.push_back((media_identifier, track_selections));
                         }
                         None => {
+                            // 2b. Media needs user input, put it to pending list.
                             let tracks = match ffmpeg::get_tracks(&media_identifier.path().media)
                                 .await
                                 .and_then(|tracks| tracks.collect::<Result<Vec<_>, _>>())
@@ -85,30 +88,24 @@ pub fn spawn(
                         }
                     }
                 }
-                PrepareMessage::SelectTracks(domain::TrackSelectionItem { media, tracks }) => {
-                    let Some(index) =
-                        track_selection_wait_queue
-                            .iter()
-                            .enumerate()
-                            .find_map(|(idx, current)| {
-                                if current.media.id() == media.id() {
-                                    Some(idx)
-                                } else {
-                                    None
-                                }
-                            })
+                PrepareMessage::SelectTracks(domain::TrackSelectionItem {
+                    media: user_provided_media,
+                    tracks,
+                }) => {
+                    // 1. Get the right item from our internal list
+                    let Some((index, item)) = track_selection_wait_queue
+                        .iter()
+                        .enumerate()
+                        .find(|(_, current)| current.media.id() == user_provided_media.id())
                     else {
                         error!(
-                            "Provided track selection for {media:#?} but looks like tracks were already provided. Ignoring it."
+                            "Provided track selection for {user_provided_media:#?} but looks like tracks were already provided. Ignoring it."
                         );
                         continue;
                     };
+                    let media = &item.media;
 
-                    let media = &track_selection_wait_queue
-                        .get(index)
-                        .expect("We already found the index")
-                        .media;
-
+                    // 2. Convert user provided tracks to selections
                     let selections = tracks
                         .into_iter()
                         .map(|track| {
@@ -119,15 +116,17 @@ pub fn spawn(
                         })
                         .collect::<Vec<_>>();
 
+                    // 3. If all good, put the item to queue and remove it from pending list
                     // TODO: dedupe
                     preparing_queue.push_back((media.clone(), selections));
                     track_selection_wait_queue.remove(index);
                 }
                 PrepareMessage::Done(media_identifier) => {
-                    // 1c. Last task was done, update task list
+                    // 1. Last task was done, ready to run next item
                     task = None;
 
-                    // Tell media lib to recrawl
+                    // 2. Tell media lib to recrawl (this may lead to an infinite loop)
+                    // TODO implement loop detection
                     if let Err(err) = media_signal_watcher
                         .signal_sender
                         .send(crate::service::media::MediaSignal::CrawlPartial {
@@ -140,6 +139,7 @@ pub fn spawn(
                         );
                     }
 
+                    // 3. Remove from queue
                     match preparing_queue
                         .front()
                         .map(|(first_id, _)| first_id == &media_identifier)

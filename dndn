@@ -1,3 +1,7 @@
+/Users/burakguner/kod/hellocrux/ffmpeg/src/spawn.rs
+64
+remove styling tags using -c:s text while doing subs extraction
+
 /Users/burakguner/kod/hellocrux/ffmpeg/src/encode.rs
 167
 override the hevc tag
