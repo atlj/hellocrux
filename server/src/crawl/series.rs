@@ -5,7 +5,7 @@ use log::error;
 use super::{Error, Result};
 use std::{collections::HashMap, path::Path};
 
-pub(super) async fn try_extract_series(
+pub(super) async fn crawl_series(
     path: impl AsRef<Path>,
 ) -> Result<Option<(Option<domain::SeriesContents>, Vec<domain::MediaIdentifier>)>> {
     let read_dir = crate::dir::fully_read_dir(&path)

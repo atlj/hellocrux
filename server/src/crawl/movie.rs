@@ -4,7 +4,7 @@ use either::Either;
 use super::{Error, Result};
 use std::path::Path;
 
-pub(super) async fn try_extract_movie(
+pub(super) async fn crawl_movie(
     media_path: impl AsRef<Path>,
 ) -> Result<Option<Either<domain::MediaPaths, domain::MediaIdentifier>>> {
     let mut read_dir = crate::dir::fully_read_dir(&media_path)

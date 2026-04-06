@@ -43,8 +43,6 @@ pub(crate) async fn crawl_all_folders(
     let media = futures::future::join_all(crawl_futures).await;
     let len = media.len();
 
-    
-
     media.into_iter().fold(
         (HashMap::with_capacity(len), Vec::with_capacity(len)),
         |(mut media, mut to_prepare), result| {
@@ -70,7 +68,7 @@ pub(crate) async fn crawl_folder(
     // Movies that need to be prepared
     Vec<domain::MediaIdentifier>,
 )> {
-    let (media, to_prepare) = try_extract_media(&path)
+    let (media, to_prepare) = crawl_media(&path)
         .await
         .inspect_err(|err| warn!("Couldn't extract media content from {path}. Reason: {err}"))
         .ok()?;
@@ -96,7 +94,7 @@ pub(crate) async fn crawl_folder(
     Some((media, to_prepare))
 }
 
-async fn try_extract_media(
+async fn crawl_media(
     path: impl AsRef<Path>,
 ) -> Result<(Option<Media>, Vec<domain::MediaIdentifier>)> {
     let id: String = path
@@ -105,8 +103,8 @@ async fn try_extract_media(
         .next_back()
         .map(|last| last.as_os_str().to_string_lossy().into())
         .ok_or_else(|| Error::CantReadDir(path.as_ref().into()))?;
-    let metadata = try_extract_metadata(&path).await?;
-    let (content, to_prepare_improper_ids) = try_extract_media_content(&path).await?;
+    let metadata = crawl_metadata(&path).await?;
+    let (content, to_prepare_improper_ids) = crawl_media_content(&path).await?;
     let to_prepare = to_prepare_improper_ids
         .into_iter()
         .map(|identifier| identifier.with_id(id.clone()))
@@ -124,10 +122,10 @@ async fn try_extract_media(
     Ok(result)
 }
 
-async fn try_extract_media_content(
+async fn crawl_media_content(
     path: impl AsRef<Path>,
 ) -> Result<(Option<MediaContent>, Vec<domain::MediaIdentifier>)> {
-    if let Some(movie) = movie::try_extract_movie(&path).await? {
+    if let Some(movie) = movie::crawl_movie(&path).await? {
         let result = match movie {
             either::Either::Left(movie_path) => (Some(MediaContent::Movie(movie_path)), Vec::new()),
             either::Either::Right(to_prepare) => (None, vec![to_prepare]),
@@ -136,17 +134,14 @@ async fn try_extract_media_content(
         return Ok(result);
     }
 
-    if let Some((seasons, to_prepare)) = series::try_extract_series(&path).await? {
-        return Ok((
-            (seasons.map(MediaContent::Series)),
-            to_prepare,
-        ));
+    if let Some((seasons, to_prepare)) = series::crawl_series(&path).await? {
+        return Ok(((seasons.map(MediaContent::Series)), to_prepare));
     }
 
     Err(Error::NoMediaContent)
 }
 
-async fn try_extract_metadata(path: impl AsRef<Path>) -> Result<MediaMetaData> {
+async fn crawl_metadata(path: impl AsRef<Path>) -> Result<MediaMetaData> {
     let metadata_string = {
         let mut metadata_file = OpenOptions::new()
             .read(true)
@@ -175,14 +170,14 @@ fn get_numeric_content(string: &str) -> Option<u32> {
 
 #[cfg(test)]
 mod tests {
-    use super::{get_numeric_content, try_extract_metadata};
+    use super::{crawl_metadata, get_numeric_content};
 
     use crate::test_utils::fixtures_path;
 
     #[tokio::test]
     async fn test_extract_metadata() {
         let path = fixtures_path().join("crawl/example_movie");
-        try_extract_metadata(path).await.unwrap();
+        crawl_metadata(path).await.unwrap();
     }
 
     #[test]
