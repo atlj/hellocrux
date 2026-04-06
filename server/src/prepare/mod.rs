@@ -11,6 +11,9 @@ pub async fn prepare_media(
     track_selections: impl IntoIterator<Item = ffmpeg::TrackSelection>,
 ) -> Result<()> {
     let media_path: &Path = media_identifier.path().media.as_ref();
+    let parent_folder = media_path
+        .parent()
+        .expect("Media should have a parent folder");
     let should_override_container = media_path
         .extension()
         .and_then(|extension| extension.to_str())
@@ -19,7 +22,85 @@ pub async fn prepare_media(
 
     // TODO ensure all track selections are included in tracks
 
-    // TODO first extract all missing subs to subs folder
+    // Extract all subs
+    let missing_external_subtitles = ffmpeg::get_tracks(&media_path)
+        .await?
+        .filter_map(|track| {
+            let Ok(track) = track else { return None };
+
+            let domain::Track::Subtitle {
+                id,
+                language,
+                external_id,
+            } = track
+            else {
+                return None;
+            };
+
+            if let Some(external_id) = &external_id {
+                if media_identifier
+                    .path()
+                    .subtitles
+                    .iter()
+                    .find(|external_sub| &external_sub.id == external_id)
+                    .is_some()
+                {
+                    return None;
+                }
+            }
+
+            Some((id, language, external_id))
+        })
+        .collect::<Vec<_>>();
+
+    if !missing_external_subtitles.is_empty() {
+        info!(
+            "{} subtitles are embedded to {} but don't have .srt counterparts, generating them.",
+            missing_external_subtitles.len(),
+            media_path.display()
+        );
+
+        let subs_folder = parent_folder.join("subtitles");
+
+        let track_mapping =
+            missing_external_subtitles
+                .into_iter()
+                .map(|(track_id, language, external_id)| {
+                    let language = match language {
+                        Some(language) => language,
+                        None => {
+                            info!(
+                                "Subtitle track with id {track_id} at {} doesn't have a language tag. Defaulting to English.",
+                                media_path.display()
+                            );
+                            domain::language::LanguageCode::English
+                        }
+                    };
+
+                    let external_id = external_id.unwrap_or_else(|| {
+                        let uuid = uuid::Uuid::new_v4();
+                        // Dashes might interfere with out parsing
+                        uuid.to_string().replace("-", "0")
+                    });
+
+                    let file_name = match media_identifier {
+                        domain::MediaIdentifier::Movie { .. } => {
+                            format!("{}-{}.srt", language.to_iso639_2t(), external_id)
+                        }
+                        domain::MediaIdentifier::Series { episode, .. } => format!(
+                            "{}-{}-{}.srt",
+                            episode.episode_no,
+                            language.to_iso639_2t(),
+                            external_id
+                        ),
+                    };
+
+                    let output_path = subs_folder.join(file_name).to_string_lossy().to_string();
+                    (track_id, output_path)
+                }).collect();
+
+        ffmpeg::extract_tracks(media_path.to_string_lossy().to_string(), track_mapping).await?;
+    }
 
     // Not each track needs to be converted, then just use `copy` to remux
     let converted_tracks = track_selections
