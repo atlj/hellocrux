@@ -5,6 +5,7 @@ use super::{Error, Result};
 use std::path::Path;
 
 pub(super) async fn crawl_movie(
+    id: String,
     media_path: impl AsRef<Path>,
 ) -> Result<Option<Either<domain::MediaPaths, domain::MediaIdentifier>>> {
     let mut read_dir = crate::dir::fully_read_dir(&media_path)
@@ -47,8 +48,7 @@ pub(super) async fn crawl_movie(
         .map_err(Error::CantCheckCompatibility)?
     {
         return Ok(Some(Either::Right(domain::MediaIdentifier::Movie {
-            // Will be replaced (hopefully)
-            id: "".to_string(),
+            id,
             path: media_paths,
         })));
     }

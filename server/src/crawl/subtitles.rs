@@ -5,7 +5,7 @@ use log::{debug, error};
 
 use crate::dir::fully_read_dir;
 
-/// Fetch all subtitles from media path
+/// Get all subtitles from media path
 ///
 /// This will read the subtitles directory, go through all available files and return a collection
 /// of all subtitles.

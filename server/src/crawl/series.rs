@@ -6,13 +6,14 @@ use super::{Error, Result};
 use std::{collections::HashMap, path::Path};
 
 pub(super) async fn crawl_series(
+    id: String,
     path: impl AsRef<Path>,
 ) -> Result<Option<(Option<domain::SeriesContents>, Vec<domain::MediaIdentifier>)>> {
     let read_dir = crate::dir::fully_read_dir(&path)
         .await
         .map_err(|_| Error::CantReadDir(path.as_ref().into()))?;
 
-    let seasons_futures = read_dir.flat_map(|entry| {
+    let crawl_season_futures = read_dir.flat_map(|entry| {
         let current_path = entry.path();
         if current_path.is_file() {
             return None;
@@ -20,10 +21,11 @@ pub(super) async fn crawl_series(
 
         let season_no = super::get_numeric_content(entry.file_name().to_string_lossy().as_ref())?;
 
-        Some(async move { (season_no, try_extract_season(season_no, entry.path()).await) })
+        let id = id.clone();
+        Some(async move { (season_no, crawl_season(id, season_no, entry.path()).await) })
     });
 
-    let seasons = futures::future::join_all(seasons_futures).await;
+    let seasons = futures::future::join_all(crawl_season_futures).await;
     let len = seasons.len();
 
     let (seasons, to_prepare) = seasons.into_iter().try_fold(
@@ -51,7 +53,8 @@ pub(super) async fn crawl_series(
     )))
 }
 
-async fn try_extract_season(
+async fn crawl_season(
+    id: String,
     season_no: u32,
     season_path: impl AsRef<Path>,
 ) -> Result<(domain::SeasonContents, Vec<domain::MediaIdentifier>)> {
@@ -91,7 +94,12 @@ async fn try_extract_season(
 
         let subtitles = subtitles_map.remove(&episode_no).unwrap_or_default();
 
-        Some(extract_episode(episode, entry.path(), subtitles))
+        Some(extract_episode(
+            id.clone(),
+            episode,
+            entry.path(),
+            subtitles,
+        ))
     });
 
     let episodes = futures::future::join_all(episode_futures).await.into_iter();
@@ -121,6 +129,7 @@ async fn try_extract_season(
 }
 
 async fn extract_episode(
+    id: String,
     episode_identifier: EpisodeIdentifier,
     path: impl AsRef<Path>,
     subtitles: Vec<Subtitle>,
@@ -150,8 +159,7 @@ async fn extract_episode(
         .map_err(Error::CantCheckCompatibility)?
     {
         return Ok(Some(Either::Right(domain::MediaIdentifier::Series {
-            // Will be changed hopefully
-            id: "".to_string(),
+            id,
             episode: episode_identifier,
             path: media_paths,
         })));

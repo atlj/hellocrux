@@ -104,11 +104,7 @@ async fn crawl_media(
         .map(|last| last.as_os_str().to_string_lossy().into())
         .ok_or_else(|| Error::CantReadDir(path.as_ref().into()))?;
     let metadata = crawl_metadata(&path).await?;
-    let (content, to_prepare_improper_ids) = crawl_media_content(&path).await?;
-    let to_prepare = to_prepare_improper_ids
-        .into_iter()
-        .map(|identifier| identifier.with_id(id.clone()))
-        .collect();
+    let (content, to_prepare) = crawl_media_content(id.clone(), &path).await?;
 
     let result = (
         content.map(|content| Media {
@@ -123,9 +119,11 @@ async fn crawl_media(
 }
 
 async fn crawl_media_content(
+    id: String,
     path: impl AsRef<Path>,
 ) -> Result<(Option<MediaContent>, Vec<domain::MediaIdentifier>)> {
-    if let Some(movie) = movie::crawl_movie(&path).await? {
+    // 1. Is it a movie?
+    if let Some(movie) = movie::crawl_movie(id.clone(), &path).await? {
         let result = match movie {
             either::Either::Left(movie_path) => (Some(MediaContent::Movie(movie_path)), Vec::new()),
             either::Either::Right(to_prepare) => (None, vec![to_prepare]),
@@ -134,10 +132,12 @@ async fn crawl_media_content(
         return Ok(result);
     }
 
-    if let Some((seasons, to_prepare)) = series::crawl_series(&path).await? {
+    // 2. Then perhaps it's a TV series
+    if let Some((seasons, to_prepare)) = series::crawl_series(id, &path).await? {
         return Ok(((seasons.map(MediaContent::Series)), to_prepare));
     }
 
+    // 3. It was nothing
     Err(Error::NoMediaContent)
 }
 
