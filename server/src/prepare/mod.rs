@@ -1,4 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::{
+    collections::HashSet,
+    path::{Path, PathBuf},
+};
 
 use log::info;
 
@@ -10,10 +13,12 @@ pub async fn prepare_media(
     let should_override_container = media_path
         .extension()
         .and_then(|extension| extension.to_str())
-        .map(domain::is_container_compatible)
+        .map(|ext| !domain::is_container_compatible(ext))
         .unwrap_or(true);
 
     // TODO ensure all track selections are included in tracks
+
+    // TODO first extract all missing subs to subs folder
 
     // Not each track needs to be converted, then just use `copy` to remux
     let converted_tracks = track_selections
@@ -21,22 +26,29 @@ pub async fn prepare_media(
         .map(|selection| match &selection {
             ffmpeg::TrackSelection::Video { codec, .. } => {
                 if domain::is_video_codec_compatible(codec) {
-                    selection.with_codec(domain::DEFAULT_VIDEO_CODEC.to_string())
-                } else {
                     selection.with_codec("copy".to_string())
+                } else {
+                    selection.with_codec(domain::DEFAULT_VIDEO_CODEC.to_string())
                 }
             }
             ffmpeg::TrackSelection::Audio { codec, .. } => {
                 if domain::is_audio_codec_compatible(codec) {
-                    selection.with_codec(domain::DEFAULT_AUDIO_CODEC.to_string())
-                } else {
                     selection.with_codec("copy".to_string())
+                } else {
+                    selection.with_codec(domain::DEFAULT_AUDIO_CODEC.to_string())
                 }
             }
             _ => selection,
         });
 
-    // TODO also embed subtitles here
+    let sub_tracks = media_identifier.path().subtitles.iter().map(|sub| -> _ {
+        ffmpeg::TrackSelection::Subtitle {
+            input_path: sub.path.clone().into(),
+            track_id: 0,
+            language: Some(sub.language.clone()),
+            external_id: Some(sub.id.clone()),
+        }
+    });
 
     let temp_dir = tempfile::tempdir()?;
     let file_stem: &Path = media_path
@@ -57,22 +69,32 @@ pub async fn prepare_media(
         .path()
         .join(file_stem.with_added_extension(extension));
 
-    ffmpeg::encode_video(converted_tracks.collect(), &temp_path).await?;
+    ffmpeg::encode_video(converted_tracks.chain(sub_tracks).collect(), &temp_path).await?;
 
-    tokio::fs::copy(&temp_path, media_path)
+    // If we override container, original file still exists since
+    // copy didn't override it
+    if should_override_container {
+        tokio::fs::copy(
+            &temp_path,
+            media_path.with_extension(domain::DEFAULT_CONTAINER_FORMAT),
+        )
         .await
         .map_err(|inner| Error::CantCopy {
             from: temp_path,
             to: media_path.to_path_buf(),
             inner,
         })?;
-
-    // If we override container, original file still exists since
-    // copy didn't override it
-    if should_override_container {
         tokio::fs::remove_file(media_path)
             .await
             .map_err(Error::CantDeleteOriginal)?
+    } else {
+        tokio::fs::copy(&temp_path, media_path)
+            .await
+            .map_err(|inner| Error::CantCopy {
+                from: temp_path,
+                to: media_path.to_path_buf(),
+                inner,
+            })?;
     }
 
     Ok(())
@@ -81,10 +103,11 @@ pub async fn prepare_media(
 /// Checks whether media needs to be prepared for compatibility.
 ///
 /// If this returns `true`, pass the media to `prepare` service.
-pub async fn needs_to_be_prepared(path: impl AsRef<Path>) -> Result<bool> {
+pub async fn needs_to_be_prepared(media_paths: &domain::MediaPaths) -> Result<bool> {
+    let path: &Path = media_paths.media.as_ref();
+
     // 1. Check container
     let is_container_compatible = path
-        .as_ref()
         .extension()
         .and_then(|ext| ext.to_str())
         .map(domain::is_container_compatible)
@@ -93,22 +116,61 @@ pub async fn needs_to_be_prepared(path: impl AsRef<Path>) -> Result<bool> {
     if !is_container_compatible {
         info!(
             "Media at {} needs to be prepared because its container isn't compatible",
-            path.as_ref().display()
+            path.display()
         );
         return Ok(true);
     }
 
     // 2. Check tracks
     let tracks = ffmpeg::get_tracks(&path).await?;
+    let mut external_id_set: HashSet<String> =
+        HashSet::from_iter(media_paths.subtitles.clone().into_iter().map(|sub| sub.id));
+
     for track in tracks {
         let track = track?;
+        // 2a. Check codec
         if !track.is_codec_compatible() {
             info!(
                 "Media at {} needs to be prepared because one of its tracks ({track:#?}) isn't compatible.",
-                path.as_ref().display()
+                path.display()
             );
             return Ok(true);
         }
+
+        if let domain::Track::Subtitle { external_id, .. } = &track {
+            // 2b. Check if subtitle is included in subs folder
+            if external_id
+                .as_ref()
+                .and_then(|external_id| {
+                    media_paths
+                        .subtitles
+                        .iter()
+                        .find(|sub| &sub.id == external_id)
+                })
+                .is_none()
+            {
+                info!(
+                    "Media at {} needs to be prepared because it has a subtitle track ({track:#?}) that's not a part of subtitle lib.",
+                    path.display()
+                );
+                return Ok(true);
+            };
+
+            // 2c. Remove sub from external subs list so we can find out what's missing
+            if let Some(external_id) = external_id {
+                external_id_set.remove(external_id);
+            }
+        }
+    }
+
+    // 3. Make sure all external ids were removed from the list
+    if let Some(remaining) = external_id_set.into_iter().next() {
+        info!(
+            "Media at {} needs to be prepared because it is missing a subtitle track for subtitle with id {}",
+            path.display(),
+            remaining
+        );
+        return Ok(true);
     }
 
     Ok(false)

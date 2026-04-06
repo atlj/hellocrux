@@ -22,7 +22,11 @@ pub(super) async fn crawl_movie(
         return Ok(None);
     };
 
-    let subtitles: Vec<Subtitle> = crate::crawl::subtitles::extract_subtitles(&media_path).await?;
+    let subtitles: Vec<Subtitle> = crate::crawl::subtitles::crawl_subtitles(&media_path)
+        .await?
+        .into_iter()
+        .map(|(_, sub)| sub)
+        .collect();
 
     let file_stem = (movie_path.as_ref() as &Path)
         .file_stem()
@@ -38,7 +42,7 @@ pub(super) async fn crawl_movie(
         track_name,
     };
 
-    if crate::prepare::needs_to_be_prepared(&movie_path)
+    if crate::prepare::needs_to_be_prepared(&media_paths)
         .await
         .map_err(Error::CantCheckCompatibility)?
     {

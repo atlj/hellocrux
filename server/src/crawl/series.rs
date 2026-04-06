@@ -59,12 +59,12 @@ async fn try_extract_season(
         .await
         .map_err(|_| Error::CantReadDir(season_path.as_ref().into()))?;
 
-    let all_subtitles = crate::crawl::subtitles::extract_subtitles(&season_path).await?;
+    let all_subtitles = crate::crawl::subtitles::crawl_subtitles(&season_path).await?;
     let len = all_subtitles.len();
     let mut subtitles_map: HashMap<u32, Vec<Subtitle>> = all_subtitles
         .into_iter()
-        .flat_map(|subtitle| {
-            let Some(episode_no) = get_episode_no(&subtitle.path) else {
+        .flat_map(|(episode_no, subtitle)| {
+            let Some(episode_no) = episode_no else {
                 error!(
                     "Subtitle at {} has no episode no. Ignoring it.",
                     &subtitle.path
@@ -83,7 +83,7 @@ async fn try_extract_season(
         );
 
     let episode_futures = read_dir.flat_map(|entry| {
-        let episode_no = super::get_numeric_content(&entry.path().to_string_lossy())?;
+        let episode_no = super::get_numeric_content(&entry.file_name().to_string_lossy())?;
         let episode = EpisodeIdentifier {
             season_no,
             episode_no,
@@ -145,7 +145,7 @@ async fn extract_episode(
         track_name,
     };
 
-    if crate::prepare::needs_to_be_prepared(&path)
+    if crate::prepare::needs_to_be_prepared(&media_paths)
         .await
         .map_err(Error::CantCheckCompatibility)?
     {
@@ -171,15 +171,4 @@ fn get_episode_track_name(file_stem: &str) -> Option<String> {
     }
 
     domain::encode_decode::decode_url_safe(encoded_part).ok()
-}
-
-fn get_episode_no(srt_path: impl AsRef<Path>) -> Option<u32> {
-    let file_stem = srt_path
-        .as_ref()
-        .file_stem()
-        .and_then(|file_stem| file_stem.to_str())
-        .expect("Subtitle to have valid stem");
-
-    let (episode_candidate, _) = file_stem.split_once('-')?;
-    episode_candidate.parse().ok()
 }
