@@ -37,23 +37,16 @@ pub async fn prepare_media(
                 return None;
             };
 
-            if let Some(external_id) = &external_id {
-                if media_identifier
-                    .path()
-                    .subtitles
-                    .iter()
-                    .find(|external_sub| &external_sub.id == external_id)
-                    .is_some()
-                {
-                    return None;
-                }
+            if external_id.is_some() {
+                return None;
             }
 
-            Some((id, language, external_id))
+            Some((id, language))
         })
         .collect::<Vec<_>>();
 
-    if !missing_external_subtitles.is_empty() {
+    // TODO: extract
+    let new_subs = if !missing_external_subtitles.is_empty() {
         info!(
             "{} subtitles are embedded to {} but don't have .srt counterparts, generating them.",
             missing_external_subtitles.len(),
@@ -62,49 +55,60 @@ pub async fn prepare_media(
 
         let subs_folder = parent_folder.join("subtitles");
 
-        let track_mapping =
-            missing_external_subtitles
-                .into_iter()
-                .map(|(track_id, language, external_id)| {
-                    let language = match language {
-                        Some(language) => language,
-                        None => {
-                            info!(
-                                "Subtitle track with id {track_id} at {} doesn't have a language tag. Defaulting to English.",
-                                media_path.display()
-                            );
-                            domain::language::LanguageCode::English
-                        }
-                    };
+        let (new_subs, track_mapping): (Vec<_>, Vec<_>) = missing_external_subtitles
+            .into_iter()
+            .map(|(track_id, language)| {
+                let language = match language {
+                    Some(language) => language,
+                    None => {
+                        info!(
+                            "Subtitle track with id {track_id} at {} doesn't have a language tag. Defaulting to English.",
+                            media_path.display()
+                        );
+                        domain::language::LanguageCode::English
+                    }
+                };
 
-                    let external_id = external_id.unwrap_or_else(|| {
-                        let uuid = uuid::Uuid::new_v4();
-                        // Dashes might interfere with out parsing
-                        uuid.to_string().replace("-", "0")
-                    });
+                let uuid = uuid::Uuid::new_v4();
+                // Dashes might interfere with out parsing
+                let external_id = uuid.to_string().replace("-", "0");
 
-                    let file_name = match media_identifier {
-                        domain::MediaIdentifier::Movie { .. } => {
-                            format!("{}-{}.srt", language.to_iso639_2t(), external_id)
-                        }
-                        domain::MediaIdentifier::Series { episode, .. } => format!(
-                            "{}-{}-{}.srt",
-                            episode.episode_no,
-                            language.to_iso639_2t(),
-                            external_id
-                        ),
-                    };
+                let file_name = match media_identifier {
+                    domain::MediaIdentifier::Movie { .. } => {
+                        format!("{}-{}.srt", language.to_iso639_2t(), external_id)
+                    }
+                    domain::MediaIdentifier::Series { episode, .. } => format!(
+                        "{}-{}-{}.srt",
+                        episode.episode_no,
+                        language.to_iso639_2t(),
+                        external_id
+                    ),
+                };
 
-                    let output_path = subs_folder.join(file_name).to_string_lossy().to_string();
-                    (track_id, output_path)
-                }).collect();
+                let output_path = subs_folder.join(file_name).to_string_lossy().to_string();
+                (
+                    domain::subtitles::Subtitle {
+                        id: external_id,
+                        language,
+                        path: output_path.clone(),
+                    },
+                    (track_id, output_path),
+                )
+            })
+            .unzip();
 
+        tokio::fs::create_dir_all(subs_folder).await?;
         ffmpeg::extract_tracks(media_path.to_string_lossy().to_string(), track_mapping).await?;
-    }
+        new_subs
+    } else {
+        vec![]
+    };
 
     // Not each track needs to be converted, then just use `copy` to remux
     let converted_tracks = track_selections
         .into_iter()
+        // Don't include subtitles with selections, they are handled separately
+        .filter(|selection| !matches!(selection, ffmpeg::TrackSelection::Subtitle { .. }))
         .map(|selection| match &selection {
             ffmpeg::TrackSelection::Video { codec, .. } => {
                 if domain::is_video_codec_compatible(codec) {
@@ -123,14 +127,19 @@ pub async fn prepare_media(
             _ => selection,
         });
 
-    let sub_tracks = media_identifier.path().subtitles.iter().map(|sub| -> _ {
-        ffmpeg::TrackSelection::Subtitle {
-            input_path: sub.path.clone().into(),
-            track_id: 0,
-            language: Some(sub.language.clone()),
-            external_id: Some(sub.id.clone()),
-        }
-    });
+    let sub_tracks = media_identifier
+        .path()
+        .subtitles
+        .iter()
+        .chain(new_subs.iter())
+        .map(|sub| -> _ {
+            ffmpeg::TrackSelection::Subtitle {
+                input_path: sub.path.clone().into(),
+                track_id: 0,
+                language: Some(sub.language.clone()),
+                external_id: Some(sub.id.clone()),
+            }
+        });
 
     let temp_dir = tempfile::tempdir()?;
     let file_stem: &Path = media_path

@@ -16,7 +16,11 @@ pub async fn extract_tracks(
         ]
     });
 
-    let args = input_args.into_iter().chain(mapping_args);
+    let args = input_args
+        .into_iter()
+        .chain(mapping_args)
+        // TODO remove -y from here and add it to ffmpeg itself
+        .chain(std::iter::once("-y".to_string()));
 
     crate::spawn::ffmpeg(args).await?;
 
