@@ -41,7 +41,8 @@ async fn main() {
 
     let (preparing_list_watcher, preparing_list_receiver): (
         server::service::prepare::PreparingListWatcher,
-    ) = server::signal::new_watcher_receiver_pair(Vec::new());
+        _,
+    ) = server::signal::new_watcher_receiver_pair((Vec::new(), Vec::new()));
 
     let shared_state = AppState {
         preparing_list_watcher,
@@ -58,6 +59,7 @@ async fn main() {
             args.media_dir.clone(),
             media_signal_receiver,
             shared_state.media_signal_watcher.clone(),
+            shared_state.preparing_list_watcher.clone(),
         )
         .await;
 
@@ -81,7 +83,8 @@ async fn main() {
             shared_state.subtitle_provider.clone(),
         );
 
-        let prepare_handle = server::service::prepare::spawn(preparing_list_receiver, app_state);
+        let prepare_handle =
+            server::service::prepare::spawn(preparing_list_receiver, shared_state.clone());
 
         move || {
             media_watcher_join_handler.abort();

@@ -32,7 +32,9 @@ pub fn spawn(
 
     let mut task: Option<tokio::task::JoinHandle<()>> = None;
 
-    let handle = tokio::spawn(async move {
+    
+
+    tokio::spawn(async move {
         while let Some(signal) = signal_receiver.signal_receiver.recv().await {
             match signal {
                 PrepareMessage::Prepare(media_identifier) => {
@@ -110,8 +112,7 @@ pub fn spawn(
                         );
                     }
 
-                    match preparing_queue
-                        .get(0)
+                    match preparing_queue.front()
                         .map(|(first_id, _)| first_id == &media_identifier)
                     {
                         Some(true) => {
@@ -139,18 +140,15 @@ pub fn spawn(
             }
 
             // 3. Start working on a task if none present
-            if task.is_none() {
-                if let Some((head_id, head_track_selections)) = preparing_queue.get(0).cloned() {
+            if task.is_none()
+                && let Some((head_id, head_track_selections)) = preparing_queue.front().cloned() {
                     let sender = preparing_list_watcher.signal_sender.clone();
                     task = Some(tokio::spawn(async move {
                         prepare(sender, head_id, head_track_selections).await;
                     }))
                 }
-            }
         }
-    });
-
-    handle
+    })
 }
 
 async fn prepare(

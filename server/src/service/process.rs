@@ -147,45 +147,46 @@ pub fn spawn(
     })
 }
 
-#[derive(Debug)]
+#[derive(thiserror::Error, Debug)]
 enum ProcessError {
-    CantGetExtra,
-    CantPrepare(crate::prepare::Error),
+    #[error("Can't get extra from torrent")]
+    CantGetExtra {
+        torrent_info: Box<TorrentInfo>,
+        inner: torrent::ConversionError,
+    },
+    #[error("Can't move torrent. {0}")]
+    CantMove(crate::moving::Error),
 }
 
-impl From<crate::prepare::Error> for ProcessError {
-    fn from(value: crate::prepare::Error) -> Self {
-        ProcessError::CantPrepare(value)
+impl From<crate::moving::Error> for ProcessError {
+    fn from(value: crate::moving::Error) -> Self {
+        ProcessError::CantMove(value)
     }
 }
-
-impl std::fmt::Display for ProcessError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("{:#?}", self))
-    }
-}
-
-impl std::error::Error for ProcessError {}
 
 async fn process(media_dir: &Path, torrent: &TorrentInfo) -> Result<(), ProcessError> {
-    let extra: TorrentExtra = torrent
-        .as_ref()
-        .try_into()
-        .map_err(|_| ProcessError::CantGetExtra)?;
+    let extra: TorrentExtra =
+        torrent
+            .as_ref()
+            .try_into()
+            .map_err(|err| ProcessError::CantGetExtra {
+                torrent_info: Box::new(torrent.clone()),
+                inner: err,
+            })?;
 
     match extra {
         TorrentExtra::Movie { ref metadata } => {
-            crate::prepare::prepare_movie(media_dir, &torrent.save_path, metadata).await?;
+            crate::moving::generate_movie_media(media_dir, &torrent.save_path, metadata).await?;
         }
         TorrentExtra::Series {
             ref metadata,
             files_mapping_form,
         } => {
-            crate::prepare::prepare_series(
+            crate::moving::generate_series_media(
                 media_dir,
                 &torrent.save_path,
-                metadata,
                 files_mapping_form.expect("files mapping form was None."),
+                metadata,
             )
             .await?;
         }

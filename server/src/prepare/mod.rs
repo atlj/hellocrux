@@ -70,7 +70,7 @@ pub async fn prepare_media(
     if should_override_container {
         tokio::fs::remove_file(media_path)
             .await
-            .map_err(|inner| Error::CantDeleteOriginal(inner))?
+            .map_err(Error::CantDeleteOriginal)?
     }
 
     Ok(())

@@ -40,7 +40,7 @@ pub(super) async fn try_extract_movie(
 
     if crate::prepare::needs_to_be_prepared(&movie_path)
         .await
-        .map_err(|err| Error::CantCheckCompatibility(err))?
+        .map_err(Error::CantCheckCompatibility)?
     {
         return Ok(Some(Either::Right(domain::MediaIdentifier::Movie {
             // Will be replaced (hopefully)

@@ -16,6 +16,7 @@ pub async fn spawn(
     media_dir: PathBuf,
     mut media_signal_receiver: MediaSignalReceiver,
     media_signal_watcher: MediaSignalWatcher,
+    prepare_signal_watcher: crate::service::prepare::PreparingListWatcher,
 ) -> tokio::task::JoinHandle<()> {
     let handle = tokio::spawn(async move {
         let mut media_library = HashMap::new();
@@ -29,12 +30,19 @@ pub async fn spawn(
                 MediaSignal::CrawlAll => {
                     info!("Crawling media items");
 
-                    let media_library =
-                        crate::crawl::crawl_all_folders(media_dir.to_string_lossy().as_ref())
-                            .await
-                            .unwrap_or(HashMap::new());
+                    let (media_library, prepare_list) =
+                        crate::crawl::crawl_all_folders(media_dir.to_string_lossy().as_ref()).await;
 
                     info!("Found {:#?} media items", media_library.len());
+
+                    {
+                        let prepare_futures = prepare_list.into_iter().map(|identifier| {
+                            prepare_signal_watcher
+                                .signal_sender
+                                .send(crate::service::prepare::PrepareMessage::Prepare(identifier))
+                        });
+                        futures::future::join_all(prepare_futures).await;
+                    }
 
                     media_library
                 }
@@ -46,9 +54,18 @@ pub async fn spawn(
                     )
                     .await
                     {
-                        Some(new_media) => {
-                            info!("Updated media item with id {media_id}");
-                            media_library.insert(media_id, new_media);
+                        Some((new_media, prepare_list)) => {
+                            if let Some(new_media) = new_media {
+                                info!("Updated media item with id {media_id}");
+                                media_library.insert(media_id, new_media);
+                            }
+
+                            let prepare_futures = prepare_list.into_iter().map(|identifier| {
+                                prepare_signal_watcher.signal_sender.send(
+                                    crate::service::prepare::PrepareMessage::Prepare(identifier),
+                                )
+                            });
+                            futures::future::join_all(prepare_futures).await;
                         }
                         None => {
                             media_library.remove(&media_id);

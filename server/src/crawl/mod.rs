@@ -43,7 +43,9 @@ pub(crate) async fn crawl_all_folders(
     let media = futures::future::join_all(crawl_futures).await;
     let len = media.len();
 
-    let result = media.into_iter().fold(
+    
+
+    media.into_iter().fold(
         (HashMap::with_capacity(len), Vec::with_capacity(len)),
         |(mut media, mut to_prepare), result| {
             let Some((id, (current_media, current_to_prepare))) = result else {
@@ -58,9 +60,7 @@ pub(crate) async fn crawl_all_folders(
 
             (media, to_prepare)
         },
-    );
-
-    result
+    )
 }
 
 pub(crate) async fn crawl_folder(
@@ -138,7 +138,7 @@ async fn try_extract_media_content(
 
     if let Some((seasons, to_prepare)) = series::try_extract_series(&path).await? {
         return Ok((
-            (seasons.map(|seasons| MediaContent::Series(seasons))),
+            (seasons.map(MediaContent::Series)),
             to_prepare,
         ));
     }

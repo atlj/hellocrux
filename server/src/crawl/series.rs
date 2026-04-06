@@ -37,7 +37,7 @@ pub(super) async fn try_extract_series(
 
             prepare_vec.extend(to_prepare);
 
-            return Ok((season_map, prepare_vec)) as Result<_>;
+            Ok((season_map, prepare_vec)) as Result<_>
         },
     )?;
 
@@ -147,7 +147,7 @@ async fn extract_episode(
 
     if crate::prepare::needs_to_be_prepared(&path)
         .await
-        .map_err(|err| Error::CantCheckCompatibility(err))?
+        .map_err(Error::CantCheckCompatibility)?
     {
         return Ok(Some(Either::Right(domain::MediaIdentifier::Series {
             // Will be changed hopefully
@@ -157,10 +157,10 @@ async fn extract_episode(
         })));
     };
 
-    return Ok(Some(Either::Left((
+    Ok(Some(Either::Left((
         episode_identifier.episode_no,
         media_paths,
-    ))));
+    ))))
 }
 
 fn get_episode_track_name(file_stem: &str) -> Option<String> {
