@@ -1,0 +1,20 @@
+/Users/burakguner/kod/hellocrux/ffmpeg/src/encode.rs
+167
+override the hevc tag
+
+/Users/burakguner/kod/hellocrux/server/src/prepare/mod.rs
+22
+extract missing subs
+
+/Users/burakguner/kod/hellocrux/server/src/prepare/mod.rs
+29
+code review and refactor prepare and its service
+
+/Users/burakguner/kod/hellocrux/domain/src/media.rs
+264
+make strip prefix/parse prefix a trait + generic
+
+/Users/burakguner/kod/hellocrux/server/src/prepare/mod.rs
+187
+add validation to track selections
+
