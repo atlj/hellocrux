@@ -206,8 +206,6 @@ pub enum Error {
     NoMediaContent,
     #[error("Couldn't read dir {0:#?}")]
     CantReadDir(PathBuf),
-    #[error("Couldn't convert subtitle to .mp4 file. Reason: {0}")]
-    CantConvertSubtitle(crate::ffmpeg::Error),
     #[error("Can't check compatibility of media file. {0}")]
     CantCheckCompatibility(crate::prepare::Error),
 }
@@ -215,11 +213,5 @@ pub enum Error {
 impl From<serde_json::Error> for Error {
     fn from(_: serde_json::Error) -> Self {
         Self::CorruptedMetadata
-    }
-}
-
-impl From<crate::ffmpeg::Error> for Error {
-    fn from(value: crate::ffmpeg::Error) -> Self {
-        Self::CantConvertSubtitle(value)
     }
 }
