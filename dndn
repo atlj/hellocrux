@@ -22,3 +22,7 @@ make strip prefix/parse prefix a trait + generic
 187
 add validation to track selections
 
+/Users/burakguner/kod/hellocrux/domain/src/subtitles.rs
+30
+change subtitle_id usize to strgin at some point
+

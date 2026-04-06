@@ -1,9 +1,11 @@
 mod encode;
+mod extract;
 mod spawn;
 mod track;
 
 pub use encode::{TrackExt, TrackSelection, encode_video};
 
+pub use extract::extract_tracks;
 pub use track::get_tracks;
 
 #[derive(Debug, thiserror::Error)]
