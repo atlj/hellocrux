@@ -105,7 +105,7 @@ pub async fn prepare_media(
     };
 
     // Not each track needs to be converted, then just use `copy` to remux
-    let converted_tracks = track_selections
+    let reencoded_tracks = track_selections
         .into_iter()
         // Don't include subtitles with selections, they are handled separately
         .filter(|selection| !matches!(selection, ffmpeg::TrackSelection::Subtitle { .. }))
@@ -160,7 +160,7 @@ pub async fn prepare_media(
         .path()
         .join(file_stem.with_added_extension(extension));
 
-    ffmpeg::encode_video(converted_tracks.chain(sub_tracks).collect(), &temp_path).await?;
+    ffmpeg::encode_video(reencoded_tracks.chain(sub_tracks).collect(), &temp_path).await?;
 
     // If we override container, original file still exists since
     // copy didn't override it

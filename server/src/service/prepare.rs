@@ -127,6 +127,7 @@ pub fn spawn(
 
                     // 2. Tell media lib to recrawl (this may lead to an infinite loop)
                     // TODO implement loop detection
+                    // TODO Only recrawl after all episodes from series were prepared
                     if let Err(err) = media_signal_watcher
                         .signal_sender
                         .send(crate::service::media::MediaSignal::CrawlPartial {

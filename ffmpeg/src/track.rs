@@ -1,5 +1,7 @@
 use std::path::Path;
 
+use log::debug;
+
 use crate::spawn::ffprobe;
 
 pub async fn get_tracks(
@@ -26,6 +28,20 @@ pub async fn get_tracks(
         .streams
         .into_iter()
         .map(dto::FfprobeStream::try_into)
+        .inspect(move |result| match &result {
+            Err(dto::Error::UnknownCodecType(unknown_codec)) => {
+                debug!(
+                    "Unknown codec ({}) in track at {}",
+                    &unknown_codec,
+                    media_file.as_ref().display(),
+                )
+            }
+            _ => {}
+        })
+        .filter_map(|result| match result {
+            Err(dto::Error::UnknownCodecType(_)) => None,
+            rest => Some(rest),
+        })
         .map(|result| result.map_err(dto::Error::into)))
 }
 
