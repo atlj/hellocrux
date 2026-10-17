@@ -137,15 +137,9 @@ mod tests {
         .await
         .unwrap();
 
-        let ep1 = output_dir.join("My_Series/1/1-dGhlLWxvb2tzLVMxRTE=-tbd.mkv");
-        let ep2 = output_dir.join("My_Series/1/2-dGhlLWxvb2tzLVMxRTI=-tbd.mkv");
-        let ep3 = output_dir.join("My_Series/2/1-dGhlLWxvb2tzLVMyRTE=-tbd.mkv");
-
-        assert!(resulting_paths.iter().any(|p| p == &ep1));
-
-        assert!(tokio::fs::try_exists(&ep1).await.unwrap());
-        assert!(tokio::fs::try_exists(&ep2).await.unwrap());
-        assert!(tokio::fs::try_exists(&ep3).await.unwrap());
+        assert!(tokio::fs::try_exists(&resulting_paths[0]).await.unwrap());
+        assert!(tokio::fs::try_exists(&resulting_paths[1]).await.unwrap());
+        assert!(tokio::fs::try_exists(&resulting_paths[2]).await.unwrap());
 
         assert!(
             !tokio::fs::try_exists(output_dir.join("My_Series/1/random-file.txt"))

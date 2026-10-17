@@ -294,11 +294,11 @@ mod tests {
         MediaPaths {
             media: String::new(),
             track_name: String::new(),
-            subtitles: Box::new([Subtitle {
+            subtitles: vec![Subtitle {
+                id: "subs".to_string(),
                 language,
                 path: String::new(),
-                track_path: String::new(),
-            }]),
+            }],
         }
     }
 
