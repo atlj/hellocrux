@@ -53,7 +53,7 @@ pub fn spawn(
                         Ok(selection) => selection,
                         Err(err) => {
                             error!(
-                                "Couldn't determine default track selection for media {media_identifier:#?}. Ignoring it. {err}"
+                                "Couldn't get tracks of media {media_identifier:#?}. Ignoring it. {err}"
                             );
                             continue;
                         }
@@ -74,7 +74,7 @@ pub fn spawn(
                                 Ok(tracks) => tracks,
                                 Err(err) => {
                                     error!(
-                                        "Couldn't determine tracks for media {media_identifier:#?}. Ignoring it. {err}"
+                                        "Couldn't get tracks of media {media_identifier:#?}. Ignoring it. {err}"
                                     );
                                     continue;
                                 }
