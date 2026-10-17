@@ -264,6 +264,14 @@ pub async fn needs_to_be_prepared(media_paths: &domain::MediaPaths) -> Result<bo
         return Ok(true);
     }
 
+    // 4. Make sure no track selection is needed
+    // TODO: move this into check tracks step
+    // TODO: This is being executed once again during prepare since that service doesn't know
+    // whether a track selection was needed, ideally dedupe this logic later.
+    if default_track_selections(path).await?.is_none() {
+        return Ok(true);
+    };
+
     Ok(false)
 }
 
