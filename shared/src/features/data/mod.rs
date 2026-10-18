@@ -1,6 +1,7 @@
 mod contents;
 mod downloads;
 mod media;
+mod preparing_list;
 mod series;
 
 use domain::{
@@ -8,7 +9,7 @@ use domain::{
     series::{EditSeriesFileMappingForm, file_mapping_form_state},
 };
 
-use crate::Model;
+use crate::{Model, features::data::preparing_list::handle_get_preparing};
 
 use contents::handle_get_contents;
 use downloads::{handle_add_download, handle_get_downloads};
@@ -18,6 +19,7 @@ use media::handle_get_media;
 pub enum DataRequest {
     GetMedia,
     GetDownloads,
+    GetPreparing,
     AddDownload(DownloadForm),
     GetContents(String),
     SetSeriesFileMapping(EditSeriesFileMappingForm<file_mapping_form_state::NeedsValidation>),
@@ -29,6 +31,7 @@ pub fn update_data(model: &mut Model, request: DataRequest) -> crate::Command {
         DataRequest::GetContents(id) => handle_get_contents(model, id),
         DataRequest::GetMedia => handle_get_media(model),
         DataRequest::GetDownloads => handle_get_downloads(model),
+        DataRequest::GetPreparing => handle_get_preparing(model),
         DataRequest::AddDownload(download_form) => handle_add_download(model, download_form),
     }
 }

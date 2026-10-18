@@ -3,23 +3,23 @@ use std::collections::VecDeque;
 use log::{error, info};
 
 pub enum PrepareMessage {
-    Prepare(domain::MediaIdentifier),
+    Prepare((domain::MediaMetaData, domain::MediaIdentifier)),
     SelectTracks(domain::TrackSelectionItem),
-    Done(domain::MediaIdentifier),
+    Done((domain::MediaMetaData, domain::MediaIdentifier)),
 }
 
 pub type PreparingListWatcher = crate::signal::SignalWatcher<
     PrepareMessage,
     (
-        Vec<domain::MediaIdentifier>,
-        Vec<domain::TrackSelectionItem>,
+        Vec<(domain::MediaMetaData, domain::MediaIdentifier)>,
+        Vec<(domain::MediaMetaData, domain::TrackSelectionItem)>,
     ),
 >;
 pub type PreparingListReceiver = crate::signal::SignalReceiver<
     PrepareMessage,
     (
-        Vec<domain::MediaIdentifier>,
-        Vec<domain::TrackSelectionItem>,
+        Vec<(domain::MediaMetaData, domain::MediaIdentifier)>,
+        Vec<(domain::MediaMetaData, domain::TrackSelectionItem)>,
     ),
 >;
 
@@ -33,9 +33,15 @@ pub fn spawn(
         ..
     }: crate::AppState,
 ) -> tokio::task::JoinHandle<()> {
-    let mut preparing_queue: VecDeque<(domain::MediaIdentifier, Vec<ffmpeg::TrackSelection>)> =
-        VecDeque::with_capacity(50);
-    let mut track_selection_wait_queue = VecDeque::with_capacity(50);
+    let mut preparing_queue: VecDeque<(
+        domain::MediaMetaData,
+        domain::MediaIdentifier,
+        Vec<ffmpeg::TrackSelection>,
+    )> = VecDeque::with_capacity(50);
+    let mut track_selection_wait_queue: VecDeque<(
+        domain::MediaMetaData,
+        domain::TrackSelectionItem,
+    )> = VecDeque::with_capacity(50);
 
     let mut task: Option<tokio::task::JoinHandle<()>> = None;
 
@@ -43,7 +49,7 @@ pub fn spawn(
         while let Some(signal) = signal_receiver.signal_receiver.recv().await {
             // 1. Handle Message
             match signal {
-                PrepareMessage::Prepare(media_identifier) => {
+                PrepareMessage::Prepare((media_metadata, media_identifier)) => {
                     // 1. See if we can queue the item immediately
                     let default_track_selections = match crate::prepare::default_track_selections(
                         &media_identifier.path().media,
@@ -63,7 +69,11 @@ pub fn spawn(
                     match default_track_selections {
                         Some(track_selections) => {
                             // 2a. Media is good to go, enqueue it
-                            preparing_queue.push_back((media_identifier, track_selections));
+                            preparing_queue.push_back((
+                                media_metadata,
+                                media_identifier,
+                                track_selections,
+                            ));
                         }
                         None => {
                             // 2b. Media needs user input, put it to pending list.
@@ -81,10 +91,13 @@ pub fn spawn(
                             };
 
                             info!("Awaiting track selection to prepare {media_identifier:#?}.");
-                            track_selection_wait_queue.push_back(domain::TrackSelectionItem {
-                                media: media_identifier,
-                                tracks,
-                            });
+                            track_selection_wait_queue.push_back((
+                                media_metadata,
+                                domain::TrackSelectionItem {
+                                    media: media_identifier,
+                                    tracks,
+                                },
+                            ));
                         }
                     }
                 }
@@ -93,16 +106,19 @@ pub fn spawn(
                     tracks,
                 }) => {
                     // 1. Get the right item from our internal list
-                    let Some((index, item)) = track_selection_wait_queue
+                    let Some((metadata, item)) = track_selection_wait_queue
                         .iter()
                         .enumerate()
-                        .find(|(_, current)| current.media.id() == user_provided_media.id())
+                        .find(|(_, current)| current.1.media.id() == user_provided_media.id())
+                        .map(|(index, _)| index)
+                        .and_then(|index| track_selection_wait_queue.remove(index))
                     else {
                         error!(
                             "Provided track selection for {user_provided_media:#?} but looks like tracks were already provided. Ignoring it."
                         );
                         continue;
                     };
+
                     let media = &item.media;
 
                     // 2. Convert user provided tracks to selections
@@ -116,12 +132,11 @@ pub fn spawn(
                         })
                         .collect::<Vec<_>>();
 
-                    // 3. If all good, put the item to queue and remove it from pending list
+                    // 3. If all good, put the item to queue
                     // TODO: dedupe
-                    preparing_queue.push_back((media.clone(), selections));
-                    track_selection_wait_queue.remove(index);
+                    preparing_queue.push_back((metadata, item.media, selections));
                 }
-                PrepareMessage::Done(media_identifier) => {
+                PrepareMessage::Done((_metadata, media_identifier)) => {
                     // 1. Last task was done, ready to run next item
                     task = None;
 
@@ -143,7 +158,7 @@ pub fn spawn(
                     // 3. Remove from queue
                     match preparing_queue
                         .front()
-                        .map(|(first_id, _)| first_id == &media_identifier)
+                        .map(|(_, first_id, _)| first_id == &media_identifier)
                     {
                         Some(true) => {
                             preparing_queue.pop_front();
@@ -164,13 +179,17 @@ pub fn spawn(
                     preparing_queue
                         .iter()
                         .cloned()
-                        .map(|(id, _)| id)
-                        .flat_map(|id| id.strip_prefix(&media_dir))
+                        .map(|(metadata, id, _)| (metadata, id))
+                        .flat_map(|(metadata, id)| {
+                            id.strip_prefix(&media_dir).map(|id| (metadata, id))
+                        })
                         .collect(),
                     track_selection_wait_queue
                         .iter()
                         .cloned()
-                        .flat_map(|item| item.strip_prefix(&media_dir))
+                        .flat_map(|(metadata, item)| {
+                            item.strip_prefix(&media_dir).map(|id| (metadata, id))
+                        })
                         .collect(),
                 ))
                 .is_err()
@@ -180,29 +199,29 @@ pub fn spawn(
 
             // 3. Start working on a task if none present
             if task.is_none()
-                && let Some((head_id, head_track_selections)) = preparing_queue.front().cloned()
+                && let Some((head_metadata, head_id, head_track_selections)) =
+                    preparing_queue.front().cloned()
             {
                 let sender = preparing_list_watcher.signal_sender.clone();
                 task = Some(tokio::spawn(async move {
-                    prepare(sender, head_id, head_track_selections).await;
+                    info!("Preparing {head_id:#?}");
+
+                    if let Err(err) =
+                        crate::prepare::prepare_media(&head_id, head_track_selections).await
+                    {
+                        error!("Couldn't prepare media with id {head_id:#?}. {err}");
+                    }
+
+                    if let Err(err) = sender
+                        .send(PrepareMessage::Done((head_metadata, head_id.clone())))
+                        .await
+                    {
+                        error!(
+                            "Prepared {head_id:#?} but couldn't tell prepare service about it. {err}"
+                        );
+                    }
                 }))
             }
         }
     })
-}
-
-async fn prepare(
-    sender: tokio::sync::mpsc::Sender<PrepareMessage>,
-    identifier: domain::MediaIdentifier,
-    track_selections: impl IntoIterator<Item = ffmpeg::TrackSelection>,
-) {
-    info!("Preparing {identifier:#?}");
-
-    if let Err(err) = crate::prepare::prepare_media(&identifier, track_selections).await {
-        error!("Couldn't prepare media with id {identifier:#?}. {err}");
-    }
-
-    if let Err(err) = sender.send(PrepareMessage::Done(identifier.clone())).await {
-        error!("Prepared {identifier:#?} but couldn't tell prepare service about it. {err}");
-    }
 }

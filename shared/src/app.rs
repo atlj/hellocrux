@@ -13,8 +13,8 @@ use crate::features::{
 };
 use crux_core::command::CommandContext;
 use crux_core::{App, macros::effect, render::RenderOperation};
-use domain::Download;
 use domain::series::SeriesFileMapping;
+use domain::{Download, PreparingMedia};
 use partially::Partial;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -62,6 +62,7 @@ pub struct Model {
     pub connection_state: Option<QueryState<()>>,
     pub media_items: QueryState<MediaItemsContent>,
     pub downloads: Vec<Download>,
+    pub preparing_list: Vec<PreparingMedia>,
     pub torrent_contents: Option<(String, SeriesFileMapping)>,
     pub playback: PlaybackModel,
     pub discovered_services: Vec<DiscoveredService>,
@@ -76,6 +77,7 @@ pub struct ViewModel {
     connection_state: Option<ActionState>,
     media_items: MediaItems,
     downloads: Vec<Download>,
+    preparing_list: Vec<PreparingMedia>,
     playback_detail: PlaybackModel,
     torrent_contents: Option<(String, SeriesFileMapping)>,
     discovered_services: Vec<DiscoveredService>,
@@ -134,6 +136,7 @@ impl App for CounterApp {
             media_items: model.media_items.clone().into(),
             playback_detail: model.playback.clone(),
             downloads: model.downloads.clone(),
+            preparing_list: model.preparing_list.clone(),
             torrent_contents: model.torrent_contents.clone(),
             discovered_services: model.discovered_services.clone(),
             subtitle_search_results: model.subtitles_search_results.clone().into(),

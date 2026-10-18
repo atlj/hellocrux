@@ -270,3 +270,10 @@ impl TrackSelectionItem {
         Some(self.with_media(stripped_media))
     }
 }
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq)]
+pub struct PreparingMedia {
+    pub media: MediaIdentifier,
+    pub metadata: MediaMetaData,
+    pub needed_track_selection: Option<Vec<Track>>,
+}

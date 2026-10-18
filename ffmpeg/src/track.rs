@@ -28,15 +28,14 @@ pub async fn get_tracks(
         .streams
         .into_iter()
         .map(dto::FfprobeStream::try_into)
-        .inspect(move |result| match &result {
-            Err(dto::Error::UnknownCodecType(unknown_codec)) => {
+        .inspect(move |result| {
+            if let Err(dto::Error::UnknownCodecType(unknown_codec)) = &result {
                 debug!(
                     "Unknown codec ({}) in track at {}",
                     &unknown_codec,
                     media_file.as_ref().display(),
                 )
             }
-            _ => {}
         })
         .filter_map(|result| match result {
             Err(dto::Error::UnknownCodecType(_)) => None,
@@ -53,11 +52,11 @@ pub mod dto {
         #[error("Track has an unknown codec type '{0}'")]
         UnknownCodecType(String),
         #[error("Track has no codec {0:#?}")]
-        NoCodec(FfprobeStream),
+        NoCodec(Box<FfprobeStream>),
         #[error("Couldn't parse track's duration {0:#?}")]
-        CouldntParseDuration(FfprobeStream),
+        CouldntParseDuration(Box<FfprobeStream>),
         #[error("Track has no duration {0:#?}")]
-        NoDuration(FfprobeStream),
+        NoDuration(Box<FfprobeStream>),
     }
 
     impl From<Error> for crate::Error {
@@ -88,7 +87,7 @@ pub mod dto {
                 Some(duration_string) => {
                     let seconds = duration_string
                         .parse::<f64>()
-                        .map_err(|_| Error::CouldntParseDuration(self.clone()))?;
+                        .map_err(|_| Error::CouldntParseDuration(Box::new(self.clone())))?;
                     Some(Duration::from_secs_f64(seconds))
                 }
                 None => None,
@@ -99,7 +98,7 @@ pub mod dto {
                     codec: self
                         .codec_name
                         .clone()
-                        .ok_or_else(|| Error::NoCodec(self.clone()))?,
+                        .ok_or_else(|| Error::NoCodec(Box::new(self.clone())))?,
                     duration,
                 }),
                 "audio" => Ok(domain::Track::Audio {
@@ -107,7 +106,7 @@ pub mod dto {
                     codec: self
                         .codec_name
                         .clone()
-                        .ok_or_else(|| Error::NoCodec(self.clone()))?,
+                        .ok_or_else(|| Error::NoCodec(Box::new(self.clone())))?,
                     duration,
                     language: self
                         .tags

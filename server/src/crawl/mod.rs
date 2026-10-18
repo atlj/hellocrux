@@ -14,7 +14,10 @@ mod subtitles;
 
 pub(crate) async fn crawl_all_folders(
     path: impl AsRef<Path> + Display,
-) -> (HashMap<String, Media>, Vec<domain::MediaIdentifier>) {
+) -> (
+    HashMap<String, Media>,
+    Vec<(domain::MediaMetaData, domain::MediaIdentifier)>,
+) {
     let Some(read_dir) = crate::dir::fully_read_dir(&path)
         .await
         .inspect_err(|err| error!("Media library at {path} isn't readable. Reason: {err}"))
@@ -65,8 +68,8 @@ pub(crate) async fn crawl_folder(
     path: impl AsRef<Path> + Display,
 ) -> Option<(
     Option<Media>,
-    // Movies that need to be prepared
-    Vec<domain::MediaIdentifier>,
+    // Files that need to be prepared
+    Vec<(domain::MediaMetaData, domain::MediaIdentifier)>,
 )> {
     let (media, to_prepare) = crawl_media(&path)
         .await
@@ -96,7 +99,10 @@ pub(crate) async fn crawl_folder(
 
 async fn crawl_media(
     path: impl AsRef<Path>,
-) -> Result<(Option<Media>, Vec<domain::MediaIdentifier>)> {
+) -> Result<(
+    Option<Media>,
+    Vec<(domain::MediaMetaData, domain::MediaIdentifier)>,
+)> {
     let id: String = path
         .as_ref()
         .components()
@@ -104,7 +110,14 @@ async fn crawl_media(
         .map(|last| last.as_os_str().to_string_lossy().into())
         .ok_or_else(|| Error::CantReadDir(path.as_ref().into()))?;
     let metadata = crawl_metadata(&path).await?;
-    let (content, to_prepare) = crawl_media_content(id.clone(), &path).await?;
+    let (content, to_prepare_without_metadata) = crawl_media_content(id.clone(), &path).await?;
+
+    let to_prepare = to_prepare_without_metadata
+        .into_iter()
+        .map(|to_prepare_item| (metadata.clone(), to_prepare_item))
+        // TODO get rid of a second collect, make to_prepare_without_metadata an iter instead of a
+        // vec.
+        .collect();
 
     let result = (
         content.map(|content| Media {
