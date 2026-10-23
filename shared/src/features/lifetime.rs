@@ -118,6 +118,7 @@ pub fn handle_screen_change(model: &mut Model, screen: Screen) -> crate::Command
             model.subtitle_download_results = None;
             Command::done()
         }
+        Screen::TrackSelection { .. } => Command::done(),
     };
 
     render().and(command)

@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use log::{error, info};
+use log::{error, info, warn};
 
 pub enum PrepareMessage {
     Prepare((domain::MediaMetaData, domain::MediaIdentifier)),
@@ -113,7 +113,7 @@ pub fn spawn(
                         .map(|(index, _)| index)
                         .and_then(|index| track_selection_wait_queue.remove(index))
                     else {
-                        error!(
+                        warn!(
                             "Provided track selection for {user_provided_media:#?} but looks like tracks were already provided. Ignoring it."
                         );
                         continue;

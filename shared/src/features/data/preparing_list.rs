@@ -1,4 +1,4 @@
-use domain::PreparingMedia;
+use domain::{PreparingMedia, TrackSelectionItem};
 
 use crate::{
     Model, PartialModel,
@@ -47,27 +47,29 @@ pub fn handle_get_preparing(model: &Model) -> crate::Command {
     })
 }
 
-// pub fn handle_send_track_selection(model: &Model, download_form: DownloadForm) -> crate::Command {
-//     todo!("Implement me!");
-//     let base_url = model.base_url.clone();
-//
-//     crate::Command::new(async move |ctx| {
-//         let url = {
-//             let mut url = if let Some(url) = base_url {
-//                 url
-//             } else {
-//                 return navigation::push(Screen::ServerAddressEntry)
-//                     .into_future(ctx)
-//                     .await;
-//             };
-//
-//             url.set_path("download/add");
-//             url
-//         };
-//
-//         // TODO: remove unwrap
-//         http::post(url, serde_json::to_string(&download_form).unwrap())
-//             .into_future(ctx.clone())
-//             .await;
-//     })
-// }
+pub fn handle_send_track_selection(
+    model: &Model,
+    track_selection_item: TrackSelectionItem,
+) -> crate::Command {
+    let base_url = model.base_url.clone();
+
+    crate::Command::new(async move |ctx| {
+        let url = {
+            let mut url = if let Some(url) = base_url {
+                url
+            } else {
+                return navigation::push(Screen::ServerAddressEntry)
+                    .into_future(ctx)
+                    .await;
+            };
+
+            url.set_path("prepare/select-tracks");
+            url
+        };
+
+        // TODO: remove unwrap
+        http::post(url, serde_json::to_string(&track_selection_item).unwrap())
+            .into_future(ctx.clone())
+            .await;
+    })
+}

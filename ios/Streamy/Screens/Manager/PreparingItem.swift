@@ -36,9 +36,7 @@ struct PreparingItem: View {
             }
 
             if data.needed_track_selection != nil {
-                Button {
-                    //                    core.navigationObserver?.push(screen: .serverFileMapping(data.id))
-                } label: {
+                NavigationLink(value: Screen.trackSelection(preparing_media: data)) {
                     Label("Select Tracks", systemImage: "movieclapper")
                 }
             }

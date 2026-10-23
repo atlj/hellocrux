@@ -1,5 +1,7 @@
 use crux_core::{Command, Request, capability::Operation, command::RequestBuilder};
-use domain::{Media, SeasonContents, language::LanguageCode, series::EpisodeIdentifier};
+use domain::{
+    Media, PreparingMedia, SeasonContents, language::LanguageCode, series::EpisodeIdentifier,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -41,6 +43,9 @@ pub enum Screen {
         language: LanguageCode,
         /// `None` for movies, `Some` with episode identifiers for series
         episodes: Option<Vec<EpisodeIdentifier>>,
+    },
+    TrackSelection {
+        preparing_media: PreparingMedia,
     },
 }
 

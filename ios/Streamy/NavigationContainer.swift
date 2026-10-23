@@ -55,6 +55,8 @@ struct NavigationContainer: View {
             )
         case let .subtitleSearchResult(media: media, language: language, episodes: episodes):
             DownloadSubtitles(media: media, language: language, episodes: episodes ?? [])
+        case let .trackSelection(preparing_media: preparingMedia):
+            TrackSelectionScreen(preparingMedia: preparingMedia)
         }
     }
 }

@@ -271,7 +271,7 @@ impl TrackSelectionItem {
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub struct PreparingMedia {
     pub media: MediaIdentifier,
     pub metadata: MediaMetaData,
