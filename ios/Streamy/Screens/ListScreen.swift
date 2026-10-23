@@ -154,7 +154,43 @@ struct ListScreen: View {
                 }
             }
         }
+        .toolbar {
+            var lastPlayedMediaItem: Media? {
+                guard case let .success(mediaItems) = core.view.media_items,
+                      let lastPlayedMediaId = core.view.last_played_media_id
+                else { return nil }
+
+                return mediaItems[lastPlayedMediaId]
+            }
+
+            if let lastPlayedMediaItem {
+                if #available(iOS 26.0, *) {
+                    DefaultToolbarItem(kind: .search, placement: .bottomBar)
+                    ToolbarSpacer(.flexible, placement: .bottomBar)
+                }
+                ToolbarItem(placement: .bottomBar) {
+                    Button {
+                        core.update(.play(.fromSavedPosition(id: lastPlayedMediaItem.id)))
+                    } label: {
+                        Label("Continue \(lastPlayedMediaItem.metadata.title)", systemImage: "memories")
+                            .labelStyle(.titleAndIcon)
+                    }
+                    .legacyButtonStyle(legacy: .borderless, current: .automatic)
+                }
+            }
+        }
         .navigationTitle("Media")
+    }
+}
+
+extension View {
+    @ViewBuilder
+    func legacyButtonStyle(legacy: some PrimitiveButtonStyle, current: some PrimitiveButtonStyle) -> some View {
+        if #available(iOS 26, *) {
+            buttonStyle(current)
+        } else {
+            buttonStyle(legacy)
+        }
     }
 }
 

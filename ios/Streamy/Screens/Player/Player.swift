@@ -59,9 +59,9 @@ struct Player: UIViewControllerRepresentable {
 
             let progress: PlaybackPosition =
                 switch data.position {
-                case let .movie(id: id, position_seconds: _):
+                case .movie(let id, position_seconds: _):
                     .movie(id: id, position_seconds: UInt64(time.seconds))
-                case let .seriesEpisode(id: id, episode_identifier: episodeID, position_seconds: _):
+                case .seriesEpisode(let id, episode_identifier: let episodeID, position_seconds: _):
                     .seriesEpisode(
                         id: id, episode_identifier: episodeID,
                         position_seconds: UInt64(time.seconds),
@@ -134,7 +134,7 @@ extension AVPlayer {
 #Preview {
     PlayerScreen(
         overrideData: .init(
-            position: .movie(id: "1", position_seconds: 0),
+            id: "id", position: .movie(id: "1", position_seconds: 0),
             media_paths: .init(media: "", track_name: "", subtitles: []), title: "",
             next_episode: EpisodeIdentifier(season_no: 1, episode_no: 1),
         ),

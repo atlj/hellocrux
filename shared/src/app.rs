@@ -66,6 +66,7 @@ pub struct Model {
     pub torrent_contents: Option<(String, SeriesFileMapping)>,
     pub playback: PlaybackModel,
     pub discovered_services: Vec<DiscoveredService>,
+    pub last_played_media_id: Option<String>,
 
     // TODO consolidate
     pub subtitles_search_results: QueryState<SubtitleSearchResults>,
@@ -81,6 +82,7 @@ pub struct ViewModel {
     playback_detail: PlaybackModel,
     torrent_contents: Option<(String, SeriesFileMapping)>,
     discovered_services: Vec<DiscoveredService>,
+    last_played_media_id: Option<String>,
 
     // TODO consolidate
     subtitle_search_results: SubtitleSearchState,
@@ -139,6 +141,7 @@ impl App for CounterApp {
             preparing_list: model.preparing_list.clone(),
             torrent_contents: model.torrent_contents.clone(),
             discovered_services: model.discovered_services.clone(),
+            last_played_media_id: model.last_played_media_id.clone(),
             subtitle_search_results: model.subtitles_search_results.clone().into(),
             subtitle_download_results: model
                 .subtitle_download_results

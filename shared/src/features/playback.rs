@@ -23,6 +23,7 @@ pub struct PlaybackModel {
 
 #[derive(Serialize, Deserialize, Partial, Clone, Debug)]
 pub struct ActivePlayerData {
+    pub id: String,
     pub position: PlaybackPosition,
     pub media_paths: MediaPaths,
     pub title: String,
@@ -139,6 +140,7 @@ pub fn handle_play(model: &mut Model, play_event: PlayEvent) -> crate::Command {
                 PlaybackModel {
                     last_position,
                     active_player: Some(ActivePlayerData {
+                        id,
                         next_episode: None,
                         position: playback_data,
                         title: media_item.metadata.title.clone(),
@@ -171,6 +173,7 @@ pub fn handle_play(model: &mut Model, play_event: PlayEvent) -> crate::Command {
                 PlaybackModel {
                     last_position,
                     active_player: Some(ActivePlayerData {
+                        id,
                         next_episode: None,
                         position: playback_data,
                         title,
@@ -334,4 +337,18 @@ impl PlaybackPosition {
     fn get_series_last_played_episode_storage_key(id: &str) -> String {
         format!("last-episode-{id}")
     }
+}
+
+const LAST_PLAYED_ITEM_STORAGE_KEY: &str = "last_played_item";
+
+pub async fn save_last_played_id_to_storage(ctx: CruxContext, last_played_id: String) {
+    storage::store(LAST_PLAYED_ITEM_STORAGE_KEY, last_played_id)
+        .into_future(ctx)
+        .await;
+}
+
+pub async fn get_last_played_id_from_storage(ctx: CruxContext) -> Option<String> {
+    storage::get(LAST_PLAYED_ITEM_STORAGE_KEY)
+        .into_future(ctx)
+        .await
 }

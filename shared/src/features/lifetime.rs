@@ -8,7 +8,10 @@ use crate::{
         navigation::{self, Screen},
         service_discovery, storage,
     },
-    features::utils::update_model,
+    features::{
+        playback::{get_last_played_id_from_storage, save_last_played_id_to_storage},
+        utils::update_model,
+    },
 };
 
 use super::{
@@ -47,7 +50,18 @@ pub fn handle_screen_change(model: &mut Model, screen: Screen) -> crate::Command
     model.current_screen = screen.clone();
 
     let command = match screen {
-        Screen::List => Command::event(Event::UpdateData(DataRequest::GetMedia)),
+        Screen::List => Command::event(Event::UpdateData(DataRequest::GetMedia)).and(Command::new(
+            |ctx| async move {
+                let last_played_id = get_last_played_id_from_storage(ctx.clone()).await;
+                update_model(
+                    &ctx,
+                    PartialModel {
+                        last_played_media_id: Some(last_played_id),
+                        ..Default::default()
+                    },
+                );
+            },
+        )),
         Screen::Detail(Media { id, .. }) => Command::new(|ctx| async move {
             let (initial_seconds, episode) = PlayEvent::FromSavedPosition { id: id.clone() }
                 .get_position(ctx.clone())
@@ -92,7 +106,13 @@ pub fn handle_screen_change(model: &mut Model, screen: Screen) -> crate::Command
             _ => Command::event(Event::UpdateData(DataRequest::GetContents(id))),
         },
         Screen::Settings => Command::done(),
-        Screen::Player => Command::done(),
+        Screen::Player => match &model.playback.active_player {
+            Some(current_playing) => {
+                let current_playing_id = current_playing.id.clone();
+                Command::new(|ctx| save_last_played_id_to_storage(ctx, current_playing_id))
+            }
+            None => Command::done(),
+        },
         Screen::SubtitleSelection { .. } => Command::done(),
         Screen::SubtitleSearchResult { .. } => {
             model.subtitle_download_results = None;
