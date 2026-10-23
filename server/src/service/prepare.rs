@@ -203,11 +203,13 @@ pub fn spawn(
                     preparing_queue.front().cloned()
             {
                 let sender = preparing_list_watcher.signal_sender.clone();
+                let media_dir = media_dir.clone();
                 task = Some(tokio::spawn(async move {
                     info!("Preparing {head_id:#?}");
 
                     if let Err(err) =
-                        crate::prepare::prepare_media(&head_id, head_track_selections).await
+                        crate::prepare::prepare_media(&head_id, head_track_selections, media_dir)
+                            .await
                     {
                         error!("Couldn't prepare media with id {head_id:#?}. {err}");
                     }

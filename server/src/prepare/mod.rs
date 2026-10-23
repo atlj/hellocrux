@@ -9,6 +9,8 @@ use log::info;
 pub async fn prepare_media(
     media_identifier: &domain::MediaIdentifier,
     track_selections: impl IntoIterator<Item = ffmpeg::TrackSelection>,
+    // TODO rename/get from config
+    media_lib_dir: impl AsRef<Path>,
 ) -> Result<()> {
     let media_path: &Path = media_identifier.path().media.as_ref();
     let parent_folder = media_path
@@ -141,7 +143,10 @@ pub async fn prepare_media(
             }
         });
 
-    let temp_dir = tempfile::tempdir()?;
+    // TODO handle error
+    let _ = tokio::fs::create_dir_all(media_lib_dir.as_ref().join("tmp")).await;
+    // TODO accept temp dir as a config item
+    let temp_dir = tempfile::tempdir_in(media_lib_dir.as_ref().join("tmp"))?;
     let file_stem: &Path = media_path
         .file_stem()
         .and_then(|stem| stem.to_str())
