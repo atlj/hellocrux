@@ -10,3 +10,4 @@ open_subtitles_api_key
 DerivedData/
 buildServer.json
 .DS_STORE
+tmdb_api_key

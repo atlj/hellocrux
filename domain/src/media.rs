@@ -214,6 +214,7 @@ pub fn is_audio_codec_compatible(audio_codec: &str) -> bool {
 pub struct MediaMetaData {
     pub thumbnail: String,
     pub title: String,
+    pub tmdb_id: Option<u32>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]

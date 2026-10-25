@@ -7,6 +7,7 @@ members = [
   "torrent",
   "open_subtitles",
   "ffmpeg",
+  "tmdb",
 ]
 resolver = "1"
 
@@ -16,6 +17,7 @@ serde = { version = "1.0.219", features = ["derive"] }
 anyhow = "1.0.98"
 crux_core = "0.15.0"
 serde_json = "1.0.140"
+serde_urlencoded = "0.7.1"
 futures = "0.3.31"
 url = "2.5.4"
 tokio = { version = "1.45.1", features = [
