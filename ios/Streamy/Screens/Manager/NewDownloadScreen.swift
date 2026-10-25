@@ -23,7 +23,7 @@ struct NewDownloadScreen: View {
             }
             Button {
                 Task {
-                    core.update(.updateData(.addDownload(.init(hash: hash, metadata: .init(thumbnail: thumbnail, title: title), is_series: isSeries))))
+                    core.update(.updateData(.addDownload(.init(hash: hash, metadata: .init(thumbnail: thumbnail, title: title, tmdb_id: nil), is_series: isSeries))))
                     showLoading = true
                     // TODO: remove me
                     try? await Task.sleep(for: .seconds(5))

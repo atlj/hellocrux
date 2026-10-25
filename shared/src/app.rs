@@ -5,8 +5,10 @@ use crate::features::playback::PlaybackModel;
 use crate::features::query::QueryState;
 use crate::features::query::view_model_queries::{
     ActionState, MediaItems, MediaItemsContent, SubtitleSearchResults, SubtitleSearchState,
+    TMDBResults,
 };
 use crate::features::subtitle::SubtitleEvent;
+use crate::features::tmdb::TMDBModel;
 use crate::features::{
     playback::{PlayEvent, PlaybackPosition},
     server_communication::ServerCommunicationEvent,
@@ -68,6 +70,8 @@ pub struct Model {
     pub discovered_services: Vec<DiscoveredService>,
     pub last_played_media_id: Option<String>,
 
+    pub tmdb_search_results: Option<(String, QueryState<tmdb::PaginatedMultiSearchResult>)>,
+
     // TODO consolidate
     pub subtitles_search_results: QueryState<SubtitleSearchResults>,
     pub subtitle_download_results: Option<QueryState<()>>,
@@ -83,6 +87,7 @@ pub struct ViewModel {
     torrent_contents: Option<(String, SeriesFileMapping)>,
     discovered_services: Vec<DiscoveredService>,
     last_played_media_id: Option<String>,
+    tmdb_search_results: Option<(String, TMDBResults)>,
 
     // TODO consolidate
     subtitle_search_results: SubtitleSearchState,
@@ -142,6 +147,10 @@ impl App for CounterApp {
             torrent_contents: model.torrent_contents.clone(),
             discovered_services: model.discovered_services.clone(),
             last_played_media_id: model.last_played_media_id.clone(),
+            tmdb_search_results: model
+                .tmdb_search_results
+                .clone()
+                .map(|(query, state)| (query, state.into())),
             subtitle_search_results: model.subtitles_search_results.clone().into(),
             subtitle_download_results: model
                 .subtitle_download_results

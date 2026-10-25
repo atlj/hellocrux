@@ -28,5 +28,5 @@ struct ManageMediaItem: View {
 }
 
 #Preview {
-    ManageMediaItem(metadata: .init(thumbnail: "https://www.themoviedb.org/t/p/w1280/k75tEyoPbPlfHSKakJBOR5dx1Dp.jpg", title: "Idiocracy"))
+    ManageMediaItem(metadata: .init(thumbnail: "https://www.themoviedb.org/t/p/w1280/k75tEyoPbPlfHSKakJBOR5dx1Dp.jpg", title: "Idiocracy", tmdb_id: nil))
 }

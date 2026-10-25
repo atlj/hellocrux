@@ -111,7 +111,7 @@ struct MediaManagerScreen: View {
                 metadata: .init(
                     thumbnail:
                     "https://media.themoviedb.org/t/p/w440_and_h660_face/fai0rspsNeJCS69wHNjOdWxcI7P.jpg",
-                    title: "Star Wars",
+                    title: "Star Wars", tmdb_id: nil,
                 ),
                 needed_track_selection: nil,
             ),
@@ -123,7 +123,7 @@ struct MediaManagerScreen: View {
                 metadata: .init(
                     thumbnail:
                     "https://media.themoviedb.org/t/p/w440_and_h660_face/fai0rspsNeJCS69wHNjOdWxcI7P.jpg",
-                    title: "Star Wars",
+                    title: "Star Wars", tmdb_id: nil,
                 ),
                 needed_track_selection: [],
             ),
@@ -135,7 +135,7 @@ struct MediaManagerScreen: View {
                 metadata: .init(
                     thumbnail:
                     "https://media.themoviedb.org/t/p/w440_and_h660_face/anFx9aTOOYqgS3v7x3R84Kz67ly.jpg",
-                    title: "Breaking Bad",
+                    title: "Breaking Bad", tmdb_id: nil,
                 ), needed_track_selection: nil,
             ),
             .init(
@@ -146,7 +146,7 @@ struct MediaManagerScreen: View {
                 metadata: .init(
                     thumbnail:
                     "https://media.themoviedb.org/t/p/w440_and_h660_face/anFx9aTOOYqgS3v7x3R84Kz67ly.jpg",
-                    title: "Breaking Bad",
+                    title: "Breaking Bad", tmdb_id: nil,
                 ), needed_track_selection: [],
             ),
 
@@ -157,7 +157,7 @@ struct MediaManagerScreen: View {
                 metadata: .init(
                     thumbnail:
                     "https://www.themoviedb.org/t/p/w1280/k75tEyoPbPlfHSKakJBOR5dx1Dp.jpg",
-                    title: "Idiocracy",
+                    title: "Idiocracy", tmdb_id: nil,
                 ),
                 content: .movie(.init(media: "", track_name: "", subtitles: [])),
             ),

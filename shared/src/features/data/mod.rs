@@ -3,6 +3,7 @@ mod downloads;
 mod media;
 mod preparing_list;
 mod series;
+mod tmdb;
 
 use domain::{
     DownloadForm, TrackSelectionItem,
@@ -11,7 +12,10 @@ use domain::{
 
 use crate::{
     Model,
-    features::data::preparing_list::{handle_get_preparing, handle_send_track_selection},
+    features::data::{
+        preparing_list::{handle_get_preparing, handle_send_track_selection},
+        tmdb::search_tmdb_media,
+    },
 };
 
 use contents::handle_get_contents;
@@ -27,6 +31,7 @@ pub enum DataRequest {
     GetContents(String),
     SetSeriesFileMapping(EditSeriesFileMappingForm<file_mapping_form_state::NeedsValidation>),
     SubmitTrackSelection(TrackSelectionItem),
+    SearchTMDBMedia(String),
 }
 
 pub fn update_data(model: &mut Model, request: DataRequest) -> crate::Command {
@@ -40,5 +45,6 @@ pub fn update_data(model: &mut Model, request: DataRequest) -> crate::Command {
         DataRequest::SubmitTrackSelection(track_selection_item) => {
             handle_send_track_selection(model, track_selection_item)
         }
+        DataRequest::SearchTMDBMedia(query) => search_tmdb_media(model, query),
     }
 }

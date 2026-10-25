@@ -7,7 +7,7 @@ use shared::{
         data::DataRequest,
         playback::{PlayEvent, PlaybackPosition},
         query::view_model_queries::{
-            ActionState, MediaItems, SubtitleSearchResults, SubtitleSearchState,
+            ActionState, MediaItems, SubtitleSearchResults, SubtitleSearchState, TMDBResults,
         },
         server_communication::ServerCommunicationEvent,
         subtitle::SubtitleEvent,
@@ -22,6 +22,7 @@ fn main() -> anyhow::Result<()> {
     typegen.register_app::<CounterApp>()?;
     typegen.register_type::<Screen>()?;
     typegen.register_type::<ActionState>()?;
+    typegen.register_type::<TMDBResults>()?;
     typegen.register_type::<MediaItems>()?;
     typegen.register_type::<PlayEvent>()?;
     typegen.register_type::<SubtitleSearchState>()?;
@@ -44,6 +45,9 @@ fn main() -> anyhow::Result<()> {
     typegen.register_type::<domain::DownloadState>()?;
     typegen.register_type::<domain::language::LanguageCode>()?;
     typegen.register_type::<domain::series::EpisodeIdentifier>()?;
+    typegen.register_type::<tmdb::MultiSearchResult>()?;
+    typegen.register_type::<tmdb::MediaType>()?;
+    typegen.register_type::<tmdb::PaginatedMultiSearchResult>()?;
 
     let output_root = PathBuf::from("./generated");
     typegen.swift("SharedTypes", output_root.join("swift"))?;

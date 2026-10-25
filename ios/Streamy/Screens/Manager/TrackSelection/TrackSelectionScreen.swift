@@ -200,7 +200,7 @@ struct TrackSelectionScreen: View {
                 metadata: .init(
                     thumbnail:
                     "https://media.themoviedb.org/t/p/w440_and_h660_face/vZ1RQSDZ3xzBhLqJdrmvpkm2Nbu.jpg",
-                    title: "Breaking Bad",
+                    title: "Breaking Bad", tmdb_id: nil,
                 ),
                 needed_track_selection: [
                     .video(id: 0, codec: "av1", duration: .some(.init(secs: 900, nanos: 90000))),
@@ -235,7 +235,7 @@ struct TrackSelectionScreen: View {
                 metadata: .init(
                     thumbnail:
                     "https://media.themoviedb.org/t/p/w440_and_h660_face/vZ1RQSDZ3xzBhLqJdrmvpkm2Nbu.jpg",
-                    title: "Breaking Bad",
+                    title: "Breaking Bad", tmdb_id: nil,
                 ),
                 needed_track_selection: [
                     .video(id: 0, codec: "av1", duration: .some(.init(secs: 900, nanos: 90000))),
@@ -260,7 +260,7 @@ struct TrackSelectionScreen: View {
                 metadata: .init(
                     thumbnail:
                     "https://media.themoviedb.org/t/p/w440_and_h660_face/vZ1RQSDZ3xzBhLqJdrmvpkm2Nbu.jpg",
-                    title: "Breaking Bad",
+                    title: "Breaking Bad", tmdb_id: nil,
                 ),
                 needed_track_selection: [
                     .video(id: 0, codec: "av1", duration: .some(.init(secs: 900, nanos: 90000))),
@@ -293,7 +293,7 @@ struct TrackSelectionScreen: View {
                 metadata: .init(
                     thumbnail:
                     "https://media.themoviedb.org/t/p/w440_and_h660_face/vZ1RQSDZ3xzBhLqJdrmvpkm2Nbu.jpg",
-                    title: "Breaking Bad",
+                    title: "Breaking Bad", tmdb_id: nil,
                 ),
                 needed_track_selection: [
                     .video(id: 0, codec: "av1", duration: .some(.init(secs: 900, nanos: 90000))),

@@ -55,7 +55,7 @@ struct PreparingItem: View {
                 metadata: .init(
                     thumbnail:
                     "https://media.themoviedb.org/t/p/w440_and_h660_face/fai0rspsNeJCS69wHNjOdWxcI7P.jpg",
-                    title: "Star Wars",
+                    title: "Star Wars", tmdb_id: nil,
                 ), needed_track_selection: nil,
             ),
         )
@@ -68,7 +68,7 @@ struct PreparingItem: View {
                 metadata: .init(
                     thumbnail:
                     "https://media.themoviedb.org/t/p/w440_and_h660_face/fai0rspsNeJCS69wHNjOdWxcI7P.jpg",
-                    title: "Star Wars",
+                    title: "Star Wars", tmdb_id: nil,
                 ), needed_track_selection: [],
             ),
         )
@@ -81,7 +81,7 @@ struct PreparingItem: View {
                 metadata: .init(
                     thumbnail:
                     "https://media.themoviedb.org/t/p/w440_and_h660_face/anFx9aTOOYqgS3v7x3R84Kz67ly.jpg",
-                    title: "Breaking Bad",
+                    title: "Breaking Bad", tmdb_id: nil,
                 ), needed_track_selection: nil,
             ),
         )
@@ -94,7 +94,7 @@ struct PreparingItem: View {
                 metadata: .init(
                     thumbnail:
                     "https://media.themoviedb.org/t/p/w440_and_h660_face/anFx9aTOOYqgS3v7x3R84Kz67ly.jpg",
-                    title: "Breaking Bad",
+                    title: "Breaking Bad", tmdb_id: nil,
                 ), needed_track_selection: [],
             ),
         )

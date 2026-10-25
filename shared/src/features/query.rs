@@ -93,6 +93,7 @@ pub mod view_model_queries {
 
     query_state_type!(ActionState, ());
     query_state_type!(MediaItems, MediaItemsContent);
+    query_state_type!(TMDBResults, tmdb::PaginatedMultiSearchResult);
     query_state_type!(SubtitleSearchState, SubtitleSearchResults);
 
     #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]

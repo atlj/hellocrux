@@ -21,6 +21,7 @@ url = { workspace = true }
 wasm-bindgen = "0.2.100"
 futures = { workspace = true }
 regex = { workspace = true }
+tmdb = { path = "../tmdb" }
 
 [target.uniffi-bindgen.dependencies]
 uniffi = { version = "0.29.3", features = ["cli"] }

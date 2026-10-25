@@ -2,8 +2,7 @@ use std::{fmt::Display, sync::LazyLock};
 
 use url::Url;
 
-use crate::dto::PaginatedMultiSearchResult;
-
+pub use dto::*;
 mod dto;
 
 const API_KEY: &str = concat!("Bearer ", include_str!("../../tmdb_api_key"));
@@ -17,12 +16,15 @@ const HEADERS: LazyLock<[(&str, &str); 2]> = LazyLock::new(|| {
     ]
 });
 
-pub async fn multi_search<Error>(
-    post_callback: impl AsyncFn(Url, &[(&str, &str)]) -> core::result::Result<String, Error>,
+pub async fn multi_search<Context, APICall, Error>(
+    api_call: APICall,
+    context: Context,
     query: &str,
     page: usize,
 ) -> Result<PaginatedMultiSearchResult>
 where
+    Context: std::any::Any,
+    APICall: AsyncFnOnce(Context, Url, &[(&str, &str)]) -> core::result::Result<String, Error>,
     Error: Display,
 {
     let query =
@@ -34,12 +36,11 @@ where
         url
     };
 
-    let api_result =
-        post_callback(url, HEADERS.as_ref())
-            .await
-            .map_err(|err| crate::Error::FailedAPICall {
-                reason: err.to_string(),
-            })?;
+    let api_result = api_call(context, url, HEADERS.as_ref())
+        .await
+        .map_err(|err| crate::Error::FailedAPICall {
+            reason: err.to_string(),
+        })?;
 
     let parsed_result: PaginatedMultiSearchResult = match serde_json::from_str(&api_result) {
         Ok(result) => result,
@@ -78,7 +79,7 @@ mod tests {
     use reqwest::header::{HeaderName, HeaderValue};
     use url::Url;
 
-    async fn api_call(url: Url, headers: &[(&str, &str)]) -> Result<String, reqwest::Error> {
+    async fn api_call(_: (), url: Url, headers: &[(&str, &str)]) -> Result<String, reqwest::Error> {
         dbg!(url.to_string());
 
         let header_map = {
@@ -109,7 +110,7 @@ mod tests {
     #[tokio::test]
     #[ignore = "Test is depending on external API"]
     async fn test_basic_search() {
-        let result = crate::multi_search(api_call, "forrest gump", 1)
+        let result = crate::multi_search(api_call, (), "forrest gump", 1)
             .await
             .unwrap();
 
