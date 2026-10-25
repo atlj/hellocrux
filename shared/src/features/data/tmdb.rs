@@ -112,7 +112,16 @@ async fn api_call(
     url: Url,
     headers: &[(&str, &str)],
 ) -> Result<String, String> {
-    match http::get(url).into_future(context).await {
+    match http::get_with_headers(
+        url,
+        headers
+            .iter()
+            .map(|(key, value)| (key.to_string(), value.to_string()).into())
+            .collect(),
+    )
+    .into_future(context)
+    .await
+    {
         http::HttpOutput::Success {
             data: Some(data), ..
         } => Ok(data),

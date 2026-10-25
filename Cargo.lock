@@ -1985,6 +1985,7 @@ dependencies = [
  "crux_core",
  "domain",
  "shared",
+ "tmdb",
 ]
 
 [[package]]

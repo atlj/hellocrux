@@ -70,11 +70,18 @@ class Core: ObservableObject {
 
         case let .http(httpOperation):
             switch httpOperation {
-            case let .get(urlString):
+            case let .get(urlString, headers):
                 let requestId = request.id
                 let url = URL(string: urlString)!
                 var request = URLRequest(url: url)
                 request.httpMethod = "GET"
+
+                if let headers {
+                    for header in headers {
+                        request.addValue(header.value, forHTTPHeaderField: header.key)
+                    }
+                }
+
                 let task = URLSession.shared.dataTask(with: request) { [weak self] data, response, _ in
                     DispatchQueue.main.async {
                         guard let response = response as? HTTPURLResponse else {

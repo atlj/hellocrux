@@ -8,7 +8,6 @@ use crate::features::query::view_model_queries::{
     TMDBResults,
 };
 use crate::features::subtitle::SubtitleEvent;
-use crate::features::tmdb::TMDBModel;
 use crate::features::{
     playback::{PlayEvent, PlaybackPosition},
     server_communication::ServerCommunicationEvent,

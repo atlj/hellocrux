@@ -28,7 +28,7 @@ where
     Error: Display,
 {
     let query =
-        serde_urlencoded::to_string(&[("query", query), ("page", page.to_string().as_ref())])
+        serde_urlencoded::to_string([("query", query), ("page", page.to_string().as_ref())])
             .unwrap();
     let url = {
         let mut url = BASE_URL.join("search/multi").unwrap();
@@ -57,7 +57,7 @@ where
         }
     };
 
-    return Ok(parsed_result);
+    Ok(parsed_result)
 }
 
 pub type Result<T> = core::result::Result<T, Error>;

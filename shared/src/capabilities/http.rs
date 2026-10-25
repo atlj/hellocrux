@@ -2,10 +2,29 @@ use crux_core::{Command, Request, capability::Operation, command::RequestBuilder
 use serde::{Deserialize, Serialize};
 use url::Url;
 
+/// crux type gen converts (String, String) to [String]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct HeaderKeyValuePair {
+    pub key: String,
+    pub value: String,
+}
+
+impl From<(String, String)> for HeaderKeyValuePair {
+    fn from((key, value): (String, String)) -> Self {
+        HeaderKeyValuePair { key, value }
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum HttpOperation {
-    Get(String),
-    Post { url: String, body: String },
+    Get {
+        url: String,
+        headers: Option<Vec<HeaderKeyValuePair>>,
+    },
+    Post {
+        url: String,
+        body: String,
+    },
 }
 
 // TODO convert to result
@@ -42,7 +61,25 @@ where
     Effect: Send + From<Request<HttpOperation>> + 'static,
     Event: Send + 'static,
 {
-    Command::request_from_shell(HttpOperation::Get(url.to_string()))
+    Command::request_from_shell(HttpOperation::Get {
+        url: url.to_string(),
+        headers: None,
+    })
+}
+
+#[must_use]
+pub fn get_with_headers<Effect, Event>(
+    url: Url,
+    headers: Vec<HeaderKeyValuePair>,
+) -> RequestBuilder<Effect, Event, impl Future<Output = HttpOutput>>
+where
+    Effect: Send + From<Request<HttpOperation>> + 'static,
+    Event: Send + 'static,
+{
+    Command::request_from_shell(HttpOperation::Get {
+        url: url.to_string(),
+        headers: Some(headers),
+    })
 }
 
 #[must_use]
