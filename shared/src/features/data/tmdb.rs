@@ -7,6 +7,11 @@ use crate::{
 };
 
 pub fn search_tmdb_media(model: &mut Model, query: String) -> Command {
+    if query.is_empty() {
+        model.tmdb_search_results = None;
+        return Command::done();
+    }
+
     let page = match &model.tmdb_search_results {
         // New query
         None => 1,
@@ -61,11 +66,11 @@ pub fn search_tmdb_media(model: &mut Model, query: String) -> Command {
             }) => {
                 let existing_results: Option<Vec<tmdb::MultiSearchResult>> = match existing_state {
                     Some((
-                        _,
+                        existing_query,
                         QueryState::Success {
                             data: tmdb::PaginatedMultiSearchResult { results, .. },
                         },
-                    )) => Some(results),
+                    )) if existing_query == query => Some(results),
                     _ => None,
                 };
 

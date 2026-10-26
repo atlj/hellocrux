@@ -13,6 +13,8 @@
 		2023BE142EC3552B002FDDF9 /* DownloadItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2023BE132EC3552B002FDDF9 /* DownloadItem.swift */; };
 		202FB33C3085299C00661719 /* PreparingItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 202FB33B3085299C00661719 /* PreparingItem.swift */; };
 		2045B9592EC52CA70086C080 /* FileMappingScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2045B9582EC52CA70086C080 /* FileMappingScreen.swift */; };
+		20512F3E308EC34700BC586C /* NewDownloadSearchScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20512F3D308EC34700BC586C /* NewDownloadSearchScreen.swift */; };
+		20512F40308EC62E00BC586C /* Apply.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20512F3F308EC62800BC586C /* Apply.swift */; };
 		20556FC02F24D423000D67CF /* GetHeight.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20556FBF2F24D422000D67CF /* GetHeight.swift */; };
 		2063F8252E0B417D00745BA9 /* NavigationContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2063F8242E0B417D00745BA9 /* NavigationContainer.swift */; };
 		2066D0902F215AB20099E249 /* ServiceDiscovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2066D08E2F215AAE0099E249 /* ServiceDiscovery.swift */; };
@@ -111,6 +113,8 @@
 		2023BE132EC3552B002FDDF9 /* DownloadItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadItem.swift; sourceTree = "<group>"; };
 		202FB33B3085299C00661719 /* PreparingItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreparingItem.swift; sourceTree = "<group>"; };
 		2045B9582EC52CA70086C080 /* FileMappingScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileMappingScreen.swift; sourceTree = "<group>"; };
+		20512F3D308EC34700BC586C /* NewDownloadSearchScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewDownloadSearchScreen.swift; sourceTree = "<group>"; };
+		20512F3F308EC62800BC586C /* Apply.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Apply.swift; sourceTree = "<group>"; };
 		20556FBF2F24D422000D67CF /* GetHeight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GetHeight.swift; sourceTree = "<group>"; };
 		2063F8242E0B417D00745BA9 /* NavigationContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationContainer.swift; sourceTree = "<group>"; };
 		2066D08E2F215AAE0099E249 /* ServiceDiscovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceDiscovery.swift; sourceTree = "<group>"; };
@@ -169,6 +173,7 @@
 		2023BE102EC34B11002FDDF9 /* Manager */ = {
 			isa = PBXGroup;
 			children = (
+				20512F3B308EC33D00BC586C /* NewDownload */,
 				207E0F4D308BFBF100EF086B /* TrackSelection */,
 				20DDF7AD2F65577F00B2AD75 /* Subtitles */,
 				2045B95A2EC52CAF0086C080 /* FileMapping */,
@@ -192,9 +197,18 @@
 			path = FileMapping;
 			sourceTree = "<group>";
 		};
+		20512F3B308EC33D00BC586C /* NewDownload */ = {
+			isa = PBXGroup;
+			children = (
+				20512F3D308EC34700BC586C /* NewDownloadSearchScreen.swift */,
+			);
+			path = NewDownload;
+			sourceTree = "<group>";
+		};
 		20556FBD2F24D419000D67CF /* Modifiers */ = {
 			isa = PBXGroup;
 			children = (
+				20512F3F308EC62800BC586C /* Apply.swift */,
 				20556FBF2F24D422000D67CF /* GetHeight.swift */,
 			);
 			path = Modifiers;
@@ -444,6 +458,7 @@
 				20556FC02F24D423000D67CF /* GetHeight.swift in Sources */,
 				207D11F82E19455900632149 /* PlayerScreen.swift in Sources */,
 				20FAF5672F58CC9100DE8397 /* SeasonManagerScreen.swift in Sources */,
+				20512F40308EC62E00BC586C /* Apply.swift in Sources */,
 				20956DE72E0F641900656DFE /* SettingsScreen.swift in Sources */,
 				202FB33C3085299C00661719 /* PreparingItem.swift in Sources */,
 				20C2643E2E0CA8E800DC017A /* ListScreen.swift in Sources */,
@@ -454,6 +469,7 @@
 				20A9C5082F78152900113C25 /* SubtitleOption.swift in Sources */,
 				20CE70432EC37112004BDA54 /* NewDownloadScreen.swift in Sources */,
 				207E0F50308BFC0200EF086B /* TrackSelectionScreen.swift in Sources */,
+				20512F3E308EC34700BC586C /* NewDownloadSearchScreen.swift in Sources */,
 				2066D0902F215AB20099E249 /* ServiceDiscovery.swift in Sources */,
 				2023BE122EC34B18002FDDF9 /* MediaManagerScreen.swift in Sources */,
 				206EAC562F22A42600C7DD68 /* ConnectionScreen.swift in Sources */,

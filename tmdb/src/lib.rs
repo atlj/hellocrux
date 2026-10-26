@@ -42,11 +42,19 @@ where
             reason: err.to_string(),
         })?;
 
-    let parsed_result: PaginatedMultiSearchResult = match serde_json::from_str(&api_result) {
+    let PaginatedMultiSearchResultNonJoined {
+        page,
+        total_pages,
+        total_results,
+        results,
+    } = match serde_json::from_str(&api_result) {
         Ok(result) => result,
         Err(err) => {
             let Ok(api_error) = serde_json::from_str::<dto::ErrorMessage>(&api_result) else {
-                return Err(crate::Error::JSONParse(err));
+                return Err(crate::Error::JSONParse {
+                    source: err,
+                    original_str: api_result.to_string(),
+                });
             };
 
             if api_error.status_message.starts_with("Invalid API Key") {
@@ -57,7 +65,15 @@ where
         }
     };
 
-    Ok(parsed_result)
+    Ok(PaginatedMultiSearchResult {
+        page,
+        total_pages,
+        total_results,
+        results: results
+            .into_iter()
+            .filter_map(|result| result.try_into().ok())
+            .collect(),
+    })
 }
 
 pub type Result<T> = core::result::Result<T, Error>;
@@ -66,8 +82,14 @@ pub type Result<T> = core::result::Result<T, Error>;
 pub enum Error {
     #[error("API call was not successful, reason: {reason}")]
     FailedAPICall { reason: String },
-    #[error("Couldn't parse API response as JSON, reason: {0}")]
-    JSONParse(#[from] serde_json::Error),
+    #[error(
+        "Couldn't parse API response as JSON, reason: {source}. Original string: {original_str}"
+    )]
+    JSONParse {
+        #[source]
+        source: serde_json::Error,
+        original_str: String,
+    },
     #[error("API key is invalid")]
     InvalidAPIKey,
     #[error("API returned an error: {0}")]
@@ -114,6 +136,11 @@ mod tests {
             .await
             .unwrap();
 
-        assert!(!result.results.is_empty())
+        assert!(!result.results.is_empty());
+
+        // Make sure we are discarding people
+        let result = crate::multi_search(api_call, (), "fo", 1).await.unwrap();
+
+        assert!(!result.results.is_empty());
     }
 }
