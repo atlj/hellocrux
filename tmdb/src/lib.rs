@@ -8,6 +8,7 @@ mod dto;
 const API_KEY: &str = concat!("Bearer ", include_str!("../../tmdb_api_key"));
 const BASE_URL: LazyLock<Url> =
     LazyLock::new(|| Url::parse("https://api.themoviedb.org/3/").unwrap());
+const MOVIE_BASE_URL: &str = "https://image.tmdb.org/t/p/original/";
 
 const HEADERS: LazyLock<[(&str, &str); 2]> = LazyLock::new(|| {
     [
@@ -72,6 +73,7 @@ where
         results: results
             .into_iter()
             .filter_map(|result| result.try_into().ok())
+            .map(|result: MultiSearchResult| result.with_prepended_poster_path())
             .collect(),
     })
 }

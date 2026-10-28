@@ -1,3 +1,5 @@
+use crate::MOVIE_BASE_URL;
+
 pub type PaginatedMultiSearchResultNonJoined = Paginated<ResultArrayItem>;
 pub type PaginatedMultiSearchResult = Paginated<MultiSearchResult>;
 
@@ -49,6 +51,30 @@ pub struct Movie {
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub struct Person {}
+
+impl MultiSearchResult {
+    pub(crate) fn with_prepended_poster_path(self) -> Self {
+        let Self {
+            id,
+            title,
+            poster_path,
+            media_type,
+        } = self;
+
+        let prepended_poster_path = {
+            let mut base_url = MOVIE_BASE_URL.to_string();
+            base_url.push_str(&poster_path);
+            base_url
+        };
+
+        Self {
+            id,
+            title,
+            poster_path: prepended_poster_path,
+            media_type,
+        }
+    }
+}
 
 impl TryInto<MultiSearchResult> for ResultArrayItem {
     type Error = ();
