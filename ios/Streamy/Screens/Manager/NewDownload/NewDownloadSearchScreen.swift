@@ -97,7 +97,7 @@ struct NewDownloadSearchScreen: View {
                         Section {
                             // TODO: join this style with list screen
                             ForEach(mediaLibrarySearchResults, id: \.title) { result in
-                                NavigationLink(value: Screen.list) {
+                                NavigationLink(value: Screen.confirmDownload(is_series: true, tmdb_id: nil, thumbnail: result.poster_path, title: result.title)) {
                                     VStack(alignment: .leading) {
                                         AsyncImage(url: URL(string: result.poster_path)) { image in
                                             image
@@ -133,7 +133,6 @@ struct NewDownloadSearchScreen: View {
                         } header: {
                             HStack {
                                 Text("Add Episodes to Existing TV Series")
-                                    .font(.callout)
                                     .fontWeight(.medium)
                                     .foregroundStyle(.secondary)
                                 Spacer()
@@ -147,7 +146,7 @@ struct NewDownloadSearchScreen: View {
                         {
                             // TODO: join this style with list screen
                             ForEach(tmdbSearchResults, id: \.id) { result in
-                                NavigationLink(value: Screen.list) {
+                                NavigationLink(value: Screen.confirmDownload(is_series: result.isSeries, tmdb_id: result.id, thumbnail: result.poster_path, title: result.title)) {
                                     VStack(alignment: .leading) {
                                         AsyncImage(url: URL(string: result.poster_path)) { image in
                                             image
@@ -184,7 +183,6 @@ struct NewDownloadSearchScreen: View {
                         VStack {
                             HStack {
                                 Text("Add New Media")
-                                    .font(.callout)
                                     .fontWeight(.medium)
                                     .foregroundStyle(.secondary)
                                 if isTmdbLoading {
@@ -248,6 +246,16 @@ extension Media {
         }
 
         return .init(id: 0, title: metadata.title, poster_path: metadata.thumbnail, media_type: type)
+    }
+}
+
+extension MultiSearchResult {
+    var isSeries: Bool {
+        if case .tv = media_type {
+            return true
+        }
+
+        return false
     }
 }
 

@@ -44,6 +44,8 @@ struct NavigationContainer: View {
             SeasonManagerScreen(media: media, season: season, episodes: episodes)
         case .addDownload:
             NewDownloadSearchScreen()
+        case let .confirmDownload(is_series: isSeries, tmdb_id: tmdbID, thumbnail: thumbnail, title: title):
+            DownloadConfirmScreen(isSeries: isSeries, tmdbID: tmdbID, thumbnail: thumbnail, title: title)
         case let .serverFileMapping(id):
             FileMappingScreen(id: id)
         case let .subtitleSelection(media: media, episodes: episodes, pre_selected_language: language):

@@ -94,6 +94,7 @@ pub fn handle_screen_change(model: &mut Model, screen: Screen) -> crate::Command
         Screen::MediaManagerDetail(_) => Command::done(),
         Screen::MediaManagerSeason { .. } => Command::done(),
         Screen::AddDownload => Command::done(),
+        Screen::ConfirmDownload { .. } => Command::done(),
         Screen::Startup => Command::done(),
         Screen::ServerAddressEntry => {
             Command::new(|ctx| async move {

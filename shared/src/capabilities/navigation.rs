@@ -32,6 +32,12 @@ pub enum Screen {
     },
     ServerFileMapping(String),
     AddDownload,
+    ConfirmDownload {
+        is_series: bool,
+        tmdb_id: Option<u32>,
+        thumbnail: String,
+        title: String,
+    },
     SubtitleSelection {
         media: Media,
         /// (Season, Pre selected episodes). None means this is a movie.
