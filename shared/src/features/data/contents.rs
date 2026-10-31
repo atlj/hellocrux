@@ -42,7 +42,11 @@ pub fn handle_get_contents(model: &Model, id: String) -> crate::Command {
                                 .fold(HashMap::with_capacity(len), |mut map, file| {
                                     if let Some(extension) = (file.as_ref() as &Path).extension() {
                                         // TODO make this a generic check
-                                        if extension == "srt" || extension == "nfo" {
+                                        if extension == "srt"
+                                            || extension == "nfo"
+                                            || extension == "png"
+                                            || extension == "txt"
+                                        {
                                             return map;
                                         }
                                     }

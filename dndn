@@ -35,10 +35,6 @@ bug where adding download crashes the app due to navigation (pop 2)
 make reencoding faster
 
 /Users/burakguner/kod/hellocrux/Cargo.toml
-21
-automatically eliminate png and txt files
-
-/Users/burakguner/kod/hellocrux/Cargo.toml
 1
 tmdb id is not being saved
 
@@ -93,4 +89,8 @@ use a proper env lib for external service API keys
 /Users/burakguner/kod/hellocrux/domain/src/media.rs
 264
 make strip prefix/parse prefix a trait + generic
+
+/Users/burakguner/kod/hellocrux/Cargo.toml
+2
+get all tests working and passing
 
