@@ -18,6 +18,10 @@ pass -nostdin to ffmpeg
 21
 stuff getting stuck at preparing
 
+/Users/burakguner/kod/hellocrux/ffmpeg/src/encode.rs
+198
+add -dn and -tn to omit data and attachment streams
+
 /Users/burakguner/kod/hellocrux/ffmpeg/src/lib.rs
 21
 pass -report option to ffmpeg so we can collect logs
@@ -89,8 +93,4 @@ use a proper env lib for external service API keys
 /Users/burakguner/kod/hellocrux/domain/src/media.rs
 264
 make strip prefix/parse prefix a trait + generic
-
-/Users/burakguner/kod/hellocrux/Cargo.toml
-3
-test tracks with data and attachment streams
 

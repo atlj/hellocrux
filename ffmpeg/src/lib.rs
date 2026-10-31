@@ -1,3 +1,4 @@
+mod deserialize_duration;
 mod encode;
 mod extract;
 mod spawn;
@@ -16,8 +17,8 @@ pub enum Error {
     NonZeroExit(String),
     #[error("ffmpeg/ffprobe didn't produce any outputs")]
     MissingOutput,
-    #[error("ffmpeg/ffprobe produced unexpected output: '{0}'")]
-    UnexpectedOutput(String),
+    #[error("ffmpeg/ffprobe output couldn't be deserialized: '{0}'")]
+    CouldntDeserialize(#[from] serde_json::Error),
     #[error("Couldn't get tracks: '{0}'")]
     CouldntGetTracks(track::dto::Error),
 }

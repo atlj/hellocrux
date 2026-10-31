@@ -16,28 +16,36 @@ pub async fn get_tracks(
         "json",
         // Only show relevant entries
         "-show_entries",
-        "stream=index,codec_name,codec_type,duration:stream_tags=language,handler_name",
+        "stream:stream_tags",
         &media_file.as_ref().as_os_str().to_string_lossy(),
     ])
     .await?;
 
-    let parsed = serde_json::from_str::<dto::FfprobeOutput>(&result_string)
-        .map_err(|_| crate::Error::UnexpectedOutput(result_string))?;
+    let parsed = serde_json::from_str::<dto::FfprobeOutput>(&result_string)?;
 
     Ok(parsed
         .streams
         .into_iter()
         .map(dto::FfprobeStream::try_into)
         .inspect(move |result| {
+            if let Err(dto::Error::UnsupportedCodec(unsupported_codec)) = &result {
+                debug!(
+                    "Unsupported codec ({}) in track at {}. Ignoring it.",
+                    &unsupported_codec,
+                    media_file.as_ref().display(),
+                )
+            }
+
             if let Err(dto::Error::UnknownCodecType(unknown_codec)) = &result {
                 debug!(
-                    "Unknown codec ({}) in track at {}",
+                    "Unknown codec ({}) in track at {}. Ignoring it.",
                     &unknown_codec,
                     media_file.as_ref().display(),
                 )
             }
         })
         .filter_map(|result| match result {
+            Err(dto::Error::UnsupportedCodec(_)) => None,
             Err(dto::Error::UnknownCodecType(_)) => None,
             rest => Some(rest),
         })
@@ -53,6 +61,8 @@ pub mod dto {
         UnknownCodecType(String),
         #[error("Track has no codec {0:#?}")]
         NoCodec(Box<FfprobeStream>),
+        #[error("Track has unsupported codec ({0})")]
+        UnsupportedCodec(String),
         #[error("Couldn't parse track's duration {0:#?}")]
         CouldntParseDuration(Box<FfprobeStream>),
         #[error("Track has no duration {0:#?}")]
@@ -90,8 +100,9 @@ pub mod dto {
                         .map_err(|_| Error::CouldntParseDuration(Box::new(self.clone())))?;
                     Some(Duration::from_secs_f64(seconds))
                 }
-                None => None,
+                None => self.tags.as_ref().and_then(|tags| tags.duration),
             };
+
             match self.codec_type.as_str() {
                 "video" => Ok(domain::Track::Video {
                     id: self.index,
@@ -129,6 +140,8 @@ pub mod dto {
                         .and_then(|tags| tags.handler_name)
                         .filter(|h| h != "SubtitleHandler"),
                 }),
+                "data" => Err(Error::UnsupportedCodec("data".to_string())),
+                "attachment" => Err(Error::UnsupportedCodec("attachment".to_string())),
                 unknown => Err(Error::UnknownCodecType(unknown.to_string())),
             }
         }
@@ -138,6 +151,12 @@ pub mod dto {
     pub struct FfprobeStreamTags {
         pub language: Option<String>,
         pub handler_name: Option<String>,
+        #[serde(
+            rename = "DURATION",
+            default,
+            deserialize_with = "crate::deserialize_duration::deserialize_duration_optional"
+        )]
+        pub duration: Option<Duration>,
     }
 }
 
@@ -157,6 +176,8 @@ mod tests {
         let h264_aac_nosub = fixtures_path.join("h264_aac_nosub.mp4");
         let h264_aac_1sub = fixtures_path.join("h264_aac_1sub.mp4");
         let h264_aac_3subs = fixtures_path.join("h264_aac_3subs.mp4");
+        let h265_with_data = fixtures_path.join("h265_with_data.mp4");
+        let h265_with_attachment = fixtures_path.join("h265_with_attachment.mkv");
 
         async {
             let mut result = get_tracks(&h264_aac_nosub)
@@ -253,6 +274,42 @@ mod tests {
                     },
                 ]
             );
+        }
+        .await;
+
+        async {
+            let mut result = get_tracks(&h265_with_data)
+                .await
+                .unwrap()
+                .collect::<Result<Vec<_>, _>>()
+                .unwrap();
+            result.sort_by_key(|t| *t.id());
+            assert_eq!(
+                result,
+                vec![Track::Video {
+                    id: 0,
+                    codec: "hevc".to_string(),
+                    duration: Some(Duration::from_millis(120))
+                }]
+            )
+        }
+        .await;
+
+        async {
+            let mut result = get_tracks(&h265_with_attachment)
+                .await
+                .unwrap()
+                .collect::<Result<Vec<_>, _>>()
+                .unwrap();
+            result.sort_by_key(|t| *t.id());
+            assert_eq!(
+                result,
+                vec![Track::Video {
+                    id: 0,
+                    codec: "hevc".to_string(),
+                    duration: Some(Duration::from_millis(120)),
+                }]
+            )
         }
         .await;
     }
