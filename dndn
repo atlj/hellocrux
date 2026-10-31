@@ -1,18 +1,62 @@
-/Users/burakguner/kod/hellocrux/ios/Streamy/Screens/Player/Player.swift
-139
-landscape should automatically extend view
-
-/Users/burakguner/kod/hellocrux/server/src/prepare/mod.rs
-31
-don't recrawl whole series, look at the queue, only crawl the latest episode if there are more items from the same series on the queue. If this was the last item from the series in the queue, recrawl the whole series
+/Users/burakguner/kod/hellocrux/Cargo.toml
+22
+bug where we don't end up picking the video track. (it becomes audio only)
 
 /Users/burakguner/kod/hellocrux/ffmpeg/src/encode.rs
 167
 override the hevc tag
 
-/Users/burakguner/kod/hellocrux/domain/src/media.rs
-264
-make strip prefix/parse prefix a trait + generic
+/Users/burakguner/kod/hellocrux/Cargo.toml
+22
+bug where submitting track selection is applied to another episode
+
+/Users/burakguner/kod/hellocrux/ffmpeg/src/extract.rs
+45
+pass -nostdin to ffmpeg
+
+/Users/burakguner/kod/hellocrux/Cargo.toml
+21
+stuff getting stuck at preparing
+
+/Users/burakguner/kod/hellocrux/ffmpeg/src/lib.rs
+21
+pass -report option to ffmpeg so we can collect logs
+
+/Users/burakguner/kod/hellocrux/Cargo.toml
+21
+bug where adding download crashes the app due to navigation (pop 2)
+
+/Users/burakguner/kod/hellocrux/ffmpeg/src/track.rs
+134
+make reencoding faster
+
+/Users/burakguner/kod/hellocrux/Cargo.toml
+21
+automatically eliminate png and txt files
+
+/Users/burakguner/kod/hellocrux/Cargo.toml
+1
+tmdb id is not being saved
+
+/Users/burakguner/kod/hellocrux/server/src/prepare/mod.rs
+31
+don't recrawl whole series, look at the queue, only crawl the latest episode if there are more items from the same series on the queue. If this was the last item from the series in the queue, recrawl the whole series
+
+/Users/burakguner/kod/hellocrux/ios/Streamy/Screens/Player/Player.swift
+97
+add player metadata
+
+/Users/burakguner/kod/hellocrux/ios/Streamy/Screens/Player/Player.swift
+139
+landscape should automatically extend view
+
+/Users/burakguner/kod/hellocrux/Cargo.toml
+21
+implement library deletion
+
+/Users/burakguner/kod/hellocrux/ffmpeg/src/lib.rs
+8
+fetch progress
 
 /Users/burakguner/kod/hellocrux/server/src/prepare/mod.rs
 187
@@ -21,10 +65,6 @@ add validation to track selections
 /Users/burakguner/kod/hellocrux/domain/src/subtitles.rs
 30
 change subtitle_id usize to strgin at some point
-
-/Users/burakguner/kod/hellocrux/ffmpeg/src/lib.rs
-8
-fetch progress
 
 /Users/burakguner/kod/hellocrux/server/src/prepare/mod.rs
 14
@@ -38,10 +78,6 @@ remove styling tags using -c:s text while doing subs extraction
 31
 save new download in local db for offline sync
 
-/Users/burakguner/kod/hellocrux/ios/Streamy/Screens/Player/Player.swift
-97
-add player metadata
-
 /Users/burakguner/kod/hellocrux/ios/Streamy/Screens/ListScreen.swift
 24
 allow spotlight search
@@ -49,4 +85,12 @@ allow spotlight search
 /Users/burakguner/kod/hellocrux/README.md
 2
 use a proper env lib for external service API keys
+
+/Users/burakguner/kod/hellocrux/domain/src/media.rs
+264
+make strip prefix/parse prefix a trait + generic
+
+/Users/burakguner/kod/hellocrux/Cargo.toml
+3
+test tracks with data and attachment streams
 
