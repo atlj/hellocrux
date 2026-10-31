@@ -196,6 +196,7 @@ impl MediaContent {
 
 pub const DEFAULT_CONTAINER_FORMAT: &str = "mp4";
 pub const DEFAULT_VIDEO_CODEC: &str = "hevc";
+pub const DEFAULT_VIDEO_CODEC_TAG: &str = "hvc1";
 pub const DEFAULT_AUDIO_CODEC: &str = "aac";
 
 pub fn is_container_compatible(container: &str) -> bool {
@@ -204,6 +205,21 @@ pub fn is_container_compatible(container: &str) -> bool {
 
 pub fn is_video_codec_compatible(video_codec: &str) -> bool {
     matches!(video_codec, "hevc" | "hvc1" | "h264")
+}
+
+pub fn get_codec_tag_override(video_codec: &str, video_codec_tag: Option<&str>) -> Option<String> {
+    const HVC1_TAG: &str = "hvc1";
+    match video_codec {
+        "hevc" | HVC1_TAG | "hev1" => {
+            // https://web.archive.org/web/20261031151403/https://www.ffmpeg-micro.com/blog/your-hevc-mp4-won-t-play-on-apple-the-ffmpeg-hvc1-tag-fix
+            if video_codec_tag.is_some_and(|codec_tag| codec_tag == HVC1_TAG) {
+                None
+            } else {
+                Some(HVC1_TAG.to_string())
+            }
+        }
+        _ => None,
+    }
 }
 
 pub fn is_audio_codec_compatible(audio_codec: &str) -> bool {
@@ -222,6 +238,7 @@ pub enum Track {
     Video {
         id: usize,
         codec: String,
+        codec_tag: Option<String>,
         duration: Option<std::time::Duration>,
     },
     Audio {
@@ -246,9 +263,14 @@ impl Track {
         }
     }
 
-    pub fn is_codec_compatible(&self) -> bool {
+    pub fn is_encoding_compatible(&self) -> bool {
         match self {
-            Track::Video { codec, .. } => is_video_codec_compatible(codec),
+            Track::Video {
+                codec, codec_tag, ..
+            } => {
+                is_video_codec_compatible(codec)
+                    && get_codec_tag_override(codec, codec_tag.as_deref()).is_none()
+            }
             Track::Audio { codec, .. } => is_audio_codec_compatible(codec),
             Track::Subtitle { .. } => true,
         }

@@ -9,6 +9,7 @@ pub enum TrackSelection {
         input_path: PathBuf,
         track_id: usize,
         codec: String,
+        codec_tag: Option<String>,
     },
     Audio {
         input_path: PathBuf,
@@ -33,10 +34,16 @@ where
 impl TrackExt for domain::Track {
     fn into_selection(self, path: PathBuf) -> TrackSelection {
         match self {
-            domain::Track::Video { id, codec, .. } => TrackSelection::Video {
+            domain::Track::Video {
+                id,
+                codec,
+                codec_tag,
+                ..
+            } => TrackSelection::Video {
                 input_path: path,
                 track_id: id,
                 codec,
+                codec_tag,
             },
             domain::Track::Audio { id, codec, .. } => TrackSelection::Audio {
                 input_path: path,
@@ -66,7 +73,7 @@ impl TrackSelection {
         }
     }
 
-    pub fn with_codec(self, codec: String) -> Self {
+    pub fn with_codec(self, codec: String, codec_tag: Option<String>) -> Self {
         match self {
             TrackSelection::Video {
                 input_path,
@@ -76,6 +83,7 @@ impl TrackSelection {
                 codec,
                 input_path,
                 track_id,
+                codec_tag,
             },
             TrackSelection::Audio {
                 input_path,
@@ -161,17 +169,29 @@ pub async fn encode_video(
 
             let args: [Option<String>; 8] = match selection {
                 TrackSelection::Video {
-                    track_id, codec, ..
-                } => [
-                    Some("-map".to_string()),
-                    Some(format!("{input_id}:{track_id}")),
-                    Some(format!("-c:v:{index}")),
-                    Some(codec),
-                    None,
-                    None,
-                    None,
-                    None,
-                ],
+                    track_id,
+                    codec,
+                    codec_tag,
+                    ..
+                } => {
+                    let (ffmpeg_tag_override_option, new_codec_tag_option) = match codec_tag {
+                        Some(override_codec_tag) => {
+                            (Some("-tag:v".to_string()), Some(override_codec_tag))
+                        }
+                        None => (None, None),
+                    };
+
+                    [
+                        Some("-map".to_string()),
+                        Some(format!("{input_id}:{track_id}")),
+                        Some(format!("-c:v:{index}")),
+                        Some(codec),
+                        ffmpeg_tag_override_option,
+                        new_codec_tag_option,
+                        None,
+                        None,
+                    ]
+                }
                 TrackSelection::Audio {
                     track_id, codec, ..
                 } => [
@@ -288,6 +308,7 @@ mod tests {
                 Track::Video {
                     id: 0,
                     codec: "h264".to_string(),
+                    codec_tag: Some("avc1".to_string()),
                     duration: Some(Duration::from_secs(2))
                 },
                 Track::Audio {
@@ -324,6 +345,7 @@ mod tests {
                 Track::Video {
                     id: 0,
                     codec: "h264".to_string(),
+                    codec_tag: Some("avc1".to_string()),
                     duration: Some(Duration::from_secs(2))
                 },
                 Track::Audio {
@@ -368,6 +390,7 @@ mod tests {
                 Track::Video {
                     id: 0,
                     codec: "h264".to_string(),
+                    codec_tag: Some("avc1".to_string()),
                     duration: Some(Duration::from_secs(2))
                 },
                 Track::Audio {
@@ -420,6 +443,7 @@ mod tests {
                 Track::Video {
                     id: 0,
                     codec: "h264".to_string(),
+                    codec_tag: Some("avc1".to_string()),
                     duration: Some(Duration::from_secs(2))
                 },
                 Track::Audio {
@@ -477,6 +501,7 @@ mod tests {
                 Track::Video {
                     id: 0,
                     codec: "h264".to_string(),
+                    codec_tag: Some("avc1".to_string()),
                     duration: Some(Duration::from_secs(2))
                 },
                 Track::Audio {

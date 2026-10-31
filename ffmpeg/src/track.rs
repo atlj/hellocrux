@@ -85,6 +85,7 @@ pub mod dto {
         pub index: usize,
         pub codec_name: Option<String>,
         pub codec_type: String,
+        pub codec_tag_string: Option<String>,
         pub duration: Option<String>,
         pub tags: Option<FfprobeStreamTags>,
     }
@@ -110,6 +111,7 @@ pub mod dto {
                         .codec_name
                         .clone()
                         .ok_or_else(|| Error::NoCodec(Box::new(self.clone())))?,
+                    codec_tag: self.codec_tag_string,
                     duration,
                 }),
                 "audio" => Ok(domain::Track::Audio {
@@ -192,7 +194,8 @@ mod tests {
                     Track::Video {
                         id: 0,
                         codec: "h264".to_string(),
-                        duration: Some(Duration::from_secs(2))
+                        duration: Some(Duration::from_secs(2)),
+                        codec_tag: Some("avc1".to_string()),
                     },
                     Track::Audio {
                         id: 1,
@@ -218,7 +221,8 @@ mod tests {
                     Track::Video {
                         id: 0,
                         codec: "h264".to_string(),
-                        duration: Some(Duration::from_secs(2))
+                        duration: Some(Duration::from_secs(2)),
+                        codec_tag: Some("avc1".to_string()),
                     },
                     Track::Audio {
                         id: 1,
@@ -249,6 +253,7 @@ mod tests {
                     Track::Video {
                         id: 0,
                         codec: "h264".to_string(),
+                        codec_tag: Some("avc1".to_string()),
                         duration: Some(Duration::from_secs(2))
                     },
                     Track::Audio {
@@ -289,6 +294,7 @@ mod tests {
                 vec![Track::Video {
                     id: 0,
                     codec: "hevc".to_string(),
+                    codec_tag: Some("hev1".to_string()),
                     duration: Some(Duration::from_millis(120))
                 }]
             )
@@ -307,6 +313,7 @@ mod tests {
                 vec![Track::Video {
                     id: 0,
                     codec: "hevc".to_string(),
+                    codec_tag: Some("[0][0][0][0]".to_string()),
                     duration: Some(Duration::from_millis(120)),
                 }]
             )

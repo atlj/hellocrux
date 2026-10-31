@@ -4,6 +4,7 @@ use std::{
 };
 
 pub mod handlers;
+use domain::get_codec_tag_override;
 use log::info;
 
 pub async fn prepare_media(
@@ -112,18 +113,25 @@ pub async fn prepare_media(
         // Don't include subtitles with selections, they are handled separately
         .filter(|selection| !matches!(selection, ffmpeg::TrackSelection::Subtitle { .. }))
         .map(|selection| match &selection {
-            ffmpeg::TrackSelection::Video { codec, .. } => {
+            ffmpeg::TrackSelection::Video {
+                codec, codec_tag, ..
+            } => {
+                let codec_tag_override = get_codec_tag_override(codec, codec_tag.as_deref());
+
                 if domain::is_video_codec_compatible(codec) {
-                    selection.with_codec("copy".to_string())
+                    selection.with_codec("copy".to_string(), codec_tag_override)
                 } else {
-                    selection.with_codec(domain::DEFAULT_VIDEO_CODEC.to_string())
+                    selection.with_codec(
+                        domain::DEFAULT_VIDEO_CODEC.to_string(),
+                        Some(domain::DEFAULT_VIDEO_CODEC_TAG.to_string()),
+                    )
                 }
             }
             ffmpeg::TrackSelection::Audio { codec, .. } => {
                 if domain::is_audio_codec_compatible(codec) {
-                    selection.with_codec("copy".to_string())
+                    selection.with_codec("copy".to_string(), None)
                 } else {
-                    selection.with_codec(domain::DEFAULT_AUDIO_CODEC.to_string())
+                    selection.with_codec(domain::DEFAULT_AUDIO_CODEC.to_string(), None)
                 }
             }
             _ => selection,
@@ -224,8 +232,8 @@ pub async fn needs_to_be_prepared(media_paths: &domain::MediaPaths) -> Result<bo
 
     for track in tracks {
         let track = track?;
-        // 2a. Check codec
-        if !track.is_codec_compatible() {
+        // 2a. Check encoding
+        if !track.is_encoding_compatible() {
             info!(
                 "Media at {} needs to be prepared because one of its tracks ({track:#?}) isn't compatible.",
                 path.display()
