@@ -28,7 +28,7 @@ pub async fn spawn(
 
             media_library = match signal {
                 MediaSignal::CrawlAll => {
-                    info!("Crawling media items");
+                    info!("Crawling the whole media library");
 
                     let (media_library, prepare_list) =
                         crate::crawl::crawl_all_folders(media_dir.to_string_lossy().as_ref()).await;

@@ -1,182 +1,127 @@
-use domain::{series::EpisodeIdentifier, subtitles::Subtitle};
-use either::Either;
-use log::error;
+use log::warn;
 
-use super::{Error, Result};
+use crate::crawl::{media_file::crawl_potential_media_file, subtitles::crawl_subtitles_dir};
+
+use super::Result;
 use std::{collections::HashMap, path::Path};
 
-pub(super) async fn crawl_series(
-    id: String,
-    path: impl AsRef<Path>,
-) -> Result<Option<(Option<domain::SeriesContents>, Vec<domain::MediaIdentifier>)>> {
-    let read_dir = crate::dir::fully_read_dir(&path)
-        .await
-        .map_err(|_| Error::CantReadDir(path.as_ref().into()))?;
+pub(super) async fn crawl_series_content(
+    at: impl AsRef<Path>,
+) -> Result<
+    Option<(
+        domain::SeriesContents,
+        Vec<(domain::series::EpisodeIdentifier, domain::MediaPaths)>,
+    )>,
+> {
+    let read_dir = crate::dir::fully_read_dir(at).await?;
 
-    let crawl_season_futures = read_dir.flat_map(|entry| {
-        let current_path = entry.path();
-        if current_path.is_file() {
-            return None;
+    let crawl_futures = read_dir.map(|dir_item| {
+        let path = dir_item.path();
+        async move {
+            let result = crawl_season(&path).await;
+            (path, result)
         }
-
-        let season_no = super::get_numeric_content(entry.file_name().to_string_lossy().as_ref())?;
-
-        let id = id.clone();
-        Some(async move { (season_no, crawl_season(id, season_no, entry.path()).await) })
     });
 
-    let seasons = futures::future::join_all(crawl_season_futures).await;
-    let len = seasons.len();
+    let crawl_results = futures::future::join_all(crawl_futures).await;
 
-    let (seasons, to_prepare) = seasons.into_iter().try_fold(
-        (HashMap::with_capacity(len), Vec::with_capacity(len)),
-        |(mut season_map, mut prepare_vec), (season_no, result)| {
-            let (season, to_prepare) = result?;
-
-            if !season.is_empty() {
-                season_map.insert(season_no, season);
-            }
-
-            prepare_vec.extend(to_prepare);
-
-            Ok((season_map, prepare_vec)) as Result<_>
-        },
-    )?;
-
-    Ok(Some((
-        if seasons.is_empty() {
-            None
-        } else {
-            Some(seasons)
-        },
-        to_prepare,
-    )))
-}
-
-async fn crawl_season(
-    id: String,
-    season_no: u32,
-    season_path: impl AsRef<Path>,
-) -> Result<(domain::SeasonContents, Vec<domain::MediaIdentifier>)> {
-    let read_dir = crate::dir::fully_read_dir(&season_path)
-        .await
-        .map_err(|_| Error::CantReadDir(season_path.as_ref().into()))?;
-
-    let all_subtitles = crate::crawl::subtitles::crawl_subtitles(&season_path).await?;
-    let len = all_subtitles.len();
-    let mut subtitles_map: HashMap<u32, Vec<Subtitle>> = all_subtitles
+    let (series_contents, items_to_be_prepared) = crawl_results
         .into_iter()
-        .flat_map(|(episode_no, subtitle)| {
-            let Some(episode_no) = episode_no else {
-                error!(
-                    "Subtitle at {} has no episode no. Ignoring it.",
-                    &subtitle.path
-                );
-                return None;
-            };
-            Some((episode_no, subtitle))
+        .inspect(|(path, result)| {
+            if let Err(err) = result {
+                warn!("Couldn't crawl season at {}: {err}", path.display())
+            }
         })
+        .flat_map(|(_, result)| result)
+        .flatten()
         .fold(
-            HashMap::with_capacity(len),
-            |mut map, (episode_no, subtitle)| {
-                let entry = map.entry(episode_no).or_insert(Vec::new());
-                entry.push(subtitle);
-                map
+            (HashMap::new(), Vec::with_capacity(20)),
+            |(mut series_contents, mut all_episodes_to_prepare),
+             (season_no, season_contents, episodes_to_prepare)| {
+                if !season_contents.is_empty() {
+                    series_contents.insert(season_no, season_contents);
+                }
+                all_episodes_to_prepare.extend(episodes_to_prepare);
+
+                (series_contents, all_episodes_to_prepare)
             },
         );
 
-    let episode_futures = read_dir.flat_map(|entry| {
-        let episode_no = super::get_numeric_content(&entry.file_name().to_string_lossy())?;
-        let episode = EpisodeIdentifier {
-            season_no,
-            episode_no,
-        };
-
-        let subtitles = subtitles_map.remove(&episode_no).unwrap_or_default();
-
-        Some(extract_episode(
-            id.clone(),
-            episode,
-            entry.path(),
-            subtitles,
-        ))
-    });
-
-    let episodes = futures::future::join_all(episode_futures).await.into_iter();
-    let len = episodes.len();
-
-    let result = episodes.into_iter().try_fold(
-        (HashMap::with_capacity(len), Vec::with_capacity(len)),
-        |(mut episodes, mut prepare), result| {
-            let Some(item) = result? else {
-                return Ok((episodes, prepare)) as Result<_>;
-            };
-
-            match item {
-                Either::Left((episode_id, ready)) => {
-                    episodes.insert(episode_id, ready);
-                }
-                Either::Right(need_to_prepare) => {
-                    prepare.push(need_to_prepare);
-                }
-            }
-
-            Ok((episodes, prepare))
-        },
-    )?;
-
-    Ok(result)
-}
-
-async fn extract_episode(
-    id: String,
-    episode_identifier: EpisodeIdentifier,
-    path: impl AsRef<Path>,
-    subtitles: Vec<Subtitle>,
-) -> Result<Option<Either<(u32, domain::MediaPaths), domain::MediaIdentifier>>> {
-    if !domain::format::is_video_file(&path) {
+    if series_contents.is_empty() && items_to_be_prepared.is_empty() {
         return Ok(None);
     }
 
-    let path_string = path.as_ref().to_string_lossy().into();
-
-    let file_stem = path
-        .as_ref()
-        .file_stem()
-        .and_then(|stem| stem.to_str())
-        .expect("Media file to have a valid stem");
-
-    let track_name = get_episode_track_name(file_stem).unwrap_or_else(|| file_stem.to_string());
-
-    let media_paths = domain::MediaPaths {
-        subtitles,
-        media: path_string,
-        track_name,
-    };
-
-    if crate::prepare::needs_to_be_prepared(&media_paths)
-        .await
-        .map_err(Error::CantCheckCompatibility)?
-    {
-        return Ok(Some(Either::Right(domain::MediaIdentifier::Series {
-            id,
-            episode: episode_identifier,
-            path: media_paths,
-        })));
-    };
-
-    Ok(Some(Either::Left((
-        episode_identifier.episode_no,
-        media_paths,
-    ))))
+    Ok(Some((series_contents, items_to_be_prepared)))
 }
 
-fn get_episode_track_name(file_stem: &str) -> Option<String> {
-    let (episode_number, encoded_part) = file_stem.split_once('-')?;
-
-    if episode_number.parse::<usize>().is_err() {
-        return None;
+async fn crawl_season(
+    at: impl AsRef<Path>,
+) -> Result<
+    Option<(
+        u32,
+        domain::SeasonContents,
+        Vec<(domain::series::EpisodeIdentifier, domain::MediaPaths)>,
+    )>,
+> {
+    // 1. Get the season number and make sure we're a dir
+    let attributes = tokio::fs::metadata(&at).await?;
+    if !attributes.is_dir() {
+        return Ok(None);
     }
 
-    domain::encode_decode::decode_url_safe(encoded_part).ok()
+    let Some(season_path) = at
+        .as_ref()
+        .file_name()
+        .and_then(|season_path| season_path.to_str())
+    else {
+        return Ok(None);
+    };
+
+    let Some(season_no) = super::get_numeric_content(season_path) else {
+        return Ok(None);
+    };
+
+    // 2. Get subtitles repository
+    let subtitles = crawl_subtitles_dir(&at).await?;
+
+    // 3. Read all files then try parsing them each as episodes
+    let crawl_futures = crate::dir::fully_read_dir(&at).await?.map(|dir_item| {
+        let path = dir_item.path();
+        let subtitles_ref = subtitles.as_deref();
+
+        async move {
+            let result = crawl_potential_media_file(&path, subtitles_ref, Some(season_no)).await;
+            (path, result)
+        }
+    });
+
+    let crawl_results = futures::future::join_all(crawl_futures).await;
+
+    let (season_contents, episodes_to_prepare) = crawl_results
+        .into_iter()
+        .inspect(|(path, crawl_result)| {
+            if let Err(err) = crawl_result {
+                warn!("Couldn't crawl episode at {}: {err:#?}", path.display())
+            }
+        })
+        .filter_map(|(_, result)| match result {
+            Ok(Some((paths, Some(episode_identifier), needs_to_be_prepared))) => {
+                Some((paths, episode_identifier, needs_to_be_prepared))
+            }
+            _ => None,
+        })
+        .fold(
+            (HashMap::new(), Vec::with_capacity(20)),
+            |(mut series_contents, mut episodes_to_prepare),
+             (paths, episode_identifier, needs_to_be_prepared)| {
+                if needs_to_be_prepared {
+                    episodes_to_prepare.push((episode_identifier, paths));
+                } else {
+                    series_contents.insert(episode_identifier.episode_no, paths);
+                }
+                (series_contents, episodes_to_prepare)
+            },
+        );
+
+    Ok(Some((season_no, season_contents, episodes_to_prepare)))
 }

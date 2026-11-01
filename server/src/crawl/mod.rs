@@ -4,10 +4,13 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use domain::{Media, MediaContent, MediaMetaData};
+use domain::{Media, MediaContent};
 use log::{error, warn};
-use tokio::{fs::OpenOptions, io::AsyncReadExt};
 
+use crate::crawl::metadata::read_metadata;
+
+mod media_file;
+mod metadata;
 mod movie;
 mod series;
 mod subtitles;
@@ -32,15 +35,7 @@ pub(crate) async fn crawl_all_folders(
             return None;
         }
 
-        let file_stem = path
-            .file_stem()
-            .map(|stem| stem.to_string_lossy().to_string())?;
-
-        Some(async move {
-            crawl_folder(path.to_string_lossy().as_ref())
-                .await
-                .map(|media| (file_stem, media))
-        })
+        Some(async move { crawl_folder(path.to_string_lossy().as_ref()).await })
     });
 
     let media = futures::future::join_all(crawl_futures).await;
@@ -49,12 +44,12 @@ pub(crate) async fn crawl_all_folders(
     media.into_iter().fold(
         (HashMap::with_capacity(len), Vec::with_capacity(len)),
         |(mut media, mut to_prepare), result| {
-            let Some((id, (current_media, current_to_prepare))) = result else {
+            let Some((current_media, current_to_prepare)) = result else {
                 return (media, to_prepare);
             };
 
             if let Some(current_media) = current_media {
-                media.insert(id, current_media);
+                media.insert(current_media.id.clone(), current_media);
             }
 
             to_prepare.extend(current_to_prepare);
@@ -109,7 +104,8 @@ async fn crawl_media(
         .next_back()
         .map(|last| last.as_os_str().to_string_lossy().into())
         .ok_or_else(|| Error::CantReadDir(path.as_ref().into()))?;
-    let metadata = crawl_metadata(&path).await?;
+
+    let metadata = read_metadata(&path).await?;
     let (content, to_prepare_without_metadata) = crawl_media_content(id.clone(), &path).await?;
 
     let to_prepare = to_prepare_without_metadata
@@ -136,41 +132,47 @@ async fn crawl_media_content(
     path: impl AsRef<Path>,
 ) -> Result<(Option<MediaContent>, Vec<domain::MediaIdentifier>)> {
     // 1. Is it a movie?
-    if let Some(movie) = movie::crawl_movie(id.clone(), &path).await? {
-        let result = match movie {
-            either::Either::Left(movie_path) => (Some(MediaContent::Movie(movie_path)), Vec::new()),
-            either::Either::Right(to_prepare) => (None, vec![to_prepare]),
-        };
-
-        return Ok(result);
-    }
+    if let Some((movie_paths, needs_to_be_prepared)) = movie::crawl_movie_content(&path).await? {
+        return Ok(match needs_to_be_prepared {
+            false => (
+                Some(MediaContent::Movie(movie_paths)),
+                Vec::with_capacity(0),
+            ),
+            true => (
+                None,
+                vec![domain::MediaIdentifier::Movie {
+                    id,
+                    path: movie_paths,
+                }],
+            ),
+        });
+    };
 
     // 2. Then perhaps it's a TV series
-    if let Some((seasons, to_prepare)) = series::crawl_series(id, &path).await? {
-        return Ok(((seasons.map(MediaContent::Series)), to_prepare));
+    if let Some((seasons, to_prepare)) = series::crawl_series_content(&path).await? {
+        return Ok((
+            {
+                if seasons.is_empty() {
+                    None
+                } else {
+                    Some(MediaContent::Series(seasons))
+                }
+            },
+            to_prepare
+                .into_iter()
+                .map(
+                    |(episode_identifier, paths)| domain::MediaIdentifier::Series {
+                        id: id.clone(),
+                        path: paths,
+                        episode: episode_identifier,
+                    },
+                )
+                .collect(),
+        ));
     }
 
     // 3. It was nothing
     Err(Error::NoMediaContent)
-}
-
-async fn crawl_metadata(path: impl AsRef<Path>) -> Result<MediaMetaData> {
-    let metadata_string = {
-        let mut metadata_file = OpenOptions::new()
-            .read(true)
-            .open(path.as_ref().join("meta.json"))
-            .await
-            .map_err(|_| Error::NoMetadata)?;
-
-        let mut string = String::new();
-        metadata_file
-            .read_to_string(&mut string)
-            .await
-            .map_err(|_| Error::CorruptedMetadata)?;
-        string
-    };
-
-    Ok(serde_json::from_str(&metadata_string)?)
 }
 
 fn get_numeric_content(string: &str) -> Option<u32> {
@@ -183,15 +185,7 @@ fn get_numeric_content(string: &str) -> Option<u32> {
 
 #[cfg(test)]
 mod tests {
-    use super::{crawl_metadata, get_numeric_content};
-
-    use crate::test_utils::fixtures_path;
-
-    #[tokio::test]
-    async fn test_extract_metadata() {
-        let path = fixtures_path().join("crawl/example_movie");
-        crawl_metadata(path).await.unwrap();
-    }
+    use super::get_numeric_content;
 
     #[test]
     fn can_get_numeric_content() {
@@ -220,7 +214,9 @@ pub enum Error {
     #[error("Couldn't read dir {0:#?}")]
     CantReadDir(PathBuf),
     #[error("Can't check compatibility of media file. {0}")]
-    CantCheckCompatibility(crate::prepare::Error),
+    CantCheckCompatibility(#[from] crate::prepare::Error),
+    #[error("IO Error {0}")]
+    FileSystem(#[from] std::io::Error),
 }
 
 impl From<serde_json::Error> for Error {

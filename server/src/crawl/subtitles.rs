@@ -1,65 +1,90 @@
+use super::Result;
 use std::path::Path;
 
-use domain::subtitles::Subtitle;
-use log::{debug, error};
+use domain::{series::EpisodeIdentifier, subtitles::Subtitle};
+use log::warn;
 
-use crate::dir::fully_read_dir;
-
-/// Get all subtitles from media path
-///
-/// This will read the subtitles directory, go through all available files and return a collection
-/// of all subtitles.
-pub async fn crawl_subtitles(
-    media_path: impl AsRef<Path>,
-) -> crate::crawl::Result<Vec<(Option<u32>, Subtitle)>> {
-    let subtitles_dir = media_path.as_ref().join("subtitles");
-
-    let Ok(read_dir) = fully_read_dir(&subtitles_dir).await else {
-        debug!("{} doesn't exist.", subtitles_dir.display());
-        return Ok(Vec::new());
-    };
-
-    let result = read_dir
-        .filter(|path| domain::format::is_subtitle_file(path.path()))
-        .filter_map(|subtitle_file| {
-            let subtitle_path = subtitle_file.path();
-            let Some((episode_no, language, id)) = parse_subtitle_file_name(&subtitle_path) else {
-                error!(
-                    "Subtitle at {} doesn't have a valid name",
-                    subtitle_path.display()
-                );
-                return None;
-            };
-
-            Some((
-                episode_no,
-                Subtitle {
-                    language,
-                    id,
-                    path: subtitle_file.path().to_string_lossy().to_string(),
-                },
-            ))
-        })
-        .collect();
-
-    Ok(result)
+pub async fn grab_subtitles(
+    subtitle_repo: &[(Option<u32>, Subtitle)],
+    episode: Option<&EpisodeIdentifier>,
+) -> Vec<Subtitle> {
+    subtitle_repo
+        .iter()
+        .filter_map(
+            |(subtitle_episode, subtitle)| match (&episode, subtitle_episode) {
+                // Series episode and numbers are matching
+                (Some(EpisodeIdentifier { episode_no, .. }), Some(subtitle_episode))
+                    if episode_no == subtitle_episode =>
+                {
+                    Some(subtitle)
+                }
+                // Movie
+                (None, _) => Some(subtitle),
+                _ => None,
+            },
+        )
+        .cloned()
+        .collect()
 }
 
-/// Extract language code from subtitle path
-fn parse_subtitle_file_name(
-    subtitle_path: &impl AsRef<Path>,
-) -> Option<(
-    // Episode no
-    Option<u32>,
-    // Language
-    domain::language::LanguageCode,
-    // Id
-    String,
-)> {
-    let file_stem = subtitle_path
-        .as_ref()
-        .file_stem()
-        .and_then(|file_stem| file_stem.to_str())?;
+/// Looks at `path/subtitles`
+pub async fn crawl_subtitles_dir(
+    at_parent_dir: impl AsRef<Path>,
+) -> Result<Option<Vec<(Option<u32>, Subtitle)>>> {
+    let dir = at_parent_dir.as_ref().join("subtitles");
+
+    if !tokio::fs::try_exists(&dir).await? {
+        return Ok(None);
+    }
+
+    let attributes = tokio::fs::metadata(&dir).await?;
+    if !attributes.is_dir() {
+        return Ok(None);
+    }
+
+    let read_dir = crate::dir::fully_read_dir(&dir).await?;
+
+    let crawl_futures = read_dir.into_iter().map(|dir_item| {
+        let path = dir_item.path();
+        async move { (parse_subtitle_file(&path).await, path) }
+    });
+
+    let crawl_results = futures::future::join_all(crawl_futures).await;
+    let results: Vec<_> = crawl_results
+        .into_iter()
+        .inspect(|(result, path)| {
+            if let Err(err) = result {
+                warn!("Couldn't crawl subtitle at {}: {err}", path.display())
+            }
+        })
+        .flat_map(|(result, _)| result)
+        .flatten()
+        .collect();
+
+    if results.is_empty() {
+        return Ok(None);
+    }
+
+    Ok(Some(results))
+}
+
+async fn parse_subtitle_file(
+    at: &impl AsRef<Path>,
+) -> Result<
+    Option<(
+        // Episode no
+        Option<u32>,
+        Subtitle,
+    )>,
+> {
+    let attributes = tokio::fs::metadata(at.as_ref()).await?;
+    if !attributes.is_file() {
+        return Ok(None);
+    }
+
+    let Some(file_stem) = at.as_ref().file_stem().map(|stem| stem.to_string_lossy()) else {
+        return Ok(None);
+    };
 
     let mut dash_iter = file_stem.split('-');
     let (episode_no_unparsed, language_code_unparsed, id_unparsed) =
@@ -70,24 +95,36 @@ fn parse_subtitle_file_name(
             }
             // language, id
             (Some(language_code), Some(id), None) => (None, language_code, id),
-            _ => return None,
+            _ => return Ok(None),
         };
 
     let episode_no = match episode_no_unparsed {
-        Some(episode_no_unparsed) =>
-        // If there is an episode id, it has to be a number
-        {
-            Some(episode_no_unparsed.parse::<u32>().ok()?)
+        Some(episode_no_unparsed) => {
+            // If there is an episode id, it has to be a number
+            let Some(episode_no) = episode_no_unparsed.parse::<u32>().ok() else {
+                return Ok(None);
+            };
+            Some(episode_no)
         }
         None => None,
     };
 
-    let language_code = domain::language::LanguageCode::try_from(language_code_unparsed).ok()?;
+    let Some(language_code) = domain::language::LanguageCode::try_from(language_code_unparsed).ok()
+    else {
+        return Ok(None);
+    };
 
     let id = match id_unparsed.is_empty() {
-        true => return None,
+        true => return Ok(None),
         false => id_unparsed,
     };
 
-    Some((episode_no, language_code, id.to_string()))
+    Ok(Some((
+        episode_no,
+        Subtitle {
+            id: id.to_string(),
+            language: language_code,
+            path: at.as_ref().to_string_lossy().to_string(),
+        },
+    )))
 }
