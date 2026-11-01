@@ -109,7 +109,11 @@ pub fn spawn(
                     let Some((metadata, item)) = track_selection_wait_queue
                         .iter()
                         .enumerate()
-                        .find(|(_, current)| current.1.media.id() == user_provided_media.id())
+                        .find(|(_, current)| {
+                            current.1.media.id() == user_provided_media.id()
+                                && current.1.media.episode_identifier()
+                                    == user_provided_media.episode_identifier()
+                        })
                         .map(|(index, _)| index)
                         .and_then(|index| track_selection_wait_queue.remove(index))
                     else {
@@ -136,26 +140,11 @@ pub fn spawn(
                     // TODO: dedupe
                     preparing_queue.push_back((metadata, item.media, selections));
                 }
-                PrepareMessage::Done((_metadata, media_identifier)) => {
+                PrepareMessage::Done((prepared_items_metadata, media_identifier)) => {
                     // 1. Last task was done, ready to run next item
                     task = None;
 
-                    // 2. Tell media lib to recrawl (this may lead to an infinite loop)
-                    // TODO implement loop detection
-                    // TODO Only recrawl after all episodes from series were prepared
-                    if let Err(err) = media_signal_watcher
-                        .signal_sender
-                        .send(crate::service::media::MediaSignal::CrawlPartial {
-                            media_id: media_identifier.id().to_string(),
-                        })
-                        .await
-                    {
-                        error!(
-                            "Prepared media item {media_identifier:#?} but couldn't tell media service to recrawl it due to {err}. Restart the server."
-                        );
-                    }
-
-                    // 3. Remove from queue
+                    // 2. Remove from queue
                     match preparing_queue
                         .front()
                         .map(|(_, first_id, _)| first_id == &media_identifier)
@@ -168,6 +157,37 @@ pub fn spawn(
                                 "Processing {media_identifier:#?} was done but it was already removed from the preparing list. Check server code."
                             );
                         }
+                    }
+
+                    // 3. Tell media lib to recrawl (this may lead to an infinite loop)
+                    let queue_has_another_item_with_same_metadata = preparing_queue
+                        .iter()
+                        .map(|(metadata, _, _)| metadata)
+                        .chain(
+                            track_selection_wait_queue
+                                .iter()
+                                .map(|(metadata, _)| metadata),
+                        )
+                        .find(|metadata| **metadata == prepared_items_metadata)
+                        .is_some();
+
+                    // TODO implement loop detection
+                    if !queue_has_another_item_with_same_metadata {
+                        if let Err(err) = media_signal_watcher
+                            .signal_sender
+                            .send(crate::service::media::MediaSignal::CrawlPartial {
+                                media_id: media_identifier.id().to_string(),
+                            })
+                            .await
+                        {
+                            error!(
+                                "Prepared media item {media_identifier:#?} but couldn't tell media service to recrawl it due to {err}. Restart the server."
+                            );
+                        }
+                    } else {
+                        info!(
+                            "Prepared media item {media_identifier:#?} but didn't recrawl it yet since there are more items from same media waiting to be prepared."
+                        );
                     }
                 }
             }

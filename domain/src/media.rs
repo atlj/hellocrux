@@ -57,6 +57,13 @@ impl MediaIdentifier {
         }
     }
 
+    pub fn episode_identifier(&self) -> Option<&EpisodeIdentifier> {
+        match self {
+            MediaIdentifier::Movie { .. } => None,
+            MediaIdentifier::Series { episode, .. } => Some(episode),
+        }
+    }
+
     pub fn with_path(self, path: MediaPaths) -> Self {
         match self {
             MediaIdentifier::Movie { id, .. } => MediaIdentifier::Movie { id, path },

@@ -36,10 +36,14 @@ pub(super) async fn crawl_potential_media_file(
     let media_path = at.as_ref().to_string_lossy().to_string();
 
     let Some((track_name, episode_identifier)) = (match season_no {
-        Some(season_no) => file_stem
-            .split_once('-')
-            .and_then(|(episode_number, encoded_part)| {
-                episode_number.parse::<u32>().ok().map(|episode_number| {
+        Some(season_no) => {
+            let (episode_number, encoded_part) =
+                file_stem.split_once('-').unwrap_or((file_stem, file_stem));
+
+            episode_number
+                .parse::<u32>()
+                .ok()
+                .map(|episode_number| {
                     (
                         encoded_part,
                         domain::series::EpisodeIdentifier {
@@ -48,12 +52,12 @@ pub(super) async fn crawl_potential_media_file(
                         },
                     )
                 })
-            })
-            .map(|(encoded_part, episode_identifier)| {
-                let track_name = domain::encode_decode::decode_url_safe(encoded_part)
-                    .unwrap_or_else(|_| encoded_part.to_string());
-                (track_name, Some(episode_identifier))
-            }),
+                .map(|(encoded_part, episode_identifier)| {
+                    let track_name = domain::encode_decode::decode_url_safe(encoded_part)
+                        .unwrap_or_else(|_| encoded_part.to_string());
+                    (track_name, Some(episode_identifier))
+                })
+        }
         None => {
             let track_name = domain::encode_decode::decode_url_safe(file_stem)
                 .unwrap_or_else(|_| file_stem.to_string());

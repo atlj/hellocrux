@@ -1,11 +1,3 @@
-/Users/burakguner/kod/hellocrux/server/src/prepare/mod.rs
-31
-don't recrawl whole series, look at the queue, only crawl the latest episode if there are more items from the same series on the queue. If this was the last item from the series in the queue, recrawl the whole series
-
-/Users/burakguner/kod/hellocrux/Cargo.toml
-22
-bug where submitting track selection is applied to another episode
-
 /Users/burakguner/kod/hellocrux/ffmpeg/src/extract.rs
 45
 pass -nostdin to ffmpeg
