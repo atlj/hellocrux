@@ -26,7 +26,8 @@ pub struct ActivePlayerData {
     pub id: String,
     pub position: PlaybackPosition,
     pub media_paths: MediaPaths,
-    pub title: String,
+    pub metadata: domain::MediaMetaData,
+    pub current_episode: Option<EpisodeIdentifier>,
     pub next_episode: Option<EpisodeIdentifier>,
 }
 
@@ -141,9 +142,10 @@ pub fn handle_play(model: &mut Model, play_event: PlayEvent) -> crate::Command {
                     last_position,
                     active_player: Some(ActivePlayerData {
                         id,
+                        current_episode: None,
                         next_episode: None,
                         position: playback_data,
-                        title: media_item.metadata.title.clone(),
+                        metadata: media_item.metadata.clone(),
                         media_paths: {
                             content.add_prefix(base_url_clone.join("static/").unwrap().as_ref())
                         },
@@ -158,25 +160,20 @@ pub fn handle_play(model: &mut Model, play_event: PlayEvent) -> crate::Command {
 
                 let season = episodes.get(&defaulted_episode_id.season_no).unwrap();
                 let media_paths = season.get(&defaulted_episode_id.episode_no).unwrap();
-                let title = format!(
-                    "{} S{} E{}",
-                    &media_item.metadata.title,
-                    &defaulted_episode_id.season_no,
-                    &defaulted_episode_id.episode_no
-                );
                 let playback_data = PlaybackPosition::SeriesEpisode {
                     id: id.clone(),
                     position_seconds: initial_seconds.unwrap_or(0),
-                    episode_identifier: defaulted_episode_id,
+                    episode_identifier: defaulted_episode_id.clone(),
                 };
 
                 PlaybackModel {
                     last_position,
                     active_player: Some(ActivePlayerData {
                         id,
-                        next_episode: None,
+                        current_episode: Some(defaulted_episode_id),
+                        next_episode: None, // updated during playback
                         position: playback_data,
-                        title,
+                        metadata: media_item.metadata,
                         media_paths: media_paths
                             .add_prefix(base_url_clone.join("static/").unwrap().as_ref()),
                     }),

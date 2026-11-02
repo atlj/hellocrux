@@ -10,7 +10,7 @@ struct TrackSelectionScreen: View {
     var videoTracks: [(UInt64, String, Duration?)]? {
         preparingMedia.needed_track_selection?.compactMap { track in
             switch track {
-            case let .video(id, codec, duration):
+            case let .video(id, codec, _, duration):
                 (id, codec, duration)
             default:
                 nil
@@ -153,7 +153,7 @@ struct TrackSelectionScreen: View {
                         let selectedTracks = preparingMedia.needed_track_selection?.filter({
                             track in
                             switch track {
-                            case let .video(id, _, _):
+                            case let .video(id, _, _, _):
                                 id == selectedVideoTrackID
                             case let .audio(id, _, _, _):
                                 id == selectedAudioTrackID
@@ -203,9 +203,9 @@ struct TrackSelectionScreen: View {
                     title: "Breaking Bad", tmdb_id: nil,
                 ),
                 needed_track_selection: [
-                    .video(id: 0, codec: "av1", duration: .some(.init(secs: 900, nanos: 90000))),
-                    .video(id: 1, codec: "x254", duration: .some(.init(secs: 842_927, nanos: 9))),
-                    .video(id: 2, codec: "x254", duration: .some(.init(secs: 938, nanos: 9))),
+                    .video(id: 0, codec: "av1", codec_tag: nil, duration: .some(.init(secs: 900, nanos: 90000))),
+                    .video(id: 1, codec: "x254", codec_tag: nil, duration: .some(.init(secs: 842_927, nanos: 9))),
+                    .video(id: 2, codec: "x254", codec_tag: nil, duration: .some(.init(secs: 938, nanos: 9))),
                     .audio(
                         id: 0, codec: "avi", duration: .some(.init(secs: 898, nanos: 9382)),
                         language: .turkish,
@@ -238,7 +238,7 @@ struct TrackSelectionScreen: View {
                     title: "Breaking Bad", tmdb_id: nil,
                 ),
                 needed_track_selection: [
-                    .video(id: 0, codec: "av1", duration: .some(.init(secs: 900, nanos: 90000))),
+                    .video(id: 0, codec: "av1", codec_tag: nil, duration: .some(.init(secs: 900, nanos: 90000))),
                     .audio(
                         id: 0, codec: "avi", duration: .some(.init(secs: 898, nanos: 9382)),
                         language: .turkish,
@@ -263,7 +263,7 @@ struct TrackSelectionScreen: View {
                     title: "Breaking Bad", tmdb_id: nil,
                 ),
                 needed_track_selection: [
-                    .video(id: 0, codec: "av1", duration: .some(.init(secs: 900, nanos: 90000))),
+                    .video(id: 0, codec: "av1", codec_tag: nil, duration: .some(.init(secs: 900, nanos: 90000))),
                     .audio(
                         id: 0, codec: "avi", duration: .some(.init(secs: 898, nanos: 9382)),
                         language: .turkish,
@@ -296,9 +296,9 @@ struct TrackSelectionScreen: View {
                     title: "Breaking Bad", tmdb_id: nil,
                 ),
                 needed_track_selection: [
-                    .video(id: 0, codec: "av1", duration: .some(.init(secs: 900, nanos: 90000))),
-                    .video(id: 1, codec: "x254", duration: .some(.init(secs: 842_927, nanos: 9))),
-                    .video(id: 2, codec: "x254", duration: .some(.init(secs: 938, nanos: 9))),
+                    .video(id: 0, codec: "av1", codec_tag: nil, duration: .some(.init(secs: 900, nanos: 90000))),
+                    .video(id: 1, codec: "x254", codec_tag: nil, duration: .some(.init(secs: 842_927, nanos: 9))),
+                    .video(id: 2, codec: "x254", codec_tag: nil, duration: .some(.init(secs: 938, nanos: 9))),
                     .audio(
                         id: 0, codec: "avi", duration: .some(.init(secs: 898, nanos: 9382)),
                         language: .turkish,

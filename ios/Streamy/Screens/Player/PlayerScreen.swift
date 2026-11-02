@@ -10,6 +10,16 @@ struct PlayerScreen: View {
         overrideData ?? core.view.playback_detail.active_player
     }
 
+    var title: String {
+        var title = data!.metadata.title
+
+        if let episode_id = data?.current_episode {
+            title += " \(episode_id)"
+        }
+
+        return title
+    }
+
     var body: some View {
         if data != nil {
             Player(data: data!) { duration, position in
@@ -18,14 +28,14 @@ struct PlayerScreen: View {
             .onAppear {
                 core.update(.screenChanged(.player))
             }
-            .navigationTitle(data!.title)
+            .navigationTitle(title)
         }
     }
 }
 
 #Preview {
     PlayerScreen(
-        overrideData: .init(id: "id", position: .movie(id: "1", position_seconds: 0), media_paths: .init(media: "", track_name: "", subtitles: []), title: "Test", next_episode: nil),
+        overrideData: .init(id: "id", position: .movie(id: "1", position_seconds: 0), media_paths: .init(media: "", track_name: "", subtitles: []), metadata: .init(thumbnail: "", title: "Test", tmdb_id: nil), current_episode: nil, next_episode: nil),
     )
     .environmentObject(Core())
 }
@@ -47,5 +57,11 @@ extension SharedTypes.PlaybackPosition {
         case let .seriesEpisode(id: id, episode_identifier: _, position_seconds: _):
             id
         }
+    }
+}
+
+extension SharedTypes.EpisodeIdentifier: @retroactive CustomStringConvertible {
+    public var description: String {
+        "S\(season_no)E\(episode_no)"
     }
 }

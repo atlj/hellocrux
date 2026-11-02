@@ -19,6 +19,7 @@ struct Player: UIViewControllerRepresentable {
     static var sharedPlayer: AVPlayer?
     static var sharedPlayerUrl: URL?
     static var timeObserver: Any?
+    static var artworkFetchTask: URLSessionTask?
 
     private var player: AVPlayer {
         if let sharedPlayer = Player.sharedPlayer, Player.sharedPlayerUrl == url {
@@ -31,7 +32,48 @@ struct Player: UIViewControllerRepresentable {
         Player.sharedPlayer = player
 
         let videoAsset = AVURLAsset(url: url)
-        player.replaceCurrentItem(with: AVPlayerItem(asset: videoAsset))
+        let playerItem = AVPlayerItem(asset: videoAsset)
+
+        let titleMeta = AVMutableMetadataItem()
+        titleMeta.identifier = .commonIdentifierTitle
+        titleMeta.value = data.metadata.title as NSString
+        playerItem.externalMetadata.append(titleMeta)
+
+        if let episode_id = data.current_episode {
+            let subtitleMeta = AVMutableMetadataItem()
+            subtitleMeta.identifier = .iTunesMetadataTrackSubTitle
+            subtitleMeta.value = String(describing: episode_id) as NSString
+            playerItem.externalMetadata.append(subtitleMeta)
+        }
+
+        Self.artworkFetchTask?.cancel()
+        let artworkURL = URL(string: data.metadata.thumbnail)!
+        Self.artworkFetchTask = URLSession.shared.dataTask(
+            with: artworkURL,
+        ) {
+            [weak player, artworkURL] data, response, error in
+            if let error {
+                Self.logger.error("Couldn't fetch metadata from \(artworkURL)")
+                return
+            }
+
+            guard let player, let data, let response else { return }
+
+            let mime = (response as? HTTPURLResponse)?.mimeType ?? ""
+            let dataType = mime.contains("png")
+                ? kCMMetadataBaseDataType_PNG
+                : kCMMetadataBaseDataType_JPEG
+
+            let artworkMeta = AVMutableMetadataItem()
+            artworkMeta.identifier = .commonIdentifierArtwork
+            artworkMeta.value = data as NSData
+            artworkMeta.dataType = dataType as String
+
+            player.currentItem?.externalMetadata.append(artworkMeta)
+        }
+        Self.artworkFetchTask?.resume()
+
+        player.replaceCurrentItem(with: playerItem)
 
         player.seek(
             to: .init(
@@ -101,6 +143,7 @@ struct Player: UIViewControllerRepresentable {
         uiViewController.showNextButton(data.next_episode != nil)
 
         if url != Player.sharedPlayerUrl {
+            Self.artworkFetchTask?.cancel()
             uiViewController.player?.dismantle()
         }
 
@@ -110,6 +153,7 @@ struct Player: UIViewControllerRepresentable {
     static func dismantleUIViewController(
         _ uiViewController: PlayerViewController, coordinator _: (),
     ) {
+        artworkFetchTask?.cancel()
         uiViewController.player?.dismantle()
         uiViewController.player = nil
     }
@@ -135,8 +179,10 @@ extension AVPlayer {
     PlayerScreen(
         overrideData: .init(
             id: "id", position: .movie(id: "1", position_seconds: 0),
-            media_paths: .init(media: "", track_name: "", subtitles: []), title: "",
-            next_episode: EpisodeIdentifier(season_no: 1, episode_no: 1),
+            media_paths: .init(media: "", track_name: "", subtitles: []),
+            metadata: .init(thumbnail: "", title: "Breaking Bad", tmdb_id: nil),
+            current_episode: .init(season_no: 1, episode_no: 1),
+            next_episode: EpisodeIdentifier(season_no: 1, episode_no: 2),
         ),
     )
     .environmentObject(Core())

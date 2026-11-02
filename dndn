@@ -27,10 +27,6 @@ make reencoding faster
 tmdb id is not being saved
 
 /Users/burakguner/kod/hellocrux/ios/Streamy/Screens/Player/Player.swift
-97
-add player metadata
-
-/Users/burakguner/kod/hellocrux/ios/Streamy/Screens/Player/Player.swift
 139
 landscape should automatically extend view
 
