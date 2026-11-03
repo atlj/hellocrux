@@ -35,13 +35,19 @@ pub async fn prepare_media(
                 id,
                 language,
                 external_id,
-                ..
+                codec,
             } = track
             else {
                 return None;
             };
 
             if external_id.is_some() {
+                return None;
+            }
+
+            // TODO extract
+            // requires decoder params
+            if codec == "hdmv_pgs_subtitle" {
                 return None;
             }
 

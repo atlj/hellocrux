@@ -1,6 +1,10 @@
-/Users/burakguner/kod/hellocrux/server/src/prepare/mod.rs
-24
-infinite preparing list
+/Users/burakguner/kod/hellocrux/ffmpeg/src/lib.rs
+8
+fetch progress
+
+/Users/burakguner/kod/hellocrux/ios/Streamy/Screens/Player/Player.swift
+139
+landscape should automatically extend view
 
 /Users/burakguner/kod/hellocrux/server/src/prepare/mod.rs
 54
@@ -9,6 +13,10 @@ keep only a single subtitle from each language
 /Users/burakguner/kod/hellocrux/server/src/prepare/mod.rs
 54
 don't default unknown languages to english, instead mark them as unknown
+
+/Users/burakguner/kod/hellocrux/server/src/service/prepare.rs
+174
+Implement loop detection for preparing
 
 /Users/burakguner/kod/hellocrux/server/src/service/process.rs
 189
@@ -38,17 +46,9 @@ make reencoding faster
 1
 tmdb id is not being saved
 
-/Users/burakguner/kod/hellocrux/ios/Streamy/Screens/Player/Player.swift
-139
-landscape should automatically extend view
-
 /Users/burakguner/kod/hellocrux/Cargo.toml
 21
 implement library deletion
-
-/Users/burakguner/kod/hellocrux/ffmpeg/src/lib.rs
-8
-fetch progress
 
 /Users/burakguner/kod/hellocrux/server/src/prepare/mod.rs
 187
