@@ -68,12 +68,19 @@ pub fn spawn(
                     // TODO: dedupe
                     match default_track_selections {
                         Some(track_selections) => {
-                            // 2a. Media is good to go, enqueue it
-                            preparing_queue.push_back((
-                                media_metadata,
-                                media_identifier,
-                                track_selections,
-                            ));
+                            // TODO instead of doing a search here, find a more clever way
+                            // 2a. Media is good to go, enqueue it if it's not here already
+                            if preparing_queue
+                                .iter()
+                                .find(|item| item.1 == media_identifier)
+                                .is_none()
+                            {
+                                preparing_queue.push_back((
+                                    media_metadata,
+                                    media_identifier,
+                                    track_selections,
+                                ));
+                            }
                         }
                         None => {
                             // 2b. Media needs user input, put it to pending list.
@@ -90,14 +97,21 @@ pub fn spawn(
                                 }
                             };
 
-                            info!("Awaiting track selection to prepare {media_identifier:#?}.");
-                            track_selection_wait_queue.push_back((
-                                media_metadata,
-                                domain::TrackSelectionItem {
-                                    media: media_identifier,
-                                    tracks,
-                                },
-                            ));
+                            // TODO instead of doing a search here, find a more clever way
+                            if track_selection_wait_queue
+                                .iter()
+                                .find(|item| item.1.media == media_identifier)
+                                .is_none()
+                            {
+                                info!("Awaiting track selection to prepare {media_identifier:#?}.");
+                                track_selection_wait_queue.push_back((
+                                    media_metadata,
+                                    domain::TrackSelectionItem {
+                                        media: media_identifier,
+                                        tracks,
+                                    },
+                                ));
+                            }
                         }
                     }
                 }
