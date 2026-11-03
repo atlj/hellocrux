@@ -1,6 +1,18 @@
+/Users/burakguner/kod/hellocrux/server/src/service/prepare.rs
+118
+track selection messages are ignored
+
 /Users/burakguner/kod/hellocrux/ffmpeg/src/lib.rs
 8
 fetch progress
+
+/Users/burakguner/kod/hellocrux/server/src/prepare/mod.rs
+51
+handle hdmv_pgs_subtitle subtitles
+
+/Users/burakguner/kod/hellocrux/server/src/prepare/mod.rs
+137
+get audio track metadata title to display during track selection
 
 /Users/burakguner/kod/hellocrux/ios/Streamy/Screens/Player/Player.swift
 139

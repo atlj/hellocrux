@@ -46,6 +46,7 @@ pub async fn prepare_media(
             }
 
             // TODO extract
+            // TODO handle these subtitles properly
             // requires decoder params
             if codec == "hdmv_pgs_subtitle" {
                 return None;
