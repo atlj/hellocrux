@@ -4,7 +4,7 @@ mod series;
 
 use std::path::PathBuf;
 
-pub use movies::generate_movie_media;
+pub use movies::{find_movie_file, generate_movie_media};
 pub use series::generate_series_media;
 
 const URL_SAFE_NON_ALPHANUMERIC_CHARS: [char; 11] =
@@ -29,6 +29,11 @@ pub enum Error {
     NoFileName,
     #[error("Media file has no extension")]
     NoExtension,
+    #[error("Couldn't read dir contents at {path}. {inner}")]
+    CantReadDir {
+        path: PathBuf,
+        inner: std::io::Error,
+    },
     #[error("Coudln't create dir for media at {path}. {inner}")]
     CantCreateDir {
         path: PathBuf,

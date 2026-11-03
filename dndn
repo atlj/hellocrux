@@ -1,10 +1,14 @@
+/Users/burakguner/kod/hellocrux/server/src/prepare/mod.rs
+24
+infinite preparing list
+
+/Users/burakguner/kod/hellocrux/server/src/service/process.rs
+189
+we should avoid using save_path field. It only gives us the torrent downloads folder. We should instead directly use the content folder in series mapping
+
 /Users/burakguner/kod/hellocrux/ffmpeg/src/extract.rs
 45
 pass -nostdin to ffmpeg
-
-/Users/burakguner/kod/hellocrux/Cargo.toml
-21
-stuff getting stuck at preparing
 
 /Users/burakguner/kod/hellocrux/ffmpeg/src/encode.rs
 198

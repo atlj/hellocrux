@@ -1,7 +1,12 @@
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    pin::pin,
+};
 
 use super::{Error, Result};
 use domain::MediaMetaData;
+use futures::{StreamExt, stream::FuturesUnordered};
+use log::error;
 
 use super::sanitize_name_for_url;
 
@@ -48,6 +53,52 @@ pub async fn generate_movie_media(
     Ok(target_dir.join(&file_name))
 }
 
+pub async fn find_movie_file(at: impl AsRef<Path>) -> Result<Option<PathBuf>> {
+    let futures: FuturesUnordered<_> = crate::dir::fully_read_dir(&at)
+        .await
+        .map_err(|err| Error::CantReadDir {
+            path: at.as_ref().to_path_buf(),
+            inner: err,
+        })?
+        .filter_map(|dir_item| {
+            let path = dir_item.path();
+
+            if !domain::format::is_video_file(&path) {
+                return None;
+            }
+
+            let future = async move {
+                let attributes = tokio::fs::metadata(&path).await?;
+                if !attributes.is_file() {
+                    return Ok(None);
+                }
+
+                Ok(Some(path)) as core::result::Result<Option<PathBuf>, std::io::Error>
+            };
+
+            Some(future)
+        })
+        .collect();
+
+    let result =
+        pin!(futures
+        .filter_map(|result| async move {
+            match result {
+                Ok(result) => result,
+            Err(err) => {
+                error!(
+                    "While processing a torrent, couldn't check if a file was the media file: {err}"
+                );
+                None
+            }
+            }
+        }))
+        .next()
+        .await;
+
+    Ok(result)
+}
+
 #[cfg(test)]
 mod tests {
     use domain::MediaMetaData;
@@ -64,6 +115,7 @@ mod tests {
 
         let metadata = MediaMetaData {
             title: "My Movie".to_string(),
+            tmdb_id: None,
             thumbnail: "http://path.to/image".to_string(),
         };
 

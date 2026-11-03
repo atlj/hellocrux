@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use log::{error, info};
+use log::{error, info, warn};
 use torrent::{TorrentExtra, TorrentInfo, qbittorrent_client::QBittorrentClientMessage};
 
 pub type ProcessingListWatcher = crate::signal::Watcher<Box<[Box<str>]>>;
@@ -176,7 +176,16 @@ async fn process(media_dir: &Path, torrent: &TorrentInfo) -> Result<(), ProcessE
 
     match extra {
         TorrentExtra::Movie { ref metadata } => {
-            crate::moving::generate_movie_media(media_dir, &torrent.save_path, metadata).await?;
+            match crate::moving::find_movie_file(&torrent.content_path).await? {
+                Some(media_file_path) => {
+                    crate::moving::generate_movie_media(media_dir, &media_file_path, metadata)
+                        .await?;
+                }
+                None => warn!(
+                    "Downloaded a torrent at {} but it doesn't contain any media files. Skipping it",
+                    &torrent.content_path.display()
+                ),
+            }
         }
         TorrentExtra::Series {
             ref metadata,

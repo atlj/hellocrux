@@ -131,6 +131,7 @@ mod tests {
             mapping,
             &MediaMetaData {
                 title: "My Series".to_string(),
+                tmdb_id: None,
                 thumbnail: "http://image.com".to_string(),
             },
         )
