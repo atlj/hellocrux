@@ -35,6 +35,7 @@ pub async fn prepare_media(
                 id,
                 language,
                 external_id,
+                ..
             } = track
             else {
                 return None;

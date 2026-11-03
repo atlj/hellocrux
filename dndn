@@ -2,6 +2,14 @@
 24
 infinite preparing list
 
+/Users/burakguner/kod/hellocrux/server/src/prepare/mod.rs
+54
+keep only a single subtitle from each language
+
+/Users/burakguner/kod/hellocrux/server/src/prepare/mod.rs
+54
+don't default unknown languages to english, instead mark them as unknown
+
 /Users/burakguner/kod/hellocrux/server/src/service/process.rs
 189
 we should avoid using save_path field. It only gives us the torrent downloads folder. We should instead directly use the content folder in series mapping

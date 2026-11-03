@@ -135,6 +135,10 @@ pub mod dto {
                             domain::language::LanguageCode::try_from(tag_string.as_str()).ok()
                         },
                     ),
+                    codec: self
+                        .codec_name
+                        .clone()
+                        .ok_or_else(|| Error::NoCodec(Box::new(self.clone())))?,
                     // handler_name is the EXTERNAL_ID carrier. The default "SubtitleHandler"
                     // value set by ffmpeg is filtered out.
                     external_id: self

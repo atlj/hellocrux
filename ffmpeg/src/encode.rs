@@ -54,6 +54,7 @@ impl TrackExt for domain::Track {
                 id,
                 language,
                 external_id,
+                ..
             } => TrackSelection::Subtitle {
                 input_path: path,
                 track_id: id,

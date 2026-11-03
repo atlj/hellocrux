@@ -256,6 +256,7 @@ pub enum Track {
     },
     Subtitle {
         id: usize,
+        codec: String,
         language: Option<crate::language::LanguageCode>,
         external_id: Option<String>,
     },
