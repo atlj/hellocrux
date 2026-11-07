@@ -113,6 +113,7 @@ pub mod dto {
                         .ok_or_else(|| Error::NoCodec(Box::new(self.clone())))?,
                     codec_tag: self.codec_tag_string,
                     duration,
+                    title: self.tags.and_then(|tags| tags.title),
                 }),
                 "audio" => Ok(domain::Track::Audio {
                     id: self.index,
@@ -123,10 +124,12 @@ pub mod dto {
                     duration,
                     language: self
                         .tags
-                        .and_then(|tags| tags.language)
+                        .as_ref()
+                        .and_then(|tags| tags.language.as_ref())
                         .and_then(|tag_string| {
                             domain::language::LanguageCode::try_from(tag_string.as_str()).ok()
                         }),
+                    title: self.tags.and_then(|tags| tags.title),
                 }),
                 "subtitle" => Ok(domain::Track::Subtitle {
                     id: self.index,
@@ -141,6 +144,7 @@ pub mod dto {
                         .ok_or_else(|| Error::NoCodec(Box::new(self.clone())))?,
                     // handler_name is the EXTERNAL_ID carrier. The default "SubtitleHandler"
                     // value set by ffmpeg is filtered out.
+                    title: self.tags.clone().and_then(|tags| tags.title),
                     external_id: self
                         .tags
                         .and_then(|tags| tags.handler_name)
@@ -156,10 +160,12 @@ pub mod dto {
     #[derive(Debug, serde::Deserialize, Clone, PartialEq, Eq)]
     pub struct FfprobeStreamTags {
         pub language: Option<String>,
+        pub title: Option<String>,
         pub handler_name: Option<String>,
         #[serde(
-            rename = "DURATION",
             default,
+            alias = "DURATION",
+            alias = "DURATION-eng",
             deserialize_with = "crate::deserialize_duration::deserialize_duration_optional"
         )]
         pub duration: Option<Duration>,

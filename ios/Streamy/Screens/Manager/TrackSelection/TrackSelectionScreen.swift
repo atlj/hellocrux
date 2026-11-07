@@ -7,22 +7,22 @@ struct TrackSelectionScreen: View {
     @Environment(\.dismiss) var dismiss
     var preparingMedia: PreparingMedia
 
-    var videoTracks: [(UInt64, String, Duration?)]? {
+    var videoTracks: [(UInt64, String, String?, Duration?)]? {
         preparingMedia.needed_track_selection?.compactMap { track in
             switch track {
-            case let .video(id, codec, _, duration):
-                (id, codec, duration)
+            case let .video(id, codec, _, title, duration):
+                (id, codec, title, duration)
             default:
                 nil
             }
         }
     }
 
-    var audioTracks: [(UInt64, String, Duration?, LanguageCode?)]? {
+    var audioTracks: [(UInt64, String, String?, Duration?, LanguageCode?)]? {
         preparingMedia.needed_track_selection?.compactMap { track in
             switch track {
-            case let .audio(id, codec, duration, language):
-                (id, codec, duration, language)
+            case let .audio(id, codec, title, duration, language):
+                (id, codec, title, duration, language)
             default:
                 nil
             }
@@ -82,17 +82,27 @@ struct TrackSelectionScreen: View {
                         get: { selectedVideoTrackID }, set: { selectedVideoTrackIDState = $0 },
                     ),
                 ) {
-                    ForEach(videoTracks, id: \.0) { id, codec, duration in
-                        HStack {
-                            Text("Track \(id) ")
-                                .bold()
-                            Text(codec)
-                                .padding(4)
-                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(lineWidth: 1))
-                                .foregroundStyle(.secondary)
-                            if let duration {
-                                Spacer()
-                                Text(Swift.Duration.seconds(duration.secs).formatted())
+                    ForEach(videoTracks, id: \.0) { id, codec, title, duration in
+                        VStack {
+                            HStack {
+                                Text("Track \(id) ")
+                                    .bold()
+                                Text(codec)
+                                    .padding(4)
+                                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(lineWidth: 1))
+                                    .foregroundStyle(.secondary)
+                                if let duration {
+                                    Spacer()
+                                    Text(Swift.Duration.seconds(duration.secs).formatted())
+                                }
+                            }
+
+                            if let title {
+                                HStack {
+                                    Text(title)
+                                        .foregroundStyle(.secondary)
+                                    Spacer()
+                                }
                             }
                         }
                         .tag(id)
@@ -111,28 +121,37 @@ struct TrackSelectionScreen: View {
                         get: { selectedAudioTrackID }, set: { selectedAudioTrackIDState = $0 },
                     ),
                 ) {
-                    ForEach(audioTracks, id: \.0) { id, codec, duration, language in
-                        HStack {
-                            if let language {
-                                Text(
-                                    Locale.current.localizedString(
-                                        forLanguageCode: language.iso639_2t(),
-                                    )!,
-                                )
-                                .bold()
-                            } else {
-                                Text("Unknown Language")
+                    ForEach(audioTracks, id: \.0) { id, codec, title, duration, language in
+                        VStack {
+                            HStack {
+                                if let language {
+                                    Text(
+                                        Locale.current.localizedString(
+                                            forLanguageCode: language.iso639_2t(),
+                                        )!,
+                                    )
                                     .bold()
+                                } else {
+                                    Text("Unknown Language")
+                                        .bold()
+                                }
+
+                                Text(codec)
+                                    .padding(4)
+                                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(lineWidth: 1))
+                                    .foregroundStyle(.secondary)
+
+                                if let duration {
+                                    Spacer()
+                                    Text(Swift.Duration.seconds(duration.secs).formatted())
+                                }
                             }
-
-                            Text(codec)
-                                .padding(4)
-                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(lineWidth: 1))
-                                .foregroundStyle(.secondary)
-
-                            if let duration {
-                                Spacer()
-                                Text(Swift.Duration.seconds(duration.secs).formatted())
+                            if let title {
+                                HStack {
+                                    Text(title)
+                                        .foregroundStyle(.secondary)
+                                    Spacer()
+                                }
                             }
                         }
                         .tag(id)
@@ -153,9 +172,9 @@ struct TrackSelectionScreen: View {
                         let selectedTracks = preparingMedia.needed_track_selection?.filter({
                             track in
                             switch track {
-                            case let .video(id, _, _, _):
+                            case let .video(id, _, _, _, _):
                                 id == selectedVideoTrackID
-                            case let .audio(id, _, _, _):
+                            case let .audio(id, _, _, _, _):
                                 id == selectedAudioTrackID
                             case .subtitle:
                                 // include all subtitle tracks by default
@@ -203,19 +222,19 @@ struct TrackSelectionScreen: View {
                     title: "Breaking Bad", tmdb_id: nil,
                 ),
                 needed_track_selection: [
-                    .video(id: 0, codec: "av1", codec_tag: nil, duration: .some(.init(secs: 900, nanos: 90000))),
-                    .video(id: 1, codec: "x254", codec_tag: nil, duration: .some(.init(secs: 842_927, nanos: 9))),
-                    .video(id: 2, codec: "x254", codec_tag: nil, duration: .some(.init(secs: 938, nanos: 9))),
+                    .video(id: 0, codec: "av1", codec_tag: nil, title: "Movie", duration: .some(.init(secs: 900, nanos: 90000))),
+                    .video(id: 1, codec: "x254", codec_tag: nil, title: nil, duration: .some(.init(secs: 842_927, nanos: 9))),
+                    .video(id: 2, codec: "x254", codec_tag: nil, title: "Commentary from director", duration: .some(.init(secs: 938, nanos: 9))),
                     .audio(
-                        id: 0, codec: "avi", duration: .some(.init(secs: 898, nanos: 9382)),
+                        id: 0, codec: "avi", title: nil, duration: .some(.init(secs: 898, nanos: 9382)),
                         language: .turkish,
                     ),
                     .audio(
-                        id: 1, codec: "acc", duration: .some(.init(secs: 898, nanos: 9382)),
+                        id: 1, codec: "acc", title: "Commentary from director", duration: .some(.init(secs: 898, nanos: 9382)),
                         language: .english,
                     ),
                     .audio(
-                        id: 2, codec: "acc", duration: .some(.init(secs: 898, nanos: 9382)),
+                        id: 2, codec: "acc", title: "Extra soundtrack", duration: .some(.init(secs: 898, nanos: 9382)),
                         language: nil,
                     ),
                 ],
@@ -238,9 +257,9 @@ struct TrackSelectionScreen: View {
                     title: "Breaking Bad", tmdb_id: nil,
                 ),
                 needed_track_selection: [
-                    .video(id: 0, codec: "av1", codec_tag: nil, duration: .some(.init(secs: 900, nanos: 90000))),
+                    .video(id: 0, codec: "av1", codec_tag: nil, title: nil, duration: .some(.init(secs: 900, nanos: 90000))),
                     .audio(
-                        id: 0, codec: "avi", duration: .some(.init(secs: 898, nanos: 9382)),
+                        id: 0, codec: "avi", title: nil, duration: .some(.init(secs: 898, nanos: 9382)),
                         language: .turkish,
                     ),
                 ],
@@ -263,17 +282,17 @@ struct TrackSelectionScreen: View {
                     title: "Breaking Bad", tmdb_id: nil,
                 ),
                 needed_track_selection: [
-                    .video(id: 0, codec: "av1", codec_tag: nil, duration: .some(.init(secs: 900, nanos: 90000))),
+                    .video(id: 0, codec: "av1", codec_tag: nil, title: nil, duration: .some(.init(secs: 900, nanos: 90000))),
                     .audio(
-                        id: 0, codec: "avi", duration: .some(.init(secs: 898, nanos: 9382)),
+                        id: 0, codec: "avi", title: nil, duration: .some(.init(secs: 898, nanos: 9382)),
                         language: .turkish,
                     ),
                     .audio(
-                        id: 1, codec: "acc", duration: .some(.init(secs: 898, nanos: 9382)),
+                        id: 1, codec: "acc", title: "Commentary from director", duration: .some(.init(secs: 898, nanos: 9382)),
                         language: .english,
                     ),
                     .audio(
-                        id: 2, codec: "acc", duration: .some(.init(secs: 898, nanos: 9382)),
+                        id: 2, codec: "acc", title: "Extra soundtrack", duration: .some(.init(secs: 898, nanos: 9382)),
                         language: nil,
                     ),
                 ],
@@ -296,11 +315,11 @@ struct TrackSelectionScreen: View {
                     title: "Breaking Bad", tmdb_id: nil,
                 ),
                 needed_track_selection: [
-                    .video(id: 0, codec: "av1", codec_tag: nil, duration: .some(.init(secs: 900, nanos: 90000))),
-                    .video(id: 1, codec: "x254", codec_tag: nil, duration: .some(.init(secs: 842_927, nanos: 9))),
-                    .video(id: 2, codec: "x254", codec_tag: nil, duration: .some(.init(secs: 938, nanos: 9))),
+                    .video(id: 0, codec: "av1", codec_tag: nil, title: nil, duration: .some(.init(secs: 900, nanos: 90000))),
+                    .video(id: 1, codec: "x254", codec_tag: nil, title: nil, duration: .some(.init(secs: 842_927, nanos: 9))),
+                    .video(id: 2, codec: "x254", codec_tag: nil, title: nil, duration: .some(.init(secs: 938, nanos: 9))),
                     .audio(
-                        id: 0, codec: "avi", duration: .some(.init(secs: 898, nanos: 9382)),
+                        id: 0, codec: "avi", title: nil, duration: .some(.init(secs: 898, nanos: 9382)),
                         language: .turkish,
                     ),
                 ],
