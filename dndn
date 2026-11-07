@@ -1,14 +1,14 @@
-/Users/burakguner/kod/hellocrux/server/src/service/prepare.rs
-118
-track selection messages are ignored
-
-/Users/burakguner/kod/hellocrux/ffmpeg/src/lib.rs
-8
-fetch progress
+/Users/burakguner/kod/hellocrux/Cargo.toml
+21
+bug where adding download crashes the app due to navigation (pop 2)
 
 /Users/burakguner/kod/hellocrux/server/src/prepare/mod.rs
-51
-handle hdmv_pgs_subtitle subtitles
+54
+don't default unknown languages to english, instead mark them as unknown
+
+/Users/burakguner/kod/hellocrux/server/src/prepare/mod.rs
+54
+keep only a single subtitle from each language
 
 /Users/burakguner/kod/hellocrux/server/src/prepare/mod.rs
 137
@@ -18,13 +18,9 @@ get audio track metadata title to display during track selection
 139
 landscape should automatically extend view
 
-/Users/burakguner/kod/hellocrux/server/src/prepare/mod.rs
-54
-keep only a single subtitle from each language
-
-/Users/burakguner/kod/hellocrux/server/src/prepare/mod.rs
-54
-don't default unknown languages to english, instead mark them as unknown
+/Users/burakguner/kod/hellocrux/ffmpeg/src/lib.rs
+8
+fetch progress
 
 /Users/burakguner/kod/hellocrux/server/src/service/prepare.rs
 174
@@ -45,10 +41,6 @@ add -dn and -tn to omit data and attachment streams
 /Users/burakguner/kod/hellocrux/ffmpeg/src/lib.rs
 21
 pass -report option to ffmpeg so we can collect logs
-
-/Users/burakguner/kod/hellocrux/Cargo.toml
-21
-bug where adding download crashes the app due to navigation (pop 2)
 
 /Users/burakguner/kod/hellocrux/ffmpeg/src/track.rs
 134
