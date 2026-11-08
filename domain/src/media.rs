@@ -211,6 +211,7 @@ pub fn is_container_compatible(container: &str) -> bool {
 }
 
 pub fn is_video_codec_compatible(video_codec: &str) -> bool {
+    // Leaves out av1 which is not commonly supported on iOS
     matches!(video_codec, "hevc" | "hvc1" | "h264")
 }
 
@@ -230,6 +231,7 @@ pub fn get_codec_tag_override(video_codec: &str, video_codec_tag: Option<&str>) 
 }
 
 pub fn is_audio_codec_compatible(audio_codec: &str) -> bool {
+    // leaves out opus, which is partially supported on ios
     matches!(audio_codec, "ac3" | "aac" | "eac3")
 }
 

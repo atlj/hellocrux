@@ -73,18 +73,19 @@ pub fn spawn(
                 // 5. Process the torents that needs to be processed
                 let process_futures = torrents_to_process.into_iter().map(
                     async |torrent| -> Result<Box<str>, ProcessError> {
-                        info!("Preparing torrent named {}", &torrent.name);
+                        info!("Processing torrent named {}", &torrent.name);
 
                         process(&media_dir, &torrent)
                             .await
                             .inspect_err(|err| {
                                 error!(
-                                    "Couldn't prepare torrent with id {}. Reason: {err}",
-                                    torrent.hash
+                                    "Couldn't process torrent with named {}. Reason: {err}. More info: {:#?}",
+                                    torrent.name,
+                                    torrent
                                 )
                             })
                             .inspect(|_| {
-                                info!("Done preparing torrent named {}", &torrent.name);
+                                info!("Done processing torrent named {}", &torrent.name);
                             })
                             .map(|_| torrent.hash)
                     },
