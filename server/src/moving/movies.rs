@@ -54,6 +54,23 @@ pub async fn generate_movie_media(
 }
 
 pub async fn find_movie_file(at: impl AsRef<Path>) -> Result<Option<PathBuf>> {
+    let attributes = tokio::fs::metadata(&at)
+        .await
+        .map_err(|err| Error::CantReadDir {
+            path: at.as_ref().to_path_buf(),
+            inner: err,
+        })?;
+
+    if attributes.is_file() {
+        // 1. See if the download was just a video file
+        return if domain::format::is_video_file(&at) {
+            Ok(Some(at.as_ref().to_path_buf()))
+        } else {
+            Ok(None)
+        };
+    }
+
+    // 2. Download was a folder, see if there are any video files
     let futures: FuturesUnordered<_> = crate::dir::fully_read_dir(&at)
         .await
         .map_err(|err| Error::CantReadDir {
@@ -80,6 +97,7 @@ pub async fn find_movie_file(at: impl AsRef<Path>) -> Result<Option<PathBuf>> {
         })
         .collect();
 
+    // 3. Get the first file we were able mark as a video file
     let result =
         pin!(futures
         .filter_map(|result| async move {
