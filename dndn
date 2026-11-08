@@ -1,3 +1,11 @@
+/Users/burakguner/kod/hellocrux/server/src/prepare/mod.rs
+47
+display available subtitle tracks on track selection screen
+
+/Users/burakguner/kod/hellocrux/server/src/prepare/mod.rs
+47
+display an error message on client when preparation fails
+
 /Users/burakguner/kod/hellocrux/Cargo.toml
 21
 bug where adding download crashes the app due to navigation (pop 2)

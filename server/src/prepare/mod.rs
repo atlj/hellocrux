@@ -49,7 +49,7 @@ pub async fn prepare_media(
             // Image based subtitles, require OCR for srt convertion, we will likely won't support
             // this format
             // TODO extract the exclusion logic
-            if codec == "hdmv_pgs_subtitle" {
+            if codec == "hdmv_pgs_subtitle" || codec == "dvd_subtitle" {
                 return None;
             }
 
