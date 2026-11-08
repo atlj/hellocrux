@@ -177,7 +177,12 @@ async fn process(media_dir: &Path, torrent: &TorrentInfo) -> Result<(), ProcessE
 
     match extra {
         TorrentExtra::Movie { ref metadata } => {
-            match crate::moving::find_movie_file(&torrent.root_path).await? {
+            let download_path = if torrent.root_path.as_os_str().is_empty() {
+                &torrent.content_path
+            } else {
+                &torrent.root_path
+            };
+            match crate::moving::find_movie_file(download_path).await? {
                 Some(media_file_path) => {
                     crate::moving::generate_movie_media(media_dir, &media_file_path, metadata)
                         .await?;
