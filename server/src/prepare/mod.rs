@@ -128,19 +128,20 @@ pub async fn prepare_media(
                 let codec_tag_override = get_codec_tag_override(codec, codec_tag.as_deref());
 
                 if domain::is_video_codec_compatible(codec) {
-                    selection.with_codec("copy".to_string(), codec_tag_override)
+                    selection.with_codec("copy".to_string(), codec_tag_override, None)
                 } else {
                     selection.with_codec(
                         domain::DEFAULT_VIDEO_CODEC.to_string(),
-                        Some(domain::DEFAULT_VIDEO_CODEC_TAG.to_string()),
+                        None,
+                        Some(domain::DEFAULT_VIDE_CODEC_OPTIONS.to_string()),
                     )
                 }
             }
             ffmpeg::TrackSelection::Audio { codec, .. } => {
                 if domain::is_audio_codec_compatible(codec) {
-                    selection.with_codec("copy".to_string(), None)
+                    selection.with_codec("copy".to_string(), None, None)
                 } else {
-                    selection.with_codec(domain::DEFAULT_AUDIO_CODEC.to_string(), None)
+                    selection.with_codec(domain::DEFAULT_AUDIO_CODEC.to_string(), None, None)
                 }
             }
             _ => selection,
@@ -157,6 +158,7 @@ pub async fn prepare_media(
                 track_id: 0,
                 language: Some(sub.language.clone()),
                 external_id: Some(sub.id.clone()),
+                codec_options: None,
             }
         });
 

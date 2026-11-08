@@ -10,17 +10,20 @@ pub enum TrackSelection {
         track_id: usize,
         codec: String,
         codec_tag: Option<String>,
+        codec_options: Option<String>,
     },
     Audio {
         input_path: PathBuf,
         track_id: usize,
         codec: String,
+        codec_options: Option<String>,
     },
     Subtitle {
         input_path: PathBuf,
         track_id: usize,
         language: Option<domain::language::LanguageCode>,
         external_id: Option<String>,
+        codec_options: Option<String>,
     },
 }
 
@@ -44,11 +47,13 @@ impl TrackExt for domain::Track {
                 track_id: id,
                 codec,
                 codec_tag,
+                codec_options: None,
             },
             domain::Track::Audio { id, codec, .. } => TrackSelection::Audio {
                 input_path: path,
                 track_id: id,
                 codec,
+                codec_options: None,
             },
             domain::Track::Subtitle {
                 id,
@@ -60,6 +65,7 @@ impl TrackExt for domain::Track {
                 track_id: id,
                 language,
                 external_id,
+                codec_options: None,
             },
         }
     }
@@ -74,7 +80,12 @@ impl TrackSelection {
         }
     }
 
-    pub fn with_codec(self, codec: String, codec_tag: Option<String>) -> Self {
+    pub fn with_codec(
+        self,
+        codec: String,
+        codec_tag: Option<String>,
+        codec_options: Option<String>,
+    ) -> Self {
         match self {
             TrackSelection::Video {
                 input_path,
@@ -85,6 +96,7 @@ impl TrackSelection {
                 input_path,
                 track_id,
                 codec_tag,
+                codec_options,
             },
             TrackSelection::Audio {
                 input_path,
@@ -94,6 +106,7 @@ impl TrackSelection {
                 input_path,
                 track_id,
                 codec,
+                codec_options,
             },
             _ => self,
         }
