@@ -181,7 +181,7 @@ pub async fn encode_video(
                 })
                 .expect("Input path to be a part of deduped inputs");
 
-            let args: [Option<String>; 8] = match selection {
+            let (video_args_iter, audio_args_iter, subtitles_args_iter) = match selection {
                 TrackSelection::Video {
                     track_id,
                     codec,
@@ -195,48 +195,66 @@ pub async fn encode_video(
                         None => (None, None),
                     };
 
-                    [
+                    let result = [
                         Some("-map".to_string()),
                         Some(format!("{input_id}:{track_id}")),
                         Some(format!("-c:v:{index}")),
                         Some(codec),
                         ffmpeg_tag_override_option,
                         new_codec_tag_option,
-                        None,
-                        None,
                     ]
+                    .into_iter()
+                    .flatten();
+
+                    (Some(result), None, None)
                 }
                 TrackSelection::Audio {
                     track_id, codec, ..
-                } => [
-                    Some("-map".to_string()),
-                    Some(format!("{input_id}:{track_id}")),
-                    Some(format!("-c:a:{index}")),
-                    Some(codec),
+                } => (
                     None,
+                    Some(
+                        [
+                            "-map".to_string(),
+                            format!("{input_id}:{track_id}"),
+                            format!("-c:a:{index}"),
+                            codec,
+                        ]
+                        .into_iter(),
+                    ),
                     None,
-                    None,
-                    None,
-                ],
+                ),
                 TrackSelection::Subtitle {
                     track_id,
                     language,
                     external_id,
                     ..
-                } => [
-                    Some("-map".to_string()),
-                    Some(format!("{input_id}:{track_id}")),
-                    Some(format!("-c:s:{index}")),
-                    Some(subtitle_codec.to_string()),
-                    language.as_ref().map(|_| format!("-metadata:s:s:{index}")),
-                    language.map(|lang| format!("language={}", lang.to_iso639_2t())),
-                    external_id
-                        .as_ref()
-                        .map(|_| format!("-metadata:s:s:{index}")),
-                    external_id.map(|ext_id| format!("handler_name={ext_id}")),
-                ],
+                } => (
+                    None,
+                    None,
+                    Some(
+                        [
+                            Some("-map".to_string()),
+                            Some(format!("{input_id}:{track_id}")),
+                            Some(format!("-c:s:{index}")),
+                            Some(subtitle_codec.to_string()),
+                            language.as_ref().map(|_| format!("-metadata:s:s:{index}")),
+                            language.map(|lang| format!("language={}", lang.to_iso639_2t())),
+                            external_id
+                                .as_ref()
+                                .map(|_| format!("-metadata:s:s:{index}")),
+                            external_id.map(|ext_id| format!("handler_name={ext_id}")),
+                        ]
+                        .into_iter()
+                        .flatten(),
+                    ),
+                ),
             };
-            args.into_iter().flatten()
+
+            video_args_iter
+                .into_iter()
+                .flatten()
+                .chain(audio_args_iter.into_iter().flatten())
+                .chain(subtitles_args_iter.into_iter().flatten())
         });
 
     let args = input_args
