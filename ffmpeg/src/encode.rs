@@ -171,14 +171,7 @@ pub async fn encode_video(
             let input_path = selection.input_path();
             let input_id = deduped_inputs
                 .iter()
-                .enumerate()
-                .find_map(|(index, input_param)| {
-                    if input_param == input_path {
-                        Some(index)
-                    } else {
-                        None
-                    }
-                })
+                .position(|path| path == input_path)
                 .expect("Input path to be a part of deduped inputs");
 
             let (video_args_iter, audio_args_iter, subtitles_args_iter) = match selection {
@@ -186,25 +179,31 @@ pub async fn encode_video(
                     track_id,
                     codec,
                     codec_tag,
+                    codec_options,
                     ..
                 } => {
-                    let (ffmpeg_tag_override_option, new_codec_tag_option) = match codec_tag {
-                        Some(override_codec_tag) => {
-                            (Some("-tag:v".to_string()), Some(override_codec_tag))
-                        }
-                        None => (None, None),
-                    };
-
-                    let result = [
-                        Some("-map".to_string()),
-                        Some(format!("{input_id}:{track_id}")),
-                        Some(format!("-c:v:{index}")),
-                        Some(codec),
-                        ffmpeg_tag_override_option,
-                        new_codec_tag_option,
+                    let start_args = [
+                        "-map".to_string(),
+                        format!("{input_id}:{track_id}"),
+                        format!("-c:v:{index}"),
+                        codec,
                     ]
-                    .into_iter()
-                    .flatten();
+                    .into_iter();
+
+                    let codec_options_args = codec_options.map(|codec_options| {
+                        codec_options
+                            .split(" ")
+                            .map(|arg| arg.to_string())
+                            // TODO ideally remove the collect here
+                            .collect::<Vec<_>>()
+                    });
+
+                    let codec_tag_args =
+                        codec_tag.map(|codec_tag| ["-tag:v".to_string(), codec_tag].into_iter());
+
+                    let result = start_args
+                        .chain(codec_options_args.into_iter().flatten())
+                        .chain(codec_tag_args.into_iter().flatten());
 
                     (Some(result), None, None)
                 }
@@ -212,15 +211,12 @@ pub async fn encode_video(
                     track_id, codec, ..
                 } => (
                     None,
-                    Some(
-                        [
-                            "-map".to_string(),
-                            format!("{input_id}:{track_id}"),
-                            format!("-c:a:{index}"),
-                            codec,
-                        ]
-                        .into_iter(),
-                    ),
+                    Some([
+                        "-map".to_string(),
+                        format!("{input_id}:{track_id}"),
+                        format!("-c:a:{index}"),
+                        codec,
+                    ]),
                     None,
                 ),
                 TrackSelection::Subtitle {
