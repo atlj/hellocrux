@@ -10,6 +10,10 @@ display an error message on client when preparation fails
 21
 bug where adding download crashes the app due to navigation (pop 2)
 
+/Users/burakguner/kod/hellocrux/Cargo.toml
+19
+ability to skip based on video section, tracks already have this data
+
 /Users/burakguner/kod/hellocrux/server/src/prepare/mod.rs
 54
 don't default unknown languages to english, instead mark them as unknown
