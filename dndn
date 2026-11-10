@@ -1,3 +1,11 @@
+/Users/burakguner/kod/hellocrux/torrent/src/qbittorrent_web_api.rs
+167
+make "incorrect category name an error"
+
+/Users/burakguner/kod/hellocrux/torrent/src/qbittorrent_web_api.rs
+159
+category name can get too long
+
 /Users/burakguner/kod/hellocrux/server/src/prepare/mod.rs
 47
 display available subtitle tracks on track selection screen

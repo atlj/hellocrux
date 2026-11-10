@@ -101,7 +101,10 @@ pub mod dto {
                         .map_err(|_| Error::CouldntParseDuration(Box::new(self.clone())))?;
                     Some(Duration::from_secs_f64(seconds))
                 }
-                None => self.tags.as_ref().and_then(|tags| tags.duration),
+                None => self
+                    .tags
+                    .as_ref()
+                    .and_then(|tags| tags.duration.or(tags.duration_2).or(tags.duration_3)),
             };
 
             match self.codec_type.as_str() {
@@ -164,11 +167,22 @@ pub mod dto {
         pub handler_name: Option<String>,
         #[serde(
             default,
-            alias = "DURATION",
-            alias = "DURATION-eng",
+            rename = "duration",
             deserialize_with = "crate::deserialize_duration::deserialize_duration_optional"
         )]
         pub duration: Option<Duration>,
+        #[serde(
+            default,
+            rename = "DURATION",
+            deserialize_with = "crate::deserialize_duration::deserialize_duration_optional"
+        )]
+        pub duration_2: Option<Duration>,
+        #[serde(
+            default,
+            rename = "DURATION-eng",
+            deserialize_with = "crate::deserialize_duration::deserialize_duration_optional"
+        )]
+        pub duration_3: Option<Duration>,
     }
 }
 
