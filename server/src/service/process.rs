@@ -127,14 +127,13 @@ pub fn spawn(
 
             futures::future::join_all(removal_futures).await;
 
-            let did_media_library_change = !ids_to_remove.is_empty();
-
             // 7. send a signal to refresh the media library
-            if did_media_library_change {
+            for id in ids_to_remove {
                 let _ = media_signal_watcher
                     .signal_sender
-                    // TODO: only send crawl message for new data
-                    .send(super::media::MediaSignal::CrawlAll)
+                    .send(super::media::MediaSignal::CrawlPartial {
+                        media_id: id.to_string(),
+                    })
                     .await
                     .inspect_err(|_| error!("Media library watcher loop was dropped."));
             }
