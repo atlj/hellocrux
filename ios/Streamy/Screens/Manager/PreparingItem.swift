@@ -53,6 +53,12 @@ struct PreparingItem: View {
                         .padding(.top, 2)
                     }
 
+                    if case .preprocessing = data.state {
+                        Text("Preprocessing...")
+                            .foregroundStyle(.secondary)
+                            .padding(.top, 4)
+                    }
+
                     if case .extractingSubtitles = data.state {
                         Text("Extracting subtitles...")
                             .foregroundStyle(.secondary)
@@ -81,6 +87,19 @@ struct PreparingItem: View {
         PreparingItem(
             data: .init(
                 state: .waiting, media: .movie(
+                    id: "0",
+                    path: .init(media: "Star Wars", track_name: "star_wars.mp4", subtitles: []),
+                ),
+                metadata: .init(
+                    thumbnail:
+                    "https://media.themoviedb.org/t/p/w440_and_h660_face/fai0rspsNeJCS69wHNjOdWxcI7P.jpg",
+                    title: "Star Wars", tmdb_id: nil,
+                ), needed_track_selection: nil,
+            ),
+        )
+        PreparingItem(
+            data: .init(
+                state: .preprocessing, media: .movie(
                     id: "0",
                     path: .init(media: "Star Wars", track_name: "star_wars.mp4", subtitles: []),
                 ),
@@ -146,6 +165,19 @@ struct PreparingItem: View {
         PreparingItem(
             data: .init(
                 state: .waiting, media: .series(
+                    id: "1", path: .init(media: "", track_name: "", subtitles: []),
+                    episode: .init(season_no: 3, episode_no: 10),
+                ),
+                metadata: .init(
+                    thumbnail:
+                    "https://media.themoviedb.org/t/p/w440_and_h660_face/anFx9aTOOYqgS3v7x3R84Kz67ly.jpg",
+                    title: "Breaking Bad", tmdb_id: nil,
+                ), needed_track_selection: nil,
+            ),
+        )
+        PreparingItem(
+            data: .init(
+                state: .preprocessing, media: .series(
                     id: "1", path: .init(media: "", track_name: "", subtitles: []),
                     episode: .init(season_no: 3, episode_no: 10),
                 ),

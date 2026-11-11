@@ -14,6 +14,8 @@ pub async fn prepare_media(
     media_lib_dir: impl AsRef<Path>,
     progress_sender: tokio::sync::watch::Sender<domain::PreparingState>,
 ) -> Result<()> {
+    let _ = progress_sender.send(domain::PreparingState::Preprocessing);
+
     let media_path: &Path = media_identifier.path().media.as_ref();
     let parent_folder = media_path
         .parent()

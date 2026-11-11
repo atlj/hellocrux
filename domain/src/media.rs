@@ -328,6 +328,7 @@ pub struct PreparingMedia {
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq)]
 pub enum PreparingState {
     Waiting,
+    Preprocessing,
     ExtractingSubtitles,
     Encoding {
         progress: f64,
