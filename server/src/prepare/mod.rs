@@ -5,7 +5,7 @@ use std::{
 
 pub mod handlers;
 use domain::get_codec_tag_override;
-use log::info;
+use log::{debug, info};
 
 pub async fn prepare_media(
     media_identifier: &domain::MediaIdentifier,
@@ -193,6 +193,7 @@ pub async fn prepare_media(
 
     let (ffmpeg_progress_sender, mut ffmpeg_progress_receiver) = tokio::sync::watch::channel(None);
 
+    let media_identifier = media_identifier.clone();
     let progress_watcher_handle = tokio::spawn(async move {
         let Some(media_duration) = media_duration else {
             return;
@@ -201,6 +202,8 @@ pub async fn prepare_media(
         loop {
             let ffmpeg_progress: Option<ffmpeg::Progress> =
                 ffmpeg_progress_receiver.borrow().clone();
+
+            debug!("ffmpeg progress for {media_identifier:#?}: {ffmpeg_progress:#?}");
 
             let progress = match ffmpeg_progress {
                 Some(ffmpeg_progress) => {
