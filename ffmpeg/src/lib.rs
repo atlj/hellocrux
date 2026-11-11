@@ -22,6 +22,8 @@ pub enum Error {
     CouldntDeserialize(#[from] serde_json::Error),
     #[error("Couldn't get tracks: '{0}'")]
     CouldntGetTracks(track::dto::Error),
+    #[error("Couldn't create a pipe to get progress: {0}")]
+    CantCreatePipe(std::io::Error),
 }
 
 pub type Result<T> = core::result::Result<T, Error>;
