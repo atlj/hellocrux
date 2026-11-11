@@ -205,7 +205,7 @@ pub const DEFAULT_CONTAINER_FORMAT: &str = "mp4";
 pub const DEFAULT_VIDEO_CODEC: &str = "libx264";
 // Faster preset for faster encoding, constant rate factor 21 for an ok quality, pix_fmt override to
 // make sure it's compatible with AVPlayer on iOS.
-pub const DEFAULT_VIDE_CODEC_OPTIONS: &str = "-preset faster -crf 21 -pix_fmt yuv420p";
+pub const DEFAULT_VIDEO_CODEC_OPTIONS: &str = "-preset faster -crf 21 -pix_fmt yuv420p";
 pub const DEFAULT_AUDIO_CODEC: &str = "aac";
 
 pub fn is_container_compatible(container: &str) -> bool {

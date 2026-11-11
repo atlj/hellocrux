@@ -132,10 +132,8 @@ async fn observe_progress(
     while let Ok(Some(line)) = lines.next_line().await {
         block.push_str(&line);
         if line.starts_with("progress=") {
-            dbg!(&block);
             match crate::progress::Progress::from_str(&block) {
                 Ok(progress) => {
-                    dbg!(&progress);
                     if let Err(err) = progress_sender.send(Some(progress)) {
                         error!("ffmpeg couldn't update progress: {err}")
                     }

@@ -140,7 +140,7 @@ pub async fn prepare_media(
                     selection.with_codec(
                         domain::DEFAULT_VIDEO_CODEC.to_string(),
                         None,
-                        Some(domain::DEFAULT_VIDE_CODEC_OPTIONS.to_string()),
+                        Some(domain::DEFAULT_VIDEO_CODEC_OPTIONS.to_string()),
                     )
                 }
             }

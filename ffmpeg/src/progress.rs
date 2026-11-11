@@ -36,6 +36,8 @@ impl FromStr for Progress {
                 return Err(Error::InvalidLine(line.to_string()));
             };
 
+            let value = value.trim_start();
+
             if value == "N/A" {
                 return Err(Error::IncompleteValue(key.to_string()));
             }
@@ -54,12 +56,7 @@ impl FromStr for Progress {
                     })?);
                 }
                 "bitrate" => {
-                    bitrate = Some(
-                        value
-                            .chars()
-                            .skip_while(|char| char.is_whitespace())
-                            .collect(),
-                    );
+                    bitrate = Some(value.to_string());
                 }
                 "total_size" => {
                     total_size_bytes = Some(value.parse().map_err(|_| Error::InvalidValue {
