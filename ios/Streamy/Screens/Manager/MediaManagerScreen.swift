@@ -104,7 +104,7 @@ struct MediaManagerScreen: View {
         ],
         overridePreparingList: [
             .init(
-                media: .movie(
+                progress: .init(progress: 0.7, remaining_seconds: 907), media: .movie(
                     id: "0",
                     path: .init(media: "Star Wars", track_name: "star_wars.mp4", subtitles: []),
                 ),
@@ -116,7 +116,7 @@ struct MediaManagerScreen: View {
                 needed_track_selection: nil,
             ),
             .init(
-                media: .movie(
+                progress: nil, media: .movie(
                     id: "0",
                     path: .init(media: "Star Wars", track_name: "star_wars.mp4", subtitles: []),
                 ),
@@ -128,7 +128,7 @@ struct MediaManagerScreen: View {
                 needed_track_selection: [],
             ),
             .init(
-                media: .series(
+                progress: nil, media: .series(
                     id: "1", path: .init(media: "Breaking Bad", track_name: "br_ba", subtitles: []),
                     episode: .init(season_no: 3, episode_no: 10),
                 ),
@@ -139,7 +139,7 @@ struct MediaManagerScreen: View {
                 ), needed_track_selection: nil,
             ),
             .init(
-                media: .series(
+                progress: nil, media: .series(
                     id: "1", path: .init(media: "Breaking Bad", track_name: "br_ba", subtitles: []),
                     episode: .init(season_no: 3, episode_no: 10),
                 ),
