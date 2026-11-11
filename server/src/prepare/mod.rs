@@ -12,6 +12,7 @@ pub async fn prepare_media(
     track_selections: impl IntoIterator<Item = ffmpeg::TrackSelection>,
     // TODO rename/get from config
     media_lib_dir: impl AsRef<Path>,
+    progress_sender: tokio::sync::watch::Sender<Option<domain::PreparingProgress>>,
 ) -> Result<()> {
     let media_path: &Path = media_identifier.path().media.as_ref();
     let parent_folder = media_path
@@ -26,10 +27,14 @@ pub async fn prepare_media(
     // TODO ensure all track selections are included in tracks
 
     // Extract all subs
-    let missing_external_subtitles = ffmpeg::get_tracks(&media_path)
-        .await?
-        .filter_map(|track| {
-            let Ok(track) = track else { return None };
+    let (missing_external_subtitles, media_duration) = ffmpeg::get_tracks(&media_path).await?.fold(
+        (Vec::with_capacity(20), None),
+        |(mut vec, duration), track| {
+            let Ok(track) = track else {
+                return (vec, duration);
+            };
+
+            let duration = duration.or_else(|| track.get_duration().cloned());
 
             let domain::Track::Subtitle {
                 id,
@@ -39,23 +44,24 @@ pub async fn prepare_media(
                 title: _,
             } = track
             else {
-                return None;
+                return (vec, duration);
             };
 
             if external_id.is_some() {
-                return None;
+                return (vec, duration);
             }
 
             // Image based subtitles, require OCR for srt convertion, we will likely won't support
             // this format
             // TODO extract the exclusion logic
             if codec == "hdmv_pgs_subtitle" || codec == "dvd_subtitle" {
-                return None;
+                return (vec, duration);
             }
 
-            Some((id, language))
-        })
-        .collect::<Vec<_>>();
+            vec.push(Some((id, language)));
+            (vec, duration)
+        },
+    );
 
     // TODO: extract
     let new_subs = if !missing_external_subtitles.is_empty() {
@@ -69,6 +75,7 @@ pub async fn prepare_media(
 
         let (new_subs, track_mapping): (Vec<_>, Vec<_>) = missing_external_subtitles
             .into_iter()
+            .flatten()
             .map(|(track_id, language)| {
                 let language = match language {
                     Some(language) => language,
@@ -184,7 +191,51 @@ pub async fn prepare_media(
         .path()
         .join(file_stem.with_added_extension(extension));
 
-    ffmpeg::encode_video(reencoded_tracks.chain(sub_tracks).collect(), &temp_path).await?;
+    let (ffmpeg_progress_sender, mut ffmpeg_progress_receiver) = tokio::sync::watch::channel(None);
+
+    let progress_watcher_handle = tokio::spawn(async move {
+        let Some(media_duration) = media_duration else {
+            return;
+        };
+
+        loop {
+            let ffmpeg_progress: Option<ffmpeg::Progress> =
+                ffmpeg_progress_receiver.borrow().clone();
+
+            let progress = match ffmpeg_progress {
+                Some(ffmpeg_progress) => {
+                    let progress =
+                        ffmpeg_progress.out_time.as_secs_f64() / media_duration.as_secs_f64();
+
+                    let remaining_seconds = ((media_duration.as_secs_f64()
+                        - ffmpeg_progress.out_time.as_secs_f64())
+                        / ffmpeg_progress.speed)
+                        .round() as usize;
+
+                    Some(domain::PreparingProgress {
+                        progress,
+                        remaining_seconds,
+                    })
+                }
+                None => None,
+            };
+
+            let _ = progress_sender.send(progress);
+
+            if ffmpeg_progress_receiver.changed().await.is_err() {
+                return;
+            }
+        }
+    });
+
+    ffmpeg::encode_video(
+        reencoded_tracks.chain(sub_tracks).collect(),
+        &temp_path,
+        Some(ffmpeg_progress_sender),
+    )
+    .await?;
+
+    progress_watcher_handle.abort();
 
     // If we override container, original file still exists since
     // copy didn't override it

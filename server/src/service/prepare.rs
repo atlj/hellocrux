@@ -11,6 +11,7 @@ pub enum PrepareMessage {
 pub type PreparingListWatcher = crate::signal::SignalWatcher<
     PrepareMessage,
     (
+        Option<domain::PreparingProgress>,
         Vec<(domain::MediaMetaData, domain::MediaIdentifier)>,
         Vec<(domain::MediaMetaData, domain::TrackSelectionItem)>,
     ),
@@ -18,6 +19,7 @@ pub type PreparingListWatcher = crate::signal::SignalWatcher<
 pub type PreparingListReceiver = crate::signal::SignalReceiver<
     PrepareMessage,
     (
+        Option<domain::PreparingProgress>,
         Vec<(domain::MediaMetaData, domain::MediaIdentifier)>,
         Vec<(domain::MediaMetaData, domain::TrackSelectionItem)>,
     ),
@@ -207,29 +209,26 @@ pub fn spawn(
             }
 
             // 2. Announce we've updated the tasks
-            if signal_receiver
+            signal_receiver
                 .updater
-                .send((
-                    preparing_queue
+                .send_modify(|(_, preparing, track_selection)| {
+                    *preparing = preparing_queue
                         .iter()
                         .cloned()
                         .map(|(metadata, id, _)| (metadata, id))
                         .flat_map(|(metadata, id)| {
                             id.strip_prefix(&media_dir).map(|id| (metadata, id))
                         })
-                        .collect(),
-                    track_selection_wait_queue
+                        .collect();
+
+                    *track_selection = track_selection_wait_queue
                         .iter()
                         .cloned()
                         .flat_map(|(metadata, item)| {
                             item.strip_prefix(&media_dir).map(|id| (metadata, id))
                         })
-                        .collect(),
-                ))
-                .is_err()
-            {
-                error!("Processing list receiver was dropped. Can't update the processing list");
-            }
+                        .collect();
+                });
 
             // 3. Start working on a task if none present
             if task.is_none()
@@ -238,15 +237,37 @@ pub fn spawn(
             {
                 let sender = preparing_list_watcher.signal_sender.clone();
                 let media_dir = media_dir.clone();
+                let preparing_updater = signal_receiver.updater.clone();
                 task = Some(tokio::spawn(async move {
                     info!("Preparing {head_id:#?}");
 
-                    if let Err(err) =
-                        crate::prepare::prepare_media(&head_id, head_track_selections, media_dir)
-                            .await
+                    let (progress_sender, mut progress_watcher) = tokio::sync::watch::channel(None);
+
+                    let progress_watch_handle = tokio::spawn(async move {
+                        loop {
+                            let progress = progress_watcher.borrow().clone();
+                            preparing_updater.send_modify(|(progress_state, _, _)| {
+                                *progress_state = progress;
+                            });
+
+                            if progress_watcher.changed().await.is_err() {
+                                return;
+                            }
+                        }
+                    });
+
+                    if let Err(err) = crate::prepare::prepare_media(
+                        &head_id,
+                        head_track_selections,
+                        media_dir,
+                        progress_sender,
+                    )
+                    .await
                     {
                         error!("Couldn't prepare media with id {head_id:#?}. {err}");
                     }
+
+                    progress_watch_handle.abort();
 
                     if let Err(err) = sender
                         .send(PrepareMessage::Done((head_metadata, head_id.clone())))

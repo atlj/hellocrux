@@ -290,6 +290,14 @@ impl Track {
             Track::Subtitle { .. } => true,
         }
     }
+
+    pub fn get_duration(&self) -> Option<&std::time::Duration> {
+        match self {
+            Track::Video { duration, .. } => duration.as_ref(),
+            Track::Audio { duration, .. } => duration.as_ref(),
+            Track::Subtitle { .. } => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
@@ -309,9 +317,16 @@ impl TrackSelectionItem {
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq)]
 pub struct PreparingMedia {
+    pub progress: Option<PreparingProgress>,
     pub media: MediaIdentifier,
     pub metadata: MediaMetaData,
     pub needed_track_selection: Option<Vec<Track>>,
+}
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq)]
+pub struct PreparingProgress {
+    pub progress: f64,
+    pub remaining_seconds: usize,
 }

@@ -4,7 +4,7 @@ use domain::{
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub enum NavigationOperation {
     Push(Screen),
     ReplaceRoot(Screen),
@@ -12,7 +12,7 @@ pub enum NavigationOperation {
     Reset(Option<Screen>),
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
 pub enum Screen {
     #[default]
     Startup,

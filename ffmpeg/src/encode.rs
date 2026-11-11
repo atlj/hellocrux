@@ -129,6 +129,7 @@ fn subtitle_codec_for(output_path: &Path) -> &'static str {
 pub async fn encode_video(
     tracks: Vec<TrackSelection>,
     output_path: impl AsRef<Path>,
+    progress_sender: Option<tokio::sync::watch::Sender<Option<crate::progress::Progress>>>,
 ) -> crate::Result<PathBuf> {
     let output_path = output_path.as_ref();
     let subtitle_codec = subtitle_codec_for(output_path);
@@ -257,7 +258,7 @@ pub async fn encode_video(
         .chain(mapping_args)
         .chain([output_path.to_string_lossy().to_string()]);
 
-    crate::spawn::ffmpeg(args, None).await?;
+    crate::spawn::ffmpeg(args, progress_sender).await?;
 
     // Make sure output exists now
     if let Ok(true) = tokio::fs::try_exists(output_path).await {

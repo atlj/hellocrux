@@ -5,12 +5,14 @@ use crate::State;
 pub async fn handle_get_preparing_items(
     axum::extract::State(state): State,
 ) -> axum::Json<Vec<PreparingMedia>> {
-    let (preparing, pending_track_selection) = state.preparing_list_watcher.data.borrow().clone();
+    let (mut progress, preparing, pending_track_selection) =
+        state.preparing_list_watcher.data.borrow().clone();
 
     let result: Vec<PreparingMedia> = pending_track_selection
         .into_iter()
         .map(
             |(metadata, TrackSelectionItem { media, tracks })| PreparingMedia {
+                progress: None,
                 media,
                 metadata,
                 needed_track_selection: Some(tracks),
@@ -19,7 +21,9 @@ pub async fn handle_get_preparing_items(
         .chain(
             preparing
                 .into_iter()
-                .map(|(metadata, media)| PreparingMedia {
+                .enumerate()
+                .map(|(index, (metadata, media))| PreparingMedia {
+                    progress: if index == 0 { progress.take() } else { None },
                     media,
                     metadata,
                     needed_track_selection: None,

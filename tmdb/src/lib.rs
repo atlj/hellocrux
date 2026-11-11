@@ -6,11 +6,11 @@ pub use dto::*;
 mod dto;
 
 const API_KEY: &str = concat!("Bearer ", include_str!("../../tmdb_api_key"));
-const BASE_URL: LazyLock<Url> =
+static BASE_URL: LazyLock<Url> =
     LazyLock::new(|| Url::parse("https://api.themoviedb.org/3/").unwrap());
 const MOVIE_BASE_URL: &str = "https://image.tmdb.org/t/p/original/";
 
-const HEADERS: LazyLock<[(&str, &str); 2]> = LazyLock::new(|| {
+static HEADERS: LazyLock<[(&str, &str); 2]> = LazyLock::new(|| {
     [
         ("Accept", "application/json"),
         ("Authorization", API_KEY.trim_end()),
