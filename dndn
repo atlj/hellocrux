@@ -10,6 +10,10 @@ category name can get too long
 47
 display available subtitle tracks on track selection screen
 
+/Users/burakguner/kod/hellocrux/server/Cargo.toml
+20
+display server crawling state on app
+
 /Users/burakguner/kod/hellocrux/server/src/prepare/mod.rs
 47
 display an error message on client when preparation fails

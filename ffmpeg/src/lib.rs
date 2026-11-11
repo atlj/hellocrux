@@ -1,6 +1,7 @@
 mod deserialize_duration;
 mod encode;
 mod extract;
+mod progress;
 mod spawn;
 mod track;
 
