@@ -12,4 +12,6 @@ log = { workspace = true }
 libc = { workspace = true }
 
 [dev-dependencies]
+tokio = { workspace = true, features = ["sync"] }
 tempfile = { workspace = true }
+env_logger = "0.11.8"

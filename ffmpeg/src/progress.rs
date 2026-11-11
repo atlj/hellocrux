@@ -276,4 +276,28 @@ progress=end";
             })
         );
     }
+
+    use crate::spawn::ffmpeg;
+
+    #[tokio::test]
+    #[ignore = "this is creating a non temporary file"]
+    async fn test_get_progress() {
+        let _ = env_logger::builder().is_test(true).try_init();
+        let (progress_sender, progress_receiver) = tokio::sync::watch::channel(None);
+
+        ffmpeg(
+            [
+                "-f", "lavfi", "-i", "testsrc", "-map", "0:0", "-c:v", "libx265", "-t", "10", "-y",
+                // TODO use a temp dir
+                "test.mp4",
+            ]
+            .into_iter(),
+            Some(progress_sender),
+        )
+        .await
+        .unwrap();
+
+        dbg!(progress_receiver.borrow());
+        assert!(progress_receiver.borrow().is_some());
+    }
 }

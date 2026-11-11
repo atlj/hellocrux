@@ -22,7 +22,7 @@ pub async fn extract_tracks(
         // TODO remove -y from here and add it to ffmpeg itself
         .chain(std::iter::once("-y".to_string()));
 
-    crate::spawn::ffmpeg(args).await?;
+    crate::spawn::ffmpeg(args, None).await?;
 
     Ok(())
 }

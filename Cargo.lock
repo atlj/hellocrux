@@ -549,6 +549,7 @@ name = "ffmpeg"
 version = "0.0.0"
 dependencies = [
  "domain",
+ "env_logger",
  "libc",
  "log",
  "serde",

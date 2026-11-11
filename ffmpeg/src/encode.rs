@@ -257,7 +257,7 @@ pub async fn encode_video(
         .chain(mapping_args)
         .chain([output_path.to_string_lossy().to_string()]);
 
-    crate::spawn::ffmpeg(args).await?;
+    crate::spawn::ffmpeg(args, None).await?;
 
     // Make sure output exists now
     if let Ok(true) = tokio::fs::try_exists(output_path).await {
