@@ -83,26 +83,29 @@ struct TrackSelectionScreen: View {
                     ),
                 ) {
                     ForEach(videoTracks, id: \.0) { id, codec, title, duration in
-                        VStack {
-                            HStack {
-                                Text("Track \(id) ")
-                                    .bold()
-                                Text(codec)
-                                    .padding(4)
-                                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(lineWidth: 1))
-                                    .foregroundStyle(.secondary)
-                                if let duration {
-                                    Spacer()
-                                    Text(Swift.Duration.seconds(duration.secs).formatted())
+                        HStack {
+                            VStack(alignment: .leading) {
+                                HStack {
+                                    Text("Track \(id) ")
+                                        .bold()
+                                    Text(codec)
+                                        .padding(4)
+                                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(lineWidth: 1))
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                if let title {
+                                    HStack {
+                                        Text(title)
+                                            .foregroundStyle(.secondary)
+                                        Spacer()
+                                    }
                                 }
                             }
 
-                            if let title {
-                                HStack {
-                                    Text(title)
-                                        .foregroundStyle(.secondary)
-                                    Spacer()
-                                }
+                            if let duration {
+                                Spacer()
+                                Text(Swift.Duration.seconds(duration.secs).formatted())
                             }
                         }
                         .tag(id)
@@ -122,36 +125,38 @@ struct TrackSelectionScreen: View {
                     ),
                 ) {
                     ForEach(audioTracks, id: \.0) { id, codec, title, duration, language in
-                        VStack {
-                            HStack {
-                                if let language {
-                                    Text(
-                                        Locale.current.localizedString(
-                                            forLanguageCode: language.iso639_2t(),
-                                        )!,
-                                    )
-                                    .bold()
-                                } else {
-                                    Text("Unknown Language")
+                        HStack {
+                            VStack(alignment: .leading) {
+                                HStack {
+                                    if let language {
+                                        Text(
+                                            Locale.current.localizedString(
+                                                forLanguageCode: language.iso639_2t(),
+                                            )!,
+                                        )
                                         .bold()
+                                    } else {
+                                        Text("Unknown Language")
+                                            .bold()
+                                    }
+
+                                    Text(codec)
+                                        .padding(4)
+                                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(lineWidth: 1))
+                                        .foregroundStyle(.secondary)
                                 }
-
-                                Text(codec)
-                                    .padding(4)
-                                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(lineWidth: 1))
-                                    .foregroundStyle(.secondary)
-
-                                if let duration {
-                                    Spacer()
-                                    Text(Swift.Duration.seconds(duration.secs).formatted())
+                                if let title {
+                                    HStack {
+                                        Text(title)
+                                            .foregroundStyle(.secondary)
+                                        Spacer()
+                                    }
                                 }
                             }
-                            if let title {
-                                HStack {
-                                    Text(title)
-                                        .foregroundStyle(.secondary)
-                                    Spacer()
-                                }
+
+                            if let duration {
+                                Spacer()
+                                Text(Swift.Duration.seconds(duration.secs).formatted())
                             }
                         }
                         .tag(id)
@@ -226,7 +231,7 @@ struct TrackSelectionScreen: View {
                     .video(id: 1, codec: "x254", codec_tag: nil, title: nil, duration: .some(.init(secs: 842_927, nanos: 9))),
                     .video(id: 2, codec: "x254", codec_tag: nil, title: "Commentary from director", duration: .some(.init(secs: 938, nanos: 9))),
                     .audio(
-                        id: 0, codec: "avi", title: nil, duration: .some(.init(secs: 898, nanos: 9382)),
+                        id: 0, codec: "avi", title: "English TrueHD Atmos 7.1 @ 3028 Kbps - Original", duration: .some(.init(secs: 898, nanos: 9382)),
                         language: .turkish,
                     ),
                     .audio(
