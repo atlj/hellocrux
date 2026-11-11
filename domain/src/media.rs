@@ -319,14 +319,19 @@ impl TrackSelectionItem {
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq)]
 pub struct PreparingMedia {
-    pub progress: Option<PreparingProgress>,
+    pub state: PreparingState,
     pub media: MediaIdentifier,
     pub metadata: MediaMetaData,
     pub needed_track_selection: Option<Vec<Track>>,
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq)]
-pub struct PreparingProgress {
-    pub progress: f64,
-    pub remaining_seconds: usize,
+pub enum PreparingState {
+    Waiting,
+    ExtractingSubtitles,
+    Encoding {
+        progress: f64,
+        remaining_seconds: usize,
+    },
+    Moving,
 }

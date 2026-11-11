@@ -217,7 +217,7 @@ struct TrackSelectionScreen: View {
     NavigationStack {
         TrackSelectionScreen(
             preparingMedia: .init(
-                progress: nil, media: .series(
+                state: .waiting, media: .series(
                     id: "test", path: .init(media: "", track_name: "", subtitles: []),
                     episode: .init(season_no: 3, episode_no: 10),
                 ),
@@ -252,7 +252,7 @@ struct TrackSelectionScreen: View {
     NavigationStack {
         TrackSelectionScreen(
             preparingMedia: .init(
-                progress: nil, media: .series(
+                state: .waiting, media: .series(
                     id: "test", path: .init(media: "", track_name: "", subtitles: []),
                     episode: .init(season_no: 3, episode_no: 10),
                 ),
@@ -277,7 +277,7 @@ struct TrackSelectionScreen: View {
     NavigationStack {
         TrackSelectionScreen(
             preparingMedia: .init(
-                progress: nil, media: .series(
+                state: .waiting, media: .series(
                     id: "test", path: .init(media: "", track_name: "", subtitles: []),
                     episode: .init(season_no: 3, episode_no: 10),
                 ),
@@ -310,7 +310,7 @@ struct TrackSelectionScreen: View {
     NavigationStack {
         TrackSelectionScreen(
             preparingMedia: .init(
-                progress: nil, media: .series(
+                state: .waiting, media: .series(
                     id: "test", path: .init(media: "", track_name: "", subtitles: []),
                     episode: .init(season_no: 3, episode_no: 10),
                 ),

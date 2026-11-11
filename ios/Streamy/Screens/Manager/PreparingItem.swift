@@ -36,19 +36,18 @@ struct PreparingItem: View {
                         }
                     }
 
-                    if let progress = data.progress {
+                    if case let .encoding(progress: progress, remaining_seconds: remaining_seconds) = data.state {
                         VStack(alignment: .leading, spacing: 0) {
                             HStack(spacing: 12) {
-                                ProgressView(value: progress.progress)
+                                ProgressView(value: progress)
                                 HStack {
-                                    Text("\(String(format: "%.0f", progress.progress * 100))%")
+                                    Text("\(String(format: "%.0f", progress * 100))%")
                                         .foregroundStyle(.secondary)
                                 }
                             }.padding(.horizontal, 4)
 
-                            let remainingDuration = Swift.Duration.seconds(progress.remaining_seconds)
+                            let remainingDuration = Swift.Duration.seconds(remaining_seconds)
                             Text("\(remainingDuration.formatted(.units(width: .abbreviated))) left")
-                                .fontWeight(.medium)
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -68,7 +67,7 @@ struct PreparingItem: View {
     List {
         PreparingItem(
             data: .init(
-                progress: nil, media: .movie(
+                state: .waiting, media: .movie(
                     id: "0",
                     path: .init(media: "Star Wars", track_name: "star_wars.mp4", subtitles: []),
                 ),
@@ -81,7 +80,7 @@ struct PreparingItem: View {
         )
         PreparingItem(
             data: .init(
-                progress: .init(progress: 0.73, remaining_seconds: 500), media: .movie(
+                state: .encoding(progress: 0.73, remaining_seconds: 500), media: .movie(
                     id: "0",
                     path: .init(media: "Star Wars", track_name: "star_wars.mp4", subtitles: []),
                 ),
@@ -94,7 +93,7 @@ struct PreparingItem: View {
         )
         PreparingItem(
             data: .init(
-                progress: nil, media: .movie(
+                state: .waiting, media: .movie(
                     id: "0",
                     path: .init(media: "Star Wars", track_name: "star_wars.mp4", subtitles: []),
                 ),
@@ -107,7 +106,7 @@ struct PreparingItem: View {
         )
         PreparingItem(
             data: .init(
-                progress: nil, media: .series(
+                state: .waiting, media: .series(
                     id: "1", path: .init(media: "", track_name: "", subtitles: []),
                     episode: .init(season_no: 3, episode_no: 10),
                 ),
@@ -120,7 +119,7 @@ struct PreparingItem: View {
         )
         PreparingItem(
             data: .init(
-                progress: .init(progress: 0.31, remaining_seconds: 832), media: .series(
+                state: .encoding(progress: 0.31, remaining_seconds: 832), media: .series(
                     id: "1", path: .init(media: "", track_name: "", subtitles: []),
                     episode: .init(season_no: 3, episode_no: 10),
                 ),
@@ -133,7 +132,7 @@ struct PreparingItem: View {
         )
         PreparingItem(
             data: .init(
-                progress: nil, media: .series(
+                state: .waiting, media: .series(
                     id: "1", path: .init(media: "", track_name: "", subtitles: []),
                     episode: .init(season_no: 3, episode_no: 10),
                 ),

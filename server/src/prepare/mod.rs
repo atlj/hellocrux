@@ -12,7 +12,7 @@ pub async fn prepare_media(
     track_selections: impl IntoIterator<Item = ffmpeg::TrackSelection>,
     // TODO rename/get from config
     media_lib_dir: impl AsRef<Path>,
-    progress_sender: tokio::sync::watch::Sender<Option<domain::PreparingProgress>>,
+    progress_sender: tokio::sync::watch::Sender<domain::PreparingState>,
 ) -> Result<()> {
     let media_path: &Path = media_identifier.path().media.as_ref();
     let parent_folder = media_path
@@ -117,6 +117,7 @@ pub async fn prepare_media(
             .unzip();
 
         tokio::fs::create_dir_all(subs_folder).await?;
+        let _ = progress_sender.send(domain::PreparingState::ExtractingSubtitles);
         ffmpeg::extract_tracks(media_path.to_string_lossy().to_string(), track_mapping).await?;
         new_subs
     } else {
@@ -194,6 +195,8 @@ pub async fn prepare_media(
     let (ffmpeg_progress_sender, mut ffmpeg_progress_receiver) = tokio::sync::watch::channel(None);
 
     let media_identifier = media_identifier.clone();
+
+    let observer_progress_sender = progress_sender.clone();
     let progress_watcher_handle = tokio::spawn(async move {
         let Some(media_duration) = media_duration else {
             return;
@@ -205,25 +208,20 @@ pub async fn prepare_media(
 
             debug!("ffmpeg progress for {media_identifier:#?}: {ffmpeg_progress:#?}");
 
-            let progress = match ffmpeg_progress {
-                Some(ffmpeg_progress) => {
-                    let progress =
-                        ffmpeg_progress.out_time.as_secs_f64() / media_duration.as_secs_f64();
+            if let Some(ffmpeg_progress) = ffmpeg_progress {
+                let progress =
+                    ffmpeg_progress.out_time.as_secs_f64() / media_duration.as_secs_f64();
 
-                    let remaining_seconds = ((media_duration.as_secs_f64()
-                        - ffmpeg_progress.out_time.as_secs_f64())
-                        / ffmpeg_progress.speed)
-                        .round() as usize;
+                let remaining_seconds = ((media_duration.as_secs_f64()
+                    - ffmpeg_progress.out_time.as_secs_f64())
+                    / ffmpeg_progress.speed)
+                    .round() as usize;
 
-                    Some(domain::PreparingProgress {
-                        progress,
-                        remaining_seconds,
-                    })
-                }
-                None => None,
+                let _ = observer_progress_sender.send(domain::PreparingState::Encoding {
+                    progress,
+                    remaining_seconds,
+                });
             };
-
-            let _ = progress_sender.send(progress);
 
             if ffmpeg_progress_receiver.changed().await.is_err() {
                 return;
@@ -239,6 +237,8 @@ pub async fn prepare_media(
     .await?;
 
     progress_watcher_handle.abort();
+
+    let _ = progress_sender.send(domain::PreparingState::Moving);
 
     // If we override container, original file still exists since
     // copy didn't override it

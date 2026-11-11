@@ -11,16 +11,22 @@ pub enum PrepareMessage {
 pub type PreparingListWatcher = crate::signal::SignalWatcher<
     PrepareMessage,
     (
-        Option<domain::PreparingProgress>,
-        Vec<(domain::MediaMetaData, domain::MediaIdentifier)>,
+        Vec<(
+            domain::PreparingState,
+            domain::MediaMetaData,
+            domain::MediaIdentifier,
+        )>,
         Vec<(domain::MediaMetaData, domain::TrackSelectionItem)>,
     ),
 >;
 pub type PreparingListReceiver = crate::signal::SignalReceiver<
     PrepareMessage,
     (
-        Option<domain::PreparingProgress>,
-        Vec<(domain::MediaMetaData, domain::MediaIdentifier)>,
+        Vec<(
+            domain::PreparingState,
+            domain::MediaMetaData,
+            domain::MediaIdentifier,
+        )>,
         Vec<(domain::MediaMetaData, domain::TrackSelectionItem)>,
     ),
 >;
@@ -36,6 +42,7 @@ pub fn spawn(
     }: crate::AppState,
 ) -> tokio::task::JoinHandle<()> {
     let mut preparing_queue: VecDeque<(
+        domain::PreparingState,
         domain::MediaMetaData,
         domain::MediaIdentifier,
         Vec<ffmpeg::TrackSelection>,
@@ -74,10 +81,11 @@ pub fn spawn(
                             // 2a. Media is good to go, enqueue it if it's not here already
                             if preparing_queue
                                 .iter()
-                                .find(|item| item.1 == media_identifier)
+                                .find(|item| item.2 == media_identifier)
                                 .is_none()
                             {
                                 preparing_queue.push_back((
+                                    domain::PreparingState::Waiting,
                                     media_metadata,
                                     media_identifier,
                                     track_selections,
@@ -154,7 +162,12 @@ pub fn spawn(
 
                     // 3. If all good, put the item to queue
                     // TODO: dedupe
-                    preparing_queue.push_back((metadata, item.media, selections));
+                    preparing_queue.push_back((
+                        domain::PreparingState::Waiting,
+                        metadata,
+                        item.media,
+                        selections,
+                    ));
                 }
                 PrepareMessage::Done((prepared_items_metadata, media_identifier)) => {
                     // 1. Last task was done, ready to run next item
@@ -163,7 +176,7 @@ pub fn spawn(
                     // 2. Remove from queue
                     match preparing_queue
                         .front()
-                        .map(|(_, first_id, _)| first_id == &media_identifier)
+                        .map(|(_, _, first_id, _)| first_id == &media_identifier)
                     {
                         Some(true) => {
                             preparing_queue.pop_front();
@@ -178,7 +191,7 @@ pub fn spawn(
                     // 3. Tell media lib to recrawl (this may lead to an infinite loop)
                     let queue_has_another_item_with_same_metadata = preparing_queue
                         .iter()
-                        .map(|(metadata, _, _)| metadata)
+                        .map(|(_, metadata, _, _)| metadata)
                         .chain(
                             track_selection_wait_queue
                                 .iter()
@@ -211,13 +224,13 @@ pub fn spawn(
             // 2. Announce we've updated the tasks
             signal_receiver
                 .updater
-                .send_modify(|(_, preparing, track_selection)| {
+                .send_modify(|(preparing, track_selection)| {
                     *preparing = preparing_queue
                         .iter()
                         .cloned()
-                        .map(|(metadata, id, _)| (metadata, id))
-                        .flat_map(|(metadata, id)| {
-                            id.strip_prefix(&media_dir).map(|id| (metadata, id))
+                        .map(|(state, metadata, id, _)| (state, metadata, id))
+                        .flat_map(|(state, metadata, id)| {
+                            id.strip_prefix(&media_dir).map(|id| (state, metadata, id))
                         })
                         .collect();
 
@@ -232,22 +245,26 @@ pub fn spawn(
 
             // 3. Start working on a task if none present
             if task.is_none()
-                && let Some((head_metadata, head_id, head_track_selections)) =
+                && let Some((_, head_metadata, head_id, head_track_selections)) =
                     preparing_queue.front().cloned()
             {
                 let sender = preparing_list_watcher.signal_sender.clone();
                 let media_dir = media_dir.clone();
                 let preparing_updater = signal_receiver.updater.clone();
+
                 task = Some(tokio::spawn(async move {
                     info!("Preparing {head_id:#?}");
 
-                    let (progress_sender, mut progress_watcher) = tokio::sync::watch::channel(None);
+                    let (progress_sender, mut progress_watcher) =
+                        tokio::sync::watch::channel(domain::PreparingState::Waiting);
 
                     let progress_watch_handle = tokio::spawn(async move {
                         loop {
                             let progress = progress_watcher.borrow().clone();
-                            preparing_updater.send_modify(|(progress_state, _, _)| {
-                                *progress_state = progress;
+                            preparing_updater.send_modify(|(preparing_queue, _)| {
+                                if let Some(first) = preparing_queue.first_mut() {
+                                    first.0 = progress;
+                                }
                             });
 
                             if progress_watcher.changed().await.is_err() {

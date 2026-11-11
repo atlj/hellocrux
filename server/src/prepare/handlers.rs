@@ -1,18 +1,17 @@
-use domain::{PreparingMedia, TrackSelectionItem};
+use domain::{PreparingMedia, PreparingState, TrackSelectionItem};
 
 use crate::State;
 
 pub async fn handle_get_preparing_items(
     axum::extract::State(state): State,
 ) -> axum::Json<Vec<PreparingMedia>> {
-    let (mut progress, preparing, pending_track_selection) =
-        state.preparing_list_watcher.data.borrow().clone();
+    let (preparing, pending_track_selection) = state.preparing_list_watcher.data.borrow().clone();
 
     let result: Vec<PreparingMedia> = pending_track_selection
         .into_iter()
         .map(
             |(metadata, TrackSelectionItem { media, tracks })| PreparingMedia {
-                progress: None,
+                state: PreparingState::Waiting,
                 media,
                 metadata,
                 needed_track_selection: Some(tracks),
@@ -21,9 +20,8 @@ pub async fn handle_get_preparing_items(
         .chain(
             preparing
                 .into_iter()
-                .enumerate()
-                .map(|(index, (metadata, media))| PreparingMedia {
-                    progress: if index == 0 { progress.take() } else { None },
+                .map(|(state, metadata, media)| PreparingMedia {
+                    state,
                     media,
                     metadata,
                     needed_track_selection: None,

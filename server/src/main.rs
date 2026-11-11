@@ -42,7 +42,7 @@ async fn main() {
     let (preparing_list_watcher, preparing_list_receiver): (
         server::service::prepare::PreparingListWatcher,
         _,
-    ) = server::signal::new_watcher_receiver_pair((None, Vec::new(), Vec::new()));
+    ) = server::signal::new_watcher_receiver_pair((Vec::new(), Vec::new()));
 
     let shared_state = AppState {
         preparing_list_watcher,

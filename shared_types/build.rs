@@ -41,7 +41,7 @@ fn main() -> anyhow::Result<()> {
     typegen.register_type::<domain::MediaIdentifier>()?;
     typegen.register_type::<domain::Track>()?;
     typegen.register_type::<domain::PreparingMedia>()?;
-    typegen.register_type::<domain::PreparingMedia>()?;
+    typegen.register_type::<domain::PreparingState>()?;
     typegen.register_type::<domain::DownloadState>()?;
     typegen.register_type::<domain::language::LanguageCode>()?;
     typegen.register_type::<domain::series::EpisodeIdentifier>()?;
