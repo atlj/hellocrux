@@ -1,3 +1,7 @@
+/Users/burakguner/kod/hellocrux/server/src/prepare/mod.rs
+234
+add -faststart flag to videos
+
 /Users/burakguner/kod/hellocrux/torrent/src/qbittorrent_web_api.rs
 167
 make "incorrect category name an error"
