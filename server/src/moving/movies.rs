@@ -15,8 +15,9 @@ pub async fn generate_movie_media(
     media_dir: &Path,
     movie_file: &Path,
     metadata: &MediaMetaData,
-) -> Result<PathBuf> {
-    let target_dir = media_dir.join(sanitize_name_for_url(&metadata.title));
+) -> Result<String> {
+    let id = sanitize_name_for_url(&metadata.title);
+    let target_dir = media_dir.join(&id);
     // We want to avoid URL breaking names since files are hosted directly with their names
     let file_name = {
         let movie_file_stem = movie_file
@@ -50,7 +51,7 @@ pub async fn generate_movie_media(
     // 3. Save metadata
     super::metadata::save_metadata(&target_dir, metadata.clone()).await?;
 
-    Ok(target_dir.join(&file_name))
+    Ok(id)
 }
 
 pub async fn find_movie_file(at: impl AsRef<Path>) -> Result<Option<PathBuf>> {

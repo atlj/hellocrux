@@ -17,16 +17,16 @@ pub fn spawn(
 ) -> tokio::task::JoinHandle<()> {
     tokio::spawn(async move {
         loop {
-            let ids_to_remove: Box<[_]> = {
+            let to_remove: Vec<_> = {
                 // 1. Get torrent list when it changes
                 let torrents = download_signal_watcher.data.borrow_and_update().clone();
                 let processed_torrents = processing_list_watcher.data.borrow().clone();
 
-                let faulty_ids_to_remove: Box<[Box<str>]> = torrents
+                let faulty_ids_to_remove: Vec<(String, Box<str>)> = torrents
                     .iter()
                     .filter_map(|torrent| {
                         if torrent.state.is_faulty() {
-                            return Some(torrent.hash.clone());
+                            return Some(("".to_string(), torrent.hash.clone()));
                         }
 
                         None
@@ -72,7 +72,7 @@ pub fn spawn(
 
                 // 5. Process the torents that needs to be processed
                 let process_futures = torrents_to_process.into_iter().map(
-                    async |torrent| -> Result<Box<str>, ProcessError> {
+                    async |torrent| -> Result<Option<(String, Box<str>)>, ProcessError> {
                         info!("Processing torrent named {}", &torrent.name);
 
                         process(&media_dir, &torrent)
@@ -87,7 +87,7 @@ pub fn spawn(
                             .inspect(|_| {
                                 info!("Done processing torrent named {}", &torrent.name);
                             })
-                            .map(|_| torrent.hash)
+                            .map(|id| id.map(|id| (id, torrent.hash)))
                     },
                 );
 
@@ -95,12 +95,13 @@ pub fn spawn(
                     .await
                     .into_iter()
                     .flatten()
+                    .flatten()
                     .chain(faulty_ids_to_remove)
                     .collect()
             };
 
             // 6. Remove torrens that are done
-            let removal_futures = ids_to_remove.iter().map(async |hash| {
+            let removal_futures = to_remove.iter().map(async |(_, hash)| {
                 let (result_sender, result_receiver) = tokio::sync::oneshot::channel();
 
                 download_signal_watcher
@@ -128,7 +129,7 @@ pub fn spawn(
             futures::future::join_all(removal_futures).await;
 
             // 7. send a signal to refresh the media library
-            for id in ids_to_remove {
+            for (id, _) in to_remove {
                 let _ = media_signal_watcher
                     .signal_sender
                     .send(super::media::MediaSignal::CrawlPartial {
@@ -164,7 +165,7 @@ impl From<crate::moving::Error> for ProcessError {
     }
 }
 
-async fn process(media_dir: &Path, torrent: &TorrentInfo) -> Result<(), ProcessError> {
+async fn process(media_dir: &Path, torrent: &TorrentInfo) -> Result<Option<String>, ProcessError> {
     let extra: TorrentExtra =
         torrent
             .as_ref()
@@ -174,7 +175,7 @@ async fn process(media_dir: &Path, torrent: &TorrentInfo) -> Result<(), ProcessE
                 inner: err,
             })?;
 
-    match extra {
+    let id = match extra {
         TorrentExtra::Movie { ref metadata } => {
             let download_path = if torrent.root_path.as_os_str().is_empty() {
                 &torrent.content_path
@@ -182,29 +183,32 @@ async fn process(media_dir: &Path, torrent: &TorrentInfo) -> Result<(), ProcessE
                 &torrent.root_path
             };
             match crate::moving::find_movie_file(download_path).await? {
-                Some(media_file_path) => {
+                Some(media_file_path) => Some(
                     crate::moving::generate_movie_media(media_dir, &media_file_path, metadata)
-                        .await?;
-                }
-                None => warn!(
-                    "Downloaded a torrent at {} but it doesn't contain any media files. Skipping it",
-                    &torrent.content_path.display()
+                        .await?,
                 ),
+                None => {
+                    warn!(
+                        "Downloaded a torrent at {} but it doesn't contain any media files. Skipping it",
+                        &torrent.content_path.display()
+                    );
+                    None
+                }
             }
         }
         TorrentExtra::Series {
             ref metadata,
             files_mapping_form,
-        } => {
+        } => Some(
             crate::moving::generate_series_media(
                 media_dir,
                 &torrent.save_path,
                 files_mapping_form.expect("files mapping form was None."),
                 metadata,
             )
-            .await?;
-        }
-    }
+            .await?,
+        ),
+    };
 
-    Ok(())
+    Ok(id)
 }

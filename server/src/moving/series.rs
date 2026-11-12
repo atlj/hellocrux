@@ -16,8 +16,9 @@ pub async fn generate_series_media(
     source_dir: &Path,
     mapping: EditSeriesFileMappingForm<file_mapping_form_state::Valid>,
     metadata: &MediaMetaData,
-) -> Result<Box<[PathBuf]>> {
-    let target_dir = media_dir.join(sanitize_name_for_url(&metadata.title));
+) -> Result<String> {
+    let id = sanitize_name_for_url(&metadata.title);
+    let target_dir = media_dir.join(&id);
 
     // 1. Create destination dir
     {
@@ -99,7 +100,7 @@ pub async fn generate_series_media(
     // 3. Save metadata
     super::metadata::save_metadata(&target_dir, metadata.clone()).await?;
 
-    Ok(resolved_mapping.into_values().collect())
+    Ok(id)
 }
 
 #[cfg(test)]
