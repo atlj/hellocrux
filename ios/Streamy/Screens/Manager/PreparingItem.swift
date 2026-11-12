@@ -53,6 +53,12 @@ struct PreparingItem: View {
                         .padding(.top, 2)
                     }
 
+                    if case .waiting = data.state, data.needed_track_selection == nil {
+                        Text("Queued")
+                            .foregroundStyle(.secondary)
+                            .padding(.top, 4)
+                    }
+
                     if case .preprocessing = data.state {
                         Text("Preprocessing...")
                             .foregroundStyle(.secondary)
