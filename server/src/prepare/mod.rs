@@ -245,12 +245,12 @@ pub async fn prepare_media(
     // If we override container, original file still exists since
     // copy didn't override it
     if should_override_container {
-        tokio::fs::copy(
+        tokio::fs::rename(
             &temp_path,
             media_path.with_extension(domain::DEFAULT_CONTAINER_FORMAT),
         )
         .await
-        .map_err(|inner| Error::CantCopy {
+        .map_err(|inner| Error::CantMove {
             from: temp_path,
             to: media_path.to_path_buf(),
             inner,
@@ -259,9 +259,9 @@ pub async fn prepare_media(
             .await
             .map_err(Error::CantDeleteOriginal)?
     } else {
-        tokio::fs::copy(&temp_path, media_path)
+        tokio::fs::rename(&temp_path, media_path)
             .await
-            .map_err(|inner| Error::CantCopy {
+            .map_err(|inner| Error::CantMove {
                 from: temp_path,
                 to: media_path.to_path_buf(),
                 inner,
@@ -391,8 +391,8 @@ pub enum Error {
     Ffmpeg(ffmpeg::Error),
     #[error("Couldn't create a temporary folder to put ffmpeg output {0}")]
     CantCreateTempDir(std::io::Error),
-    #[error("Couldn't copy temp file from {from:#?} to {to:#?}. {inner}")]
-    CantCopy {
+    #[error("Couldn't move temp file from {from:#?} to {to:#?}. {inner}")]
+    CantMove {
         from: PathBuf,
         to: PathBuf,
         inner: std::io::Error,
