@@ -1,112 +1,112 @@
-/Users/burakguner/kod/hellocrux/server/src/prepare/mod.rs
+/Users/burakguner/kod/streamy/server/src/prepare/mod.rs
 234
 add -faststart flag to videos
 
-/Users/burakguner/kod/hellocrux/torrent/src/qbittorrent_web_api.rs
+/Users/burakguner/kod/streamy/torrent/src/qbittorrent_web_api.rs
 167
 make "incorrect category name an error"
 
-/Users/burakguner/kod/hellocrux/torrent/src/qbittorrent_web_api.rs
+/Users/burakguner/kod/streamy/torrent/src/qbittorrent_web_api.rs
 159
 category name can get too long
 
-/Users/burakguner/kod/hellocrux/server/src/prepare/mod.rs
+/Users/burakguner/kod/streamy/server/src/prepare/mod.rs
 54
 don't default unknown languages to english, instead mark them as unknown
 
-/Users/burakguner/kod/hellocrux/server/src/prepare/mod.rs
+/Users/burakguner/kod/streamy/server/src/prepare/mod.rs
 47
 display available subtitle tracks on track selection screen and make it possible to delete them
 
-/Users/burakguner/kod/hellocrux/server/Cargo.toml
+/Users/burakguner/kod/streamy/server/Cargo.toml
 20
 display server crawling state on app
 
-/Users/burakguner/kod/hellocrux/server/src/prepare/mod.rs
+/Users/burakguner/kod/streamy/server/src/prepare/mod.rs
 47
 display an error message on client when preparation fails
 
-/Users/burakguner/kod/hellocrux/Cargo.toml
+/Users/burakguner/kod/streamy/Cargo.toml
 21
 bug where adding download crashes the app due to navigation (pop 2)
 
-/Users/burakguner/kod/hellocrux/Cargo.toml
+/Users/burakguner/kod/streamy/Cargo.toml
 19
 ability to skip based on video section, tracks already have this data
 
-/Users/burakguner/kod/hellocrux/server/src/prepare/mod.rs
+/Users/burakguner/kod/streamy/server/src/prepare/mod.rs
 137
 get audio track metadata title to display during track selection
 
-/Users/burakguner/kod/hellocrux/ios/Streamy/Screens/Player/Player.swift
+/Users/burakguner/kod/streamy/ios/Streamy/Screens/Player/Player.swift
 139
 landscape should automatically extend view
 
-/Users/burakguner/kod/hellocrux/server/src/service/prepare.rs
+/Users/burakguner/kod/streamy/server/src/service/prepare.rs
 174
 Implement loop detection for preparing
 
-/Users/burakguner/kod/hellocrux/server/src/service/process.rs
+/Users/burakguner/kod/streamy/server/src/service/process.rs
 189
 we should avoid using save_path field. It only gives us the torrent downloads folder. We should instead directly use the content folder in series mapping
 
-/Users/burakguner/kod/hellocrux/ffmpeg/src/extract.rs
+/Users/burakguner/kod/streamy/ffmpeg/src/extract.rs
 45
 pass -nostdin to ffmpeg
 
-/Users/burakguner/kod/hellocrux/ffmpeg/src/encode.rs
+/Users/burakguner/kod/streamy/ffmpeg/src/encode.rs
 198
 add -dn and -tn to omit data and attachment streams
 
-/Users/burakguner/kod/hellocrux/ffmpeg/src/lib.rs
+/Users/burakguner/kod/streamy/ffmpeg/src/lib.rs
 21
 pass -report option to ffmpeg so we can collect logs
 
-/Users/burakguner/kod/hellocrux/ffmpeg/src/track.rs
+/Users/burakguner/kod/streamy/ffmpeg/src/track.rs
 134
 make reencoding faster
 
-/Users/burakguner/kod/hellocrux/Cargo.toml
+/Users/burakguner/kod/streamy/Cargo.toml
 1
 tmdb id is not being saved
 
-/Users/burakguner/kod/hellocrux/Cargo.toml
+/Users/burakguner/kod/streamy/Cargo.toml
 21
 implement library deletion
 
-/Users/burakguner/kod/hellocrux/server/src/prepare/mod.rs
+/Users/burakguner/kod/streamy/server/src/prepare/mod.rs
 187
 add validation to track selections
 
-/Users/burakguner/kod/hellocrux/domain/src/subtitles.rs
+/Users/burakguner/kod/streamy/domain/src/subtitles.rs
 30
 change subtitle_id usize to strgin at some point
 
-/Users/burakguner/kod/hellocrux/server/src/prepare/mod.rs
+/Users/burakguner/kod/streamy/server/src/prepare/mod.rs
 14
 eliminate "video tracks" based on codec (we saw png???)
 
-/Users/burakguner/kod/hellocrux/ffmpeg/src/spawn.rs
+/Users/burakguner/kod/streamy/ffmpeg/src/spawn.rs
 64
 remove styling tags using -c:s text while doing subs extraction
 
-/Users/burakguner/kod/hellocrux/ios/Streamy/Screens/Manager/NewDownloadScreen.swift
+/Users/burakguner/kod/streamy/ios/Streamy/Screens/Manager/NewDownloadScreen.swift
 31
 save new download in local db for offline sync
 
-/Users/burakguner/kod/hellocrux/ios/Streamy/Screens/ListScreen.swift
+/Users/burakguner/kod/streamy/ios/Streamy/Screens/ListScreen.swift
 24
 allow spotlight search
 
-/Users/burakguner/kod/hellocrux/README.md
+/Users/burakguner/kod/streamy/README.md
 2
 use a proper env lib for external service API keys
 
-/Users/burakguner/kod/hellocrux/domain/src/media.rs
+/Users/burakguner/kod/streamy/domain/src/media.rs
 264
 make strip prefix/parse prefix a trait + generic
 
-/Users/burakguner/kod/hellocrux/Cargo.toml
+/Users/burakguner/kod/streamy/Cargo.toml
 2
 get all tests working and passing
 
