@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use log::{error, info, warn};
+use log::{debug, error, info, warn};
 
 pub enum PrepareMessage {
     Prepare((domain::MediaMetaData, domain::MediaIdentifier)),
@@ -59,6 +59,20 @@ pub fn spawn(
             // 1. Handle Message
             match signal {
                 PrepareMessage::Prepare((media_metadata, media_identifier)) => {
+                    // 0. See if item was already added
+                    if preparing_queue
+                        .iter()
+                        .map(|item| &item.2)
+                        .chain(track_selection_wait_queue.iter().map(|item| &item.1.media))
+                        .find(|already_queued_item| **already_queued_item == media_identifier)
+                        .is_some()
+                    {
+                        debug!(
+                            "Tried to enqueue {media_identifier:#?} for preparation but it's already in queue. Ignoring it."
+                        );
+                        continue;
+                    }
+
                     // 1. See if we can queue the item immediately
                     let default_track_selections = match crate::prepare::default_track_selections(
                         &media_identifier.path().media,
@@ -74,7 +88,6 @@ pub fn spawn(
                         }
                     };
 
-                    // TODO: dedupe
                     match default_track_selections {
                         Some(track_selections) => {
                             // TODO instead of doing a search here, find a more clever way
